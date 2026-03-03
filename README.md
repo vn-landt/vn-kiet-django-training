@@ -1,0 +1,1 @@
+# vn-kiet-django-training
