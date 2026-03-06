@@ -1,0 +1,171 @@
+package org.mfi.algo.ugenmax;
+
+import org.mfi.core.IMiner;
+import org.mfi.core.Itemset;
+import org.mfi.core.Transaction;
+
+import java.util.*;
+
+/**
+ * Implementation of the UGenMax algorithm for mining Maximal Frequent Itemsets 
+ * from uncertain databases.
+ */
+public class UGenMaxMiner implements IMiner {
+    
+    // Global static variables for evaluation metrics
+    public static long visitedNodes = 0;
+    public static long prunedNodes = 0;
+    
+    private double minEsup;
+    private MFIStructure mfiStructure;
+
+    /**
+     * Constructs a UGenMaxMiner with a specified minimum expected support.
+     *
+     * @param minEsup The minimum expected support threshold.
+     */
+    public UGenMaxMiner(double minEsup) {
+        this.minEsup = minEsup;
+        this.mfiStructure = new MFIStructure();
+    }
+
+    @Override
+    public List<Itemset> mine(List<Transaction> database) {
+        // Reset evaluation metrics at the beginning of each run
+        visitedNodes = 0;
+        prunedNodes = 0;
+        
+        Map<Integer, Itemset> verticalDB = new HashMap<>();
+        
+        // --- STEP 1: Read data into vertical format and filter F1 ---
+        for (Transaction t : database) {
+            int tid = t.getTid();
+            for (Integer itemId : t.getItems()) {
+                verticalDB.putIfAbsent(itemId, new Itemset());
+                Itemset itemset = verticalDB.get(itemId);
+                if (itemset.getItemsSet().isEmpty()) {
+                    itemset.addItem(itemId);
+                }
+                itemset.addTidProbability(tid, t.getItemProbability(itemId));
+            }
+        }
+
+        List<Itemset> f1 = new ArrayList<>();
+        for (Itemset item : verticalDB.values()) {
+            if (item.getExpectedSupport() >= minEsup) {
+                f1.add(item);
+            }
+        }
+
+        // --- STEP 2: Compute F2 matrix and IF(x) index ---
+        // IF(x) is the number of infrequent 2-itemsets containing item x
+        Map<Integer, Integer> IF_x = new HashMap<>();
+        for (Itemset item : f1) {
+            IF_x.put(item.getItemsSet().iterator().next(), 0);
+        }
+
+        for (int i = 0; i < f1.size(); i++) {
+            for (int j = i + 1; j < f1.size(); j++) {
+                Itemset itemA = f1.get(i);
+                Itemset itemB = f1.get(j);
+                
+                // Super-fast array intersection
+                Itemset pair = itemA.intersect(itemB);
+                
+                if (pair.getExpectedSupport() < minEsup) {
+                    int idA = itemA.getItemsSet().iterator().next();
+                    int idB = itemB.getItemsSet().iterator().next();
+                    IF_x.put(idA, IF_x.get(idA) + 1);
+                    IF_x.put(idB, IF_x.get(idB) + 1);
+                }
+            }
+        }
+
+        // --- STEP 3: Combined sorting ---
+        // Sort candidates by IF(x) descending (for early pruning) then by ESup ascending
+        f1.sort((a, b) -> {
+            int idA = a.getItemsSet().iterator().next();
+            int idB = b.getItemsSet().iterator().next();
+            
+            int cmpIF = Integer.compare(IF_x.get(idB), IF_x.get(idA)); 
+            if (cmpIF != 0) return cmpIF;
+            return Double.compare(a.getExpectedSupport(), b.getExpectedSupport()); 
+        });
+
+        // --- STEP 4: Recursive traversal with Progressive Focusing (LMFI) ---
+        if (!f1.isEmpty()) {
+            List<Itemset> initialLMFI = new ArrayList<>(mfiStructure.getMFIList());
+            dfs(new Itemset(), f1, initialLMFI);
+        }
+        return mfiStructure.getMFIList();
+    }
+
+   private void dfs(Itemset current, List<Itemset> candidates, List<Itemset> LMFI) {
+        for (int i = 0; i < candidates.size(); i++) {
+            
+            visitedNodes++;
+            
+            Itemset candidate = candidates.get(i);
+            Itemset newGen = current.isEmpty() ? candidate : current.intersect(candidate); 
+
+            // SUPERSET PRUNING (Look-ahead v?i t?p P_{l+1} chua l?c)
+            Set<Integer> combinedItems = new HashSet<>(newGen.getItemsSet());
+            for (int j = i + 1; j < candidates.size(); j++) {
+                combinedItems.addAll(candidates.get(j).getItemsSet());
+            }
+            
+            boolean isSubsumed = false;
+            for (Itemset mfi : LMFI) {
+                if (mfi.getItemsSet().containsAll(combinedItems)) {
+                    isSubsumed = true;
+                    break;
+                }
+            }
+            
+            if (isSubsumed) {
+                prunedNodes++;
+                return; 
+            }
+
+            // KI?M TRA TÍNH PH? BI?N VÀ T?O T?P K?T H?P (Combine Set - C_{l+1})
+            if (newGen.getExpectedSupport() >= minEsup) {
+                List<Itemset> newCandidates = new ArrayList<>();
+                
+                // --- PH?N CODE ÐU?C S?A Ð?I B?T Ð?U T? ÐÂY ---
+                for (int j = i + 1; j < candidates.size(); j++) {
+                    Itemset candY = candidates.get(j);
+                    
+                    // L?C TRU?C: Th? giao c?t newGen v?i ?ng viên Y
+                    Itemset testIntersect = newGen.intersect(candY);
+                    
+                    // Ch? dua ?ng viên Y vào vòng d? quy ti?p theo n?u k?t h?p c?a chúng là PH? BI?N
+                    if (testIntersect.getExpectedSupport() >= minEsup) {
+                        newCandidates.add(candY); 
+                    }
+                }
+                
+                // Tùy ch?n T?i uu hóa b? sung c?a GenMax: S?p x?p newCandidates theo ESup tang d?n
+                newCandidates.sort(Comparator.comparingDouble(Itemset::getExpectedSupport));
+                // --- K?T THÚC PH?N S?A Ð?I ---
+
+                if (!newCandidates.isEmpty()) {
+                    List<Itemset> nextLMFI = new ArrayList<>();
+                    for (Itemset mfi : LMFI) {
+                        if (mfi.containsAll(candidate)) {
+                            nextLMFI.add(mfi);
+                        }
+                    }
+                    dfs(newGen, newCandidates, nextLMFI);
+                }
+
+                // KI?M TRA MAXIMAL (Sau d? quy)
+                if (!mfiStructure.isSubSetOfMFI(newGen)) {
+                    mfiStructure.addMFI(newGen);
+                    LMFI.add(newGen); 
+                }
+            } else {
+                prunedNodes++;
+            }
+        }
+    }
+}
