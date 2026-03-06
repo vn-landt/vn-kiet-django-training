@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <h1>{{ aimodel.name }}</h1>
+    <p><strong>Mô tả:</strong> {{ aimodel.description|linebreaks }}</p>
+    <p><strong>Ngày tạo:</strong> {{ aimodel.created_at|date:"d/m/Y H:i" }}</p>
+    {% if aimodel.model_file %}
+        <p><strong>File model:</strong> <a href="{{ aimodel.model_file.url }}">Tải về</a></p>
+    {% else %}
+        <p>Chưa upload file model.</p>
+    {% endif %}
+    <p><a href="{% url 'aimodel_list' %}">Quay lại danh sách</a></p>
+</body>
+</html>

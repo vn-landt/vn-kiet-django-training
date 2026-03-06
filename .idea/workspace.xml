@@ -4,11 +4,25 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="&quot;Init app&quot;" />
+    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="&quot;Test Admin&quot;">
+      <change afterPath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_detail.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_list.html" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/models_app/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ai_model_hub/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_model_hub/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/views.py" afterDir="false" />
+    </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="FileTemplateManagerImpl">
+    <option name="RECENT_TEMPLATES">
+      <list>
+        <option value="Python Script" />
+      </list>
+    </option>
   </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
@@ -27,7 +41,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "develop",
+    "git-widget-placeholder": "feature/admin-interface-and-crud",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/New folder/vn-kiet-django-training",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
@@ -72,11 +86,20 @@
       <option name="project" value="LOCAL" />
       <updated>1772785611352</updated>
     </task>
-    <option name="localTasksCounter" value="4" />
+    <task id="LOCAL-00004" summary="&quot;Test Admin&quot;">
+      <option name="closed" value="true" />
+      <created>1772785885570</created>
+      <option name="number" value="00004" />
+      <option name="presentableId" value="LOCAL-00004" />
+      <option name="project" value="LOCAL" />
+      <updated>1772785885570</updated>
+    </task>
+    <option name="localTasksCounter" value="5" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="&quot;Init app&quot;" />
-    <option name="LAST_COMMIT_MESSAGE" value="&quot;Init app&quot;" />
+    <MESSAGE value="&quot;Test Admin&quot;" />
+    <option name="LAST_COMMIT_MESSAGE" value="&quot;Test Admin&quot;" />
   </component>
 </project>

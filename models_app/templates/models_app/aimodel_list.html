@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title }}</title>
+</head>
+<body>
+    <h1>Danh sách Model AI</h1>
+    {% if aimodels %}
+        <ul>
+        {% for model in aimodels %}
+            <li>
+                <a href="{% url 'aimodel_detail' model.pk %}">{{ model.name }}</a>
+                - Tạo: {{ model.created_at|date:"d/m/Y" }}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>Chưa có model AI nào. Hãy thêm qua /admin/!</p>
+    {% endif %}
+    <p><a href="{% url 'aimodel_list' %}">Quay lại danh sách</a></p>
+</body>
+</html>
