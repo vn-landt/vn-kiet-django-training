@@ -10,7 +10,7 @@
         <ul>
         {% for model in aimodels %}
             <li>
-                <a href="{% url 'aimodel_detail' model.pk %}">{{ model.name }}</a>
+                <a href="{% url 'models_app:aimodel_detail' pk=model.pk %}">{{ model.name }}</a>
                 - Tạo: {{ model.created_at|date:"d/m/Y" }}
             </li>
         {% endfor %}
@@ -18,6 +18,6 @@
     {% else %}
         <p>Chưa có model AI nào. Hãy thêm qua /admin/!</p>
     {% endif %}
-    <p><a href="{% url 'aimodel_list' %}">Quay lại danh sách</a></p>
+    <a href="{% url 'models_app:aimodel_list' %}">Quay lại danh sách</a>
 </body>
 </html>

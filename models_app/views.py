@@ -19,3 +19,6 @@ def aimodel_detail(request, pk):
         'title': f'{model_obj.name} - Chi tiết',
     }
     return render(request, 'models_app/aimodel_detail.html', context)
+
+def home(request):
+    return render(request, 'models_app/home.html', {'title': 'Chào mừng đến AI Model Hub'})

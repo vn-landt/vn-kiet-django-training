@@ -4,12 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="&quot;Test Admin&quot;">
-      <change afterPath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_detail.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_list.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models_app/urls.py" afterDir="false" />
+    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="&quot;Test View&quot;">
+      <change afterPath="$PROJECT_DIR$/models_app/templates/models_app/home.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ai_model_hub/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_model_hub/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_detail.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_list.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models_app/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -41,7 +42,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feature/admin-interface-and-crud",
+    "git-widget-placeholder": "feature/views-and-basic-list-detail",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/New folder/vn-kiet-django-training",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
@@ -94,12 +95,21 @@
       <option name="project" value="LOCAL" />
       <updated>1772785885570</updated>
     </task>
-    <option name="localTasksCounter" value="5" />
+    <task id="LOCAL-00005" summary="&quot;Test View&quot;">
+      <option name="closed" value="true" />
+      <created>1772786272055</created>
+      <option name="number" value="00005" />
+      <option name="presentableId" value="LOCAL-00005" />
+      <option name="project" value="LOCAL" />
+      <updated>1772786272056</updated>
+    </task>
+    <option name="localTasksCounter" value="6" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="&quot;Init app&quot;" />
     <MESSAGE value="&quot;Test Admin&quot;" />
-    <option name="LAST_COMMIT_MESSAGE" value="&quot;Test Admin&quot;" />
+    <MESSAGE value="&quot;Test View&quot;" />
+    <option name="LAST_COMMIT_MESSAGE" value="&quot;Test View&quot;" />
   </component>
 </project>
