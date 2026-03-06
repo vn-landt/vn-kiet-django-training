@@ -4,14 +4,14 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="&quot;Test View&quot;">
-      <change afterPath="$PROJECT_DIR$/models_app/templates/models_app/home.html" afterDir="false" />
+    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="&quot;refactor: Organize URLs with app_name namespace + named patterns + include()&quot;">
+      <change afterPath="$PROJECT_DIR$/ai_model_hub/static/css/style.css" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/models_app/templates/models_app/base.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ai_model_hub/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_model_hub/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ai_model_hub/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_model_hub/settings.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_detail.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_list.html" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_list.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models_app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/models_app/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/templates/models_app/home.html" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/templates/models_app/home.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -42,12 +42,19 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feature/views-and-basic-list-detail",
+    "git-widget-placeholder": "feature/urls-and-named-routing",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/New folder/vn-kiet-django-training",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
   }
 }]]></component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="D:\New folder\vn-kiet-django-training" />
+      <recent name="D:\New folder\vn-kiet-django-training\ai_model_hub\templates" />
+      <recent name="D:\New folder\vn-kiet-django-training\models_app\templates\models_app" />
+    </key>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
@@ -103,13 +110,22 @@
       <option name="project" value="LOCAL" />
       <updated>1772786272056</updated>
     </task>
-    <option name="localTasksCounter" value="6" />
+    <task id="LOCAL-00006" summary="&quot;refactor: Organize URLs with app_name namespace + named patterns + include()&quot;">
+      <option name="closed" value="true" />
+      <created>1772788565781</created>
+      <option name="number" value="00006" />
+      <option name="presentableId" value="LOCAL-00006" />
+      <option name="project" value="LOCAL" />
+      <updated>1772788565781</updated>
+    </task>
+    <option name="localTasksCounter" value="7" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="&quot;Init app&quot;" />
     <MESSAGE value="&quot;Test Admin&quot;" />
     <MESSAGE value="&quot;Test View&quot;" />
-    <option name="LAST_COMMIT_MESSAGE" value="&quot;Test View&quot;" />
+    <MESSAGE value="&quot;refactor: Organize URLs with app_name namespace + named patterns + include()&quot;" />
+    <option name="LAST_COMMIT_MESSAGE" value="&quot;refactor: Organize URLs with app_name namespace + named patterns + include()&quot;" />
   </component>
 </project>

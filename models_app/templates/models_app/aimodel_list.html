@@ -1,23 +1,18 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <title>{{ title }}</title>
-</head>
-<body>
-    <h1>Danh sách Model AI</h1>
+{% extends 'base.html' %}
+
+{% block title %}Danh sách Model AI{% endblock %}
+
+{% block content %}
+    <h2>Danh sách Model AI</h2>
     {% if aimodels %}
-        <ul>
         {% for model in aimodels %}
-            <li>
-                <a href="{% url 'models_app:aimodel_detail' pk=model.pk %}">{{ model.name }}</a>
-                - Tạo: {{ model.created_at|date:"d/m/Y" }}
-            </li>
+            <div class="card">
+                <h3><a href="{% url 'models_app:aimodel_detail' pk=model.pk %}">{{ model.name }}</a></h3>
+                <p><strong>Tạo lúc:</strong> {{ model.created_at|date:"d/m/Y H:i" }}</p>
+                <p>{{ model.description|truncatewords:30|linebreaks }}</p>
+            </div>
         {% endfor %}
-        </ul>
     {% else %}
-        <p>Chưa có model AI nào. Hãy thêm qua /admin/!</p>
+        <p>Chưa có model nào. Hãy thêm qua <a href="/admin/">Admin</a>!</p>
     {% endif %}
-    <a href="{% url 'models_app:aimodel_list' %}">Quay lại danh sách</a>
-</body>
-</html>
+{% endblock %}
