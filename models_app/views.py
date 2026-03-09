@@ -1,5 +1,6 @@
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from .models import AIModel
+from .forms import AIModelForm
 
 # Function-Based View: List tất cả AIModel
 def aimodel_list(request):
@@ -22,3 +23,17 @@ def aimodel_detail(request, pk):
 
 def home(request):
     return render(request, 'models_app/home.html', {'title': 'Chào mừng đến AI Model Hub'})
+
+def aimodel_create(request):
+    if request.method == 'POST':
+        form = AIModelForm(request.POST, request.FILES)  # request.FILES cho file upload
+        if form.is_valid():
+            form.save()
+            return redirect('models_app:aimodel_list')  # Redirect sau khi save thành công
+    else:
+        form = AIModelForm()
+
+    return render(request, 'models_app/aimodel_form.html', {
+        'form': form,
+        'title': 'Upload Model AI Mới',
+    })

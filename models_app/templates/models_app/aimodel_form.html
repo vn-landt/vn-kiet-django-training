@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}Upload Model AI{% endblock %}
+
+{% block content %}
+    <h2>Upload Model AI Mới</h2>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}  <!-- Render form đơn giản (p tags) -->
+        <button type="submit" class="btn btn-primary">Upload</button>
+    </form>
+    <p><a href="{% url 'models_app:aimodel_list' %}">← Quay lại danh sách</a></p>
+{% endblock %}
