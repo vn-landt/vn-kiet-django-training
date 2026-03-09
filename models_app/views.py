@@ -12,7 +12,11 @@ from django.contrib.auth import logout
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
-from .serializers import AIModelSerializer
+from .serializers import AIModelSerializer, PredictInputSerializer
+from rest_framework import status
+import joblib
+import os
+from django.conf import settings
 
 
 # 1. ListView cho danh sách AIModel
@@ -103,3 +107,46 @@ class AIModelViewSet(viewsets.ModelViewSet):
         if aimodel.model_file:
             return Response({'file_url': aimodel.model_file.url})
         return Response({'error': 'No file available'}, status=404)
+
+    @action(detail=True, methods=['post'], permission_classes=[permissions.IsAuthenticated])
+    def predict(self, request, pk=None):
+        aimodel = self.get_object()
+
+        file_path = aimodel.model_file.path
+        if not os.path.exists(file_path):
+            return Response({"error": "Model file not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        try:
+            model = joblib.load(file_path)  # Load Iris model (scikit-learn)
+        except Exception as e:
+            return Response({"error": f"Load model failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        # Input cho Iris: 4 features số
+        serializer = PredictInputSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+        # Giả sử input là list 4 số (từ serializer)
+        features = serializer.validated_data.get('features')  # Thêm field này ở serializer
+        if not features or len(features) != 4:
+            return Response({"error": "Input phải là mảng 4 số (sepal_length, sepal_width, petal_length, petal_width)"},
+                            status=400)
+
+        try:
+            # Predict: input là [[...]] vì scikit-learn expect 2D array
+            prediction = model.predict([features])[0]
+            probability = model.predict_proba([features])[0] if hasattr(model, 'predict_proba') else None
+
+            # Map class sang tên hoa (Iris chuẩn)
+            iris_classes = ["setosa", "versicolor", "virginica"]
+            result = {
+                "predicted_class": iris_classes[prediction],
+                "class_id": int(prediction),
+                "probability": probability.tolist() if probability is not None else None,
+                "input_features": features,
+                "model_name": aimodel.name
+            }
+        except Exception as e:
+            return Response({"error": f"Predict failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        return Response(result, status=status.HTTP_200_OK)

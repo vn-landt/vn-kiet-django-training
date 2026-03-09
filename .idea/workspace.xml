@@ -4,13 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="feat: Implement basic authentication (login, logout, register) + LoginRequiredMixin for CRUD views">
-      <change afterPath="$PROJECT_DIR$/models_app/api_urls.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/models_app/serializers.py" afterDir="false" />
+    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="feat: Implement REST API with DRF - AIModelViewSet, serializers, routers, token auth">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ai_model_hub/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_model_hub/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ai_model_hub/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_model_hub/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/serializers.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models_app/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -42,7 +39,7 @@
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feature/Authentication-basic",
+    "git-widget-placeholder": "feature/REST-API-with-REST-FRAMEWORK",
     "ignore.virus.scanning.warn.message": "true",
     "last_opened_file_path": "D:/New folder/vn-kiet-django-training",
     "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
@@ -142,7 +139,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773040582305</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="feat: Implement REST API with DRF - AIModelViewSet, serializers, routers, token auth">
+      <option name="closed" value="true" />
+      <created>1773044904412</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1773044904412</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -153,6 +158,7 @@
     <MESSAGE value="&quot;feat: Implement template inheritance with base.html + static CSS for better UI&quot;" />
     <MESSAGE value="feat: Add UpdateView and DeleteView for AIModel + confirm delete template" />
     <MESSAGE value="feat: Implement basic authentication (login, logout, register) + LoginRequiredMixin for CRUD views" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: Implement basic authentication (login, logout, register) + LoginRequiredMixin for CRUD views" />
+    <MESSAGE value="feat: Implement REST API with DRF - AIModelViewSet, serializers, routers, token auth" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: Implement REST API with DRF - AIModelViewSet, serializers, routers, token auth" />
   </component>
 </project>
