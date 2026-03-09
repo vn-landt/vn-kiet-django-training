@@ -37,6 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'rest_framework',
+    'rest_framework.authtoken',
     'models_app', ## save ALL AI Models
 ]
 
@@ -127,3 +129,13 @@ STATIC_ROOT = BASE_DIR / 'staticfiles'
 LOGIN_REDIRECT_URL = '/'  # Sau login redirect về home
 LOGOUT_REDIRECT_URL = '/'  # Sau logout về home
 LOGIN_URL = '/login/'     # Trang login mặc định
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': [
+        'rest_framework.authentication.TokenAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    ],
+    'DEFAULT_PERMISSION_CLASSES': [
+        'rest_framework.permissions.IsAuthenticatedOrReadOnly',
+    ]
+}

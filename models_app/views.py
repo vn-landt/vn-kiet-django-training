@@ -9,6 +9,10 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic.edit import CreateView
 from .forms import RegisterForm
 from django.contrib.auth import logout
+from rest_framework import viewsets, permissions
+from rest_framework.response import Response
+from rest_framework.decorators import action
+from .serializers import AIModelSerializer
 
 
 # 1. ListView cho danh sách AIModel
@@ -78,3 +82,24 @@ class RegisterView(CreateView):
     form_class = RegisterForm
     template_name = 'models_app/register.html'
     success_url = reverse_lazy('models_app:login')
+
+class AIModelViewSet(viewsets.ModelViewSet):
+    """
+    API endpoint cho AIModel: list, create, retrieve, update, delete.
+    """
+    queryset = AIModel.objects.all().order_by('-created_at')
+    serializer_class = AIModelSerializer
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Read: ai cũng được, Write: phải login
+
+    # Optional: Filter theo user nếu sau này add owner field
+    # def get_queryset(self):
+    #     if self.request.user.is_authenticated:
+    #         return AIModel.objects.filter(owner=self.request.user)
+    #     return AIModel.objects.none()  # Hoặc public
+
+    @action(detail=True, methods=['get'])
+    def download(self, request, pk=None):
+        aimodel = self.get_object()
+        if aimodel.model_file:
+            return Response({'file_url': aimodel.model_file.url})
+        return Response({'error': 'No file available'}, status=404)

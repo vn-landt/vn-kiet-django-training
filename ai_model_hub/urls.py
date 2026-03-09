@@ -22,4 +22,5 @@ from django.conf.urls.static import static
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include('models_app.urls')),  # Include app urls tại root
+    path('', include('models_app.api_urls')),  # api urls
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
