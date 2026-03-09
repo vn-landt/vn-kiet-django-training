@@ -1,5 +1,7 @@
 from django import forms
 from .models import AIModel
+from django.contrib.auth.forms import UserCreationForm
+from django.contrib.auth.models import User
 
 class AIModelForm(forms.ModelForm):
     class Meta:
@@ -20,3 +22,10 @@ class AIModelForm(forms.ModelForm):
             if not any(file.name.lower().endswith(ext) for ext in allowed_extensions):
                 raise forms.ValidationError("Chỉ chấp nhận file .pkl, .h5, .joblib, .pt")
         return file
+
+class RegisterForm(UserCreationForm):
+    email = forms.EmailField(required=True)
+
+    class Meta:
+        model = User
+        fields = ['username', 'email', 'password1', 'password2']

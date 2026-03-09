@@ -123,3 +123,7 @@ MEDIA_ROOT = BASE_DIR / 'media'
 
 STATICFILES_DIRS = [BASE_DIR / 'static']
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
+LOGIN_REDIRECT_URL = '/'  # Sau login redirect về home
+LOGOUT_REDIRECT_URL = '/'  # Sau logout về home
+LOGIN_URL = '/login/'     # Trang login mặc định

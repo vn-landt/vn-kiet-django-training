@@ -13,8 +13,14 @@
         <nav>
             <a href="{% url 'models_app:home' %}">Trang chủ</a>
             <a href="{% url 'models_app:aimodel_list' %}">Danh sách Model</a>
-            <a href="{% url 'models_app:aimodel_create' %}">Upload Model Mới</a>
-            <a href="/admin/">Admin (Login)</a>
+            {% if user.is_authenticated %}
+                <a href="{% url 'models_app:aimodel_create' %}">Upload Model Mới</a>
+                <span>Xin chào, {{ user.username }}!</span>
+                <a href="{% url 'models_app:logout' %}">Đăng xuất</a>
+            {% else %}
+                <a href="{% url 'models_app:login' %}">Đăng nhập</a>
+                <a href="{% url 'models_app:register' %}">Đăng ký</a>
+            {% endif %}
         </nav>
     </header>
 

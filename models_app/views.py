@@ -1,8 +1,15 @@
+from django.template.context_processors import request
 from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from .models import AIModel
 from .forms import AIModelForm
 from django.shortcuts import render, get_object_or_404, redirect
+from django.contrib.auth.views import LoginView, LogoutView
+from django.contrib.auth.mixins import LoginRequiredMixin
+from django.views.generic.edit import CreateView
+from .forms import RegisterForm
+from django.contrib.auth import logout
+
 
 # 1. ListView cho danh sách AIModel
 class AIModelListView(ListView):
@@ -18,7 +25,8 @@ class AIModelDetailView(DetailView):
     context_object_name = 'aimodel'
 
 # 3. CreateView cho upload mới
-class AIModelCreateView(CreateView):
+class AIModelCreateView(LoginRequiredMixin, CreateView):
+    login_url = '/login/'
     model = AIModel
     form_class = AIModelForm  # Dùng form đã tạo ở phần 7
     template_name = 'models_app/aimodel_form.html'
@@ -54,3 +62,19 @@ class AIModelDeleteView(DeleteView):
 
 def home(request):
     return render(request, 'models_app/home.html', {'title': 'Chào mừng đến AI Model Hub'})
+
+# Login (generic)
+class CustomLoginView(LoginView):
+    template_name = 'models_app/login.html'
+    redirect_authenticated_user = True  # Nếu đã login thì redirect
+
+# Logout (generic)
+def custom_logout(request):
+    logout(request)
+    return redirect('models_app:home')  # hoặc redirect('/')
+
+# Register (CreateView)
+class RegisterView(CreateView):
+    form_class = RegisterForm
+    template_name = 'models_app/register.html'
+    success_url = reverse_lazy('models_app:login')
