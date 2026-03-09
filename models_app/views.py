@@ -1,4 +1,4 @@
-from django.views.generic import ListView, DetailView, CreateView
+from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
 from django.urls import reverse_lazy
 from .models import AIModel
 from .forms import AIModelForm
@@ -27,6 +27,29 @@ class AIModelCreateView(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context['title'] = 'Upload Model AI Mới'
+        return context
+
+# 4. UpdateView: Chỉnh sửa AIModel
+class AIModelUpdateView(UpdateView):
+    model = AIModel
+    form_class = AIModelForm
+    template_name = 'models_app/aimodel_form.html'  # Dùng chung template với create
+    success_url = reverse_lazy('models_app:aimodel_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Chỉnh sửa: {self.object.name}'
+        return context
+
+# 5. DeleteView: Xóa AIModel
+class AIModelDeleteView(DeleteView):
+    model = AIModel
+    template_name = 'models_app/aimodel_confirm_delete.html'  # Template confirm riêng
+    success_url = reverse_lazy('models_app:aimodel_list')
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context['title'] = f'Xác nhận xóa: {self.object.name}'
         return context
 
 def home(request):

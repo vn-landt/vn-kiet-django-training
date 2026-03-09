@@ -13,6 +13,10 @@
         {% else %}
             <p>Chưa có file model.</p>
         {% endif %}
+        <div>
+            <a href="{% url 'models_app:aimodel_update' pk=aimodel.pk %}" class="btn btn-warning">Chỉnh sửa</a>
+            <a href="{% url 'models_app:aimodel_delete' pk=aimodel.pk %}" class="btn btn-danger">Xóa</a>
+        </div>
     </div>
     <a href="{% url 'models_app:aimodel_list' %}">← Quay lại danh sách</a>
 {% endblock %}
