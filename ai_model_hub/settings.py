@@ -140,4 +140,4 @@ REST_FRAMEWORK = {
     ]
 }
 
-GEMINI_API_KEY = 'AIzaSyAkfCAKqnO7IaSsKr7yjNonmFXqqvMNn7s'
+GEMINI_API_KEY = '####'
