@@ -4,10 +4,18 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="feat: Implement REST API with DRF - AIModelViewSet, serializers, routers, token auth">
+    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="feat: Add predict action in AIModelViewSet for inference on uploaded models">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/db.sqlite3" beforeDir="false" afterPath="$PROJECT_DIR$/db.sqlite3" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ai_model_hub/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_model_hub/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/ai_model_hub/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_model_hub/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/manage.py" beforeDir="false" afterPath="$PROJECT_DIR$/manage.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/admin.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/admin.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/api_urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/api_urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/forms.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/forms.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/models.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models_app/serializers.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/serializers.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_form.html" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/templates/models_app/aimodel_form.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/urls.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/models_app/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/views.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -33,18 +41,18 @@
     <option name="hideEmptyMiddlePackages" value="true" />
     <option name="showLibraryContents" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "ModuleVcsDetector.initialDetectionPerformed": "true",
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
-    "RunOnceActivity.git.unshallow": "true",
-    "git-widget-placeholder": "feature/REST-API-with-REST-FRAMEWORK",
-    "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/New folder/vn-kiet-django-training",
-    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;feature/integration-inference-basic&quot;,
+    &quot;ignore.virus.scanning.warn.message&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;D:/New folder/vn-kiet-django-training&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="MoveFile.RECENT_KEYS">
       <recent name="D:\New folder\vn-kiet-django-training" />
@@ -147,7 +155,15 @@
       <option name="project" value="LOCAL" />
       <updated>1773044904412</updated>
     </task>
-    <option name="localTasksCounter" value="11" />
+    <task id="LOCAL-00011" summary="feat: Add predict action in AIModelViewSet for inference on uploaded models">
+      <option name="closed" value="true" />
+      <created>1773049482767</created>
+      <option name="number" value="00011" />
+      <option name="presentableId" value="LOCAL-00011" />
+      <option name="project" value="LOCAL" />
+      <updated>1773049482767</updated>
+    </task>
+    <option name="localTasksCounter" value="12" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -159,6 +175,18 @@
     <MESSAGE value="feat: Add UpdateView and DeleteView for AIModel + confirm delete template" />
     <MESSAGE value="feat: Implement basic authentication (login, logout, register) + LoginRequiredMixin for CRUD views" />
     <MESSAGE value="feat: Implement REST API with DRF - AIModelViewSet, serializers, routers, token auth" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: Implement REST API with DRF - AIModelViewSet, serializers, routers, token auth" />
+    <MESSAGE value="feat: Add predict action in AIModelViewSet for inference on uploaded models" />
+    <option name="LAST_COMMIT_MESSAGE" value="feat: Add predict action in AIModelViewSet for inference on uploaded models" />
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/ai_model_hub/urls.py</url>
+          <line>16</line>
+          <option name="timeStamp" value="1" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
   </component>
 </project>

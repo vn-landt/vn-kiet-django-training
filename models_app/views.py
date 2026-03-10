@@ -1,85 +1,95 @@
-from django.template.context_processors import request
-from django.views.generic import ListView, DetailView, CreateView, UpdateView, DeleteView
-from django.urls import reverse_lazy
-from .models import AIModel
-from .forms import AIModelForm
+from __future__ import unicode_literals
+
+import json
+import urllib2  # Python 2 use urllib2 instead urllib.request
+
+from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
+from django.template.context_processors import request
+from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
-from django.views.generic.edit import CreateView
-from .forms import RegisterForm
-from django.contrib.auth import logout
+
+try:
+    from django.urls import reverse_lazy
+except ImportError:
+    from django.core.urlresolvers import reverse_lazy
+
+from django.views.generic import (
+    ListView, DetailView, CreateView, UpdateView, DeleteView
+)
+
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
 from rest_framework.decorators import action
+
+# Import from project
+from .models import AIModel
+from .forms import AIModelForm, RegisterForm
 from .serializers import AIModelSerializer, PredictInputSerializer
-from rest_framework import status
-import joblib
-import os
-from django.conf import settings
 
-
-# 1. ListView cho danh sách AIModel
+# 1. ListView
 class AIModelListView(ListView):
     model = AIModel
     template_name = 'models_app/aimodel_list.html'
-    context_object_name = 'aimodels'  # Tên biến trong template (thay vì object_list)
-    ordering = ['-created_at']  # Sắp xếp mới nhất trước
+    context_object_name = 'aimodels'
+    ordering = ['-created_at']
 
-# 2. DetailView cho chi tiết
+# 2. DetailView
 class AIModelDetailView(DetailView):
     model = AIModel
     template_name = 'models_app/aimodel_detail.html'
     context_object_name = 'aimodel'
 
-# 3. CreateView cho upload mới
+# 3. CreateView
 class AIModelCreateView(LoginRequiredMixin, CreateView):
     login_url = '/login/'
     model = AIModel
-    form_class = AIModelForm  # Dùng form đã tạo ở phần 7
+    form_class = AIModelForm
     template_name = 'models_app/aimodel_form.html'
-    success_url = reverse_lazy('models_app:aimodel_list')  # Redirect sau save
+    success_url = reverse_lazy('models_app:aimodel_list')
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['title'] = 'Upload Model AI Mới'
+        context['title'] = 'Upload New Model AI'
         return context
 
-# 4. UpdateView: Chỉnh sửa AIModel
+
+# 4. UpdateView
 class AIModelUpdateView(UpdateView):
     model = AIModel
     form_class = AIModelForm
-    template_name = 'models_app/aimodel_form.html'  # Dùng chung template với create
+    template_name = 'models_app/aimodel_form.html'
     success_url = reverse_lazy('models_app:aimodel_list')
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = f'Chỉnh sửa: {self.object.name}'
+        context = super(AIModelUpdateView, self).get_context_data(**kwargs)
+        context['title'] = u'Settings: {0}'.format(self.object.name)
         return context
 
-# 5. DeleteView: Xóa AIModel
+# 5. DeleteView
 class AIModelDeleteView(DeleteView):
     model = AIModel
-    template_name = 'models_app/aimodel_confirm_delete.html'  # Template confirm riêng
+    template_name = 'models_app/aimodel_confirm_delete.html'  # Template
     success_url = reverse_lazy('models_app:aimodel_list')
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['title'] = f'Xác nhận xóa: {self.object.name}'
+        context = super(AIModelDeleteView, self).get_context_data(**kwargs)
+        context['title'] = u'Confirm Delete: {self.object.name}'
         return context
 
 def home(request):
-    return render(request, 'models_app/home.html', {'title': 'Chào mừng đến AI Model Hub'})
+    return render(request, 'models_app/home.html', {'title': 'Welcome to AI Model Hub'})
 
 # Login (generic)
 class CustomLoginView(LoginView):
     template_name = 'models_app/login.html'
-    redirect_authenticated_user = True  # Nếu đã login thì redirect
+    redirect_authenticated_user = True
 
 # Logout (generic)
 def custom_logout(request):
     logout(request)
-    return redirect('models_app:home')  # hoặc redirect('/')
+    return redirect('models_app:home')
 
 # Register (CreateView)
 class RegisterView(CreateView):
@@ -93,13 +103,7 @@ class AIModelViewSet(viewsets.ModelViewSet):
     """
     queryset = AIModel.objects.all().order_by('-created_at')
     serializer_class = AIModelSerializer
-    permission_classes = [permissions.IsAuthenticatedOrReadOnly]  # Read: ai cũng được, Write: phải login
-
-    # Optional: Filter theo user nếu sau này add owner field
-    # def get_queryset(self):
-    #     if self.request.user.is_authenticated:
-    #         return AIModel.objects.filter(owner=self.request.user)
-    #     return AIModel.objects.none()  # Hoặc public
+    permission_classes = [permissions.IsAuthenticatedOrReadOnly]
 
     @action(detail=True, methods=['get'])
     def download(self, request, pk=None):
@@ -112,41 +116,66 @@ class AIModelViewSet(viewsets.ModelViewSet):
     def predict(self, request, pk=None):
         aimodel = self.get_object()
 
-        file_path = aimodel.model_file.path
-        if not os.path.exists(file_path):
-            return Response({"error": "Model file not found"}, status=status.HTTP_404_NOT_FOUND)
+        if aimodel.model_type != 'gemini_ocr':
+            return self.old_predict_logic(request, aimodel)
+
+        # Gemini OCR/Table Extraction
+        if 'image' not in request.FILES:
+            return Response({"error": "Request Input 1 Image"}, status=400)
+
+        image_file = request.FILES['image']
+        image_content = image_file.read()
+        base64_image = base64.b64encode(image_content)
+
+        url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + settings.GEMINI_API_KEY
+
+        prompt = """
+        Extract the entire data table from this image as a JSON array of objects.
+        Each object is a row, with the key being the column header.
+        If no table is available, return the full text.
+        """
+
+        payload = {
+            "contents": [{
+                "parts": [
+                    {"text": prompt},
+                    {"inline_data": {
+                        "mime_type": image_file.content_type or "image/jpeg",
+                        "data": base64_image
+                    }}
+                ]
+            }]
+        }
 
         try:
-            model = joblib.load(file_path)  # Load Iris model (scikit-learn)
+            req = urllib2.Request(url, json.dumps(payload), {'Content-Type': 'application/json'})
+            response = urllib2.urlopen(req)
+            data = json.load(response)
+            gemini_response = data['candidates'][0]['content']['parts'][0]['text']
+
+            try:
+                extracted_data = json.loads(gemini_response)
+            except:
+                extracted_data = {"text": gemini_response}
+
+            from StringIO import StringIO
+            import csv
+
+            output = StringIO()
+            writer = csv.writer(output)
+            if isinstance(extracted_data, list):
+                if extracted_data:
+                    headers = extracted_data[0].keys()
+                    writer.writerow(headers)
+                    for row in extracted_data:
+                        writer.writerow([row.get(h, '') for h in headers])
+            else:
+                writer.writerow(["Extracted Text"])
+                writer.writerow([extracted_data.get('text', '')])
+
+            response = HttpResponse(output.getvalue(), content_type='text/csv')
+            response['Content-Disposition'] = 'attachment; filename="extracted_data.csv"'
+            return response
+
         except Exception as e:
-            return Response({"error": f"Load model failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        # Input cho Iris: 4 features số
-        serializer = PredictInputSerializer(data=request.data)
-        if not serializer.is_valid():
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-
-        # Giả sử input là list 4 số (từ serializer)
-        features = serializer.validated_data.get('features')  # Thêm field này ở serializer
-        if not features or len(features) != 4:
-            return Response({"error": "Input phải là mảng 4 số (sepal_length, sepal_width, petal_length, petal_width)"},
-                            status=400)
-
-        try:
-            # Predict: input là [[...]] vì scikit-learn expect 2D array
-            prediction = model.predict([features])[0]
-            probability = model.predict_proba([features])[0] if hasattr(model, 'predict_proba') else None
-
-            # Map class sang tên hoa (Iris chuẩn)
-            iris_classes = ["setosa", "versicolor", "virginica"]
-            result = {
-                "predicted_class": iris_classes[prediction],
-                "class_id": int(prediction),
-                "probability": probability.tolist() if probability is not None else None,
-                "input_features": features,
-                "model_name": aimodel.name
-            }
-        except Exception as e:
-            return Response({"error": f"Predict failed: {str(e)}"}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
-
-        return Response(result, status=status.HTTP_200_OK)
+            return Response({"error": str(e)}, status=500)

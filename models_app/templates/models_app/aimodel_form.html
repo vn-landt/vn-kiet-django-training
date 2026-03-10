@@ -9,5 +9,20 @@
         {{ form.as_p }}  <!-- Render form đơn giản (p tags) -->
         <button type="submit" class="btn btn-primary">Upload</button>
     </form>
+    <input type="file" id="id_model_file" name="model_file" accept="image/*">
+    <img id="preview" style="max-width:300px; display:none;">
+    <script>
+        document.getElementById('id_model_file').onchange = function(e) {
+            var file = e.target.files[0];
+            if (file) {
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    document.getElementById('preview').src = e.target.result;
+                    document.getElementById('preview').style.display = 'block';
+                }
+                reader.readAsDataURL(file);
+            }
+        }
+    </script>
     <p><a href="{% url 'models_app:aimodel_list' %}">← Quay lại danh sách</a></p>
 {% endblock %}

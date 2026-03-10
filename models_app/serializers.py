@@ -2,7 +2,7 @@ from rest_framework import serializers
 from .models import AIModel
 
 class AIModelSerializer(serializers.ModelSerializer):
-    model_file_url = serializers.SerializerMethodField()  # Giữ nguyên
+    model_file_url = serializers.SerializerMethodField()
 
     def get_model_file_url(self, obj):
         if obj.model_file:
@@ -28,5 +28,5 @@ class PredictInputSerializer(serializers.Serializer):
         min_length=4,
         max_length=4,
         required=True,
-        help_text="Mảng 4 số: [sepal_length, sepal_width, petal_length, petal_width]"
+        help_text="[sepal_length, sepal_width, petal_length, petal_width]"
     )
