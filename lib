@@ -1,0 +1,1 @@
+pip install -t lib djangorestframework==3.9.4
