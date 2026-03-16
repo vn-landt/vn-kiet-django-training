@@ -4,18 +4,25 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="feat: Add predict action in AIModelViewSet for inference on uploaded models">
-      <change afterPath="$PROJECT_DIR$/app.yaml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/appengine_config.py" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/lib" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
+    <list default="true" id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="Config update GAE">
+      <change afterPath="$PROJECT_DIR$/main.application" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/misc.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/misc.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/vn-kiet-django-training.iml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/vn-kiet-django-training.iml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/ai_model_hub/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/ai_model_hub/settings.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/app.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/app.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/lib" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/urls.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/models_app/views.py" beforeDir="false" afterPath="$PROJECT_DIR$/models_app/views.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/requirements.txt" beforeDir="false" afterPath="$PROJECT_DIR$/requirements.txt" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
     <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
     <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="DjangoConsoleOptions" custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)">
+    <option name="myCustomStartScript" value="import sys; print('Python %s on %s' % (sys.version, sys.platform))&#10;import django; print('Django %s' % django.get_version())&#10;sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;if 'setup' in dir(django): django.setup()&#10;import django_manage_shell; django_manage_shell.run(PROJECT_ROOT)" />
   </component>
   <component name="FileTemplateManagerImpl">
     <option name="RECENT_TEMPLATES">
@@ -27,6 +34,9 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
+  <component name="MarkdownSettingsMigration">
+    <option name="stateVersion" value="1" />
+  </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 8
 }</component>
@@ -37,14 +47,25 @@
   </component>
   <component name="PropertiesComponent"><![CDATA[{
   "keyToString": {
+    "App Engine server.vn-kiet-django-training.executor": "Run",
     "ModuleVcsDetector.initialDetectionPerformed": "true",
+    "RunOnceActivity.OpenDjangoStructureViewOnStart": "true",
+    "RunOnceActivity.OpenProjectViewOnStart": "true",
     "RunOnceActivity.ShowReadmeOnStart": "true",
     "RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252": "true",
     "RunOnceActivity.git.unshallow": "true",
+    "RunOnceActivity.pycharm.django.structure.promotion.once.per.project": "true",
+    "django.template.preview.state": "SHOW_EDITOR_AND_PREVIEW",
     "git-widget-placeholder": "feature/GAE",
     "ignore.virus.scanning.warn.message": "true",
-    "last_opened_file_path": "D:/New folder/vn-kiet-django-training",
-    "settings.editor.selected.configurable": "project.propVCSSupport.Confirmation"
+    "last_opened_file_path": "D:/Newfolder/vn-kiet-django-training",
+    "node.js.detected.package.eslint": "true",
+    "node.js.detected.package.tslint": "true",
+    "node.js.selected.package.eslint": "(autodetect)",
+    "node.js.selected.package.tslint": "(autodetect)",
+    "nodejs_package_manager_path": "npm",
+    "settings.editor.selected.configurable": "com.jetbrains.python.configuration.PyActiveSdkModuleConfigurable",
+    "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
   <component name="RecentsManager">
@@ -55,13 +76,62 @@
       <recent name="D:\New folder\vn-kiet-django-training\models_app\templates\models_app" />
     </key>
   </component>
+  <component name="RunManager" selected="App Engine server.vn-kiet-django-training">
+    <configuration name="vn-kiet-django-training" type="Python.AppEngineServer" factoryName="App Engine server">
+      <module name="vn-kiet-django-training" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="true" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <EXTENSION ID="PythonCoverageRunConfigurationExtension" runner="coverage.py" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <option name="host" value="127.0.0.1" />
+      <option name="port" value="8080" />
+      <option name="browserUrl" value="" />
+      <option name="additionalOptions" value="--host=0.0.0.0 --enable_host_checking=false --storage_path=$PROJECT_DIR$/../../datastoreAKiet --show_mail_body --log_level=debug --dev_appserver_log_level=debug &quot;D:\New folder\vn-kiet-django-training\app.yaml&quot;" />
+      <method v="2" />
+    </configuration>
+    <configuration name="vn-kiet-django-training" type="Python.DjangoServer" factoryName="Django server">
+      <module name="vn-kiet-django-training" />
+      <option name="ENV_FILES" value="" />
+      <option name="INTERPRETER_OPTIONS" value="" />
+      <option name="PARENT_ENVS" value="true" />
+      <envs>
+        <env name="PYTHONUNBUFFERED" value="1" />
+      </envs>
+      <option name="SDK_HOME" value="" />
+      <option name="WORKING_DIRECTORY" value="" />
+      <option name="IS_MODULE_SDK" value="false" />
+      <option name="ADD_CONTENT_ROOTS" value="true" />
+      <option name="ADD_SOURCE_ROOTS" value="true" />
+      <option name="launchJavascriptDebuger" value="false" />
+      <option name="port" value="8000" />
+      <option name="host" value="localhost" />
+      <option name="additionalOptions" value="" />
+      <option name="browserUrl" value="" />
+      <option name="runTestServer" value="false" />
+      <option name="runNoReload" value="false" />
+      <option name="useCustomRunCommand" value="false" />
+      <option name="customRunCommand" value="" />
+      <method v="2" />
+    </configuration>
+    <list>
+      <item itemvalue="App Engine server.vn-kiet-django-training" />
+      <item itemvalue="Django Server.vn-kiet-django-training" />
+    </list>
+  </component>
   <component name="SharedIndexes">
     <attachedChunks>
       <set>
-        <option value="bundled-python-sdk-2653e85de345-6d6dccd035ac-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-253.31033.139" />
+        <option value="bundled-python-sdk-c69650fc56ca-b11f5e8da5ad-com.jetbrains.pycharm.pro.sharedIndexes.bundled-PY-233.15619.17" />
       </set>
     </attachedChunks>
   </component>
+  <component name="SpellCheckerSettings" RuntimeDictionaries="0" Folders="0" CustomDictionaries="0" DefaultDictionary="application-level" UseSingleDictionary="true" transferred="true" />
   <component name="TaskManager">
     <task active="true" id="Default" summary="Default task">
       <changelist id="250750e7-3d28-4b9e-b4c0-21a8486b1a6d" name="Changes" comment="" />
@@ -69,6 +139,10 @@
       <option name="number" value="Default" />
       <option name="presentableId" value="Default" />
       <updated>1772783377447</updated>
+      <workItem from="1773223687637" duration="651000" />
+      <workItem from="1773224365549" duration="62000" />
+      <workItem from="1773224443415" duration="879000" />
+      <workItem from="1773624894208" duration="9725000" />
     </task>
     <task id="LOCAL-00001" summary="&quot;Init app&quot;">
       <option name="closed" value="true" />
@@ -158,8 +232,19 @@
       <option name="project" value="LOCAL" />
       <updated>1773049482767</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Config update GAE">
+      <option name="closed" value="true" />
+      <created>1773223205248</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1773223205248</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
+  </component>
+  <component name="TypeScriptGeneratedFilesManager">
+    <option name="version" value="3" />
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="&quot;Init app&quot;" />
@@ -171,7 +256,8 @@
     <MESSAGE value="feat: Implement basic authentication (login, logout, register) + LoginRequiredMixin for CRUD views" />
     <MESSAGE value="feat: Implement REST API with DRF - AIModelViewSet, serializers, routers, token auth" />
     <MESSAGE value="feat: Add predict action in AIModelViewSet for inference on uploaded models" />
-    <option name="LAST_COMMIT_MESSAGE" value="feat: Add predict action in AIModelViewSet for inference on uploaded models" />
+    <MESSAGE value="Config update GAE" />
+    <option name="LAST_COMMIT_MESSAGE" value="Config update GAE" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -183,5 +269,8 @@
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
+  </component>
+  <component name="com.intellij.coverage.CoverageDataManagerImpl">
+    <SUITE FILE_PATH="coverage/vn_kiet_django_training$vn_kiet_django_training.coverage" NAME="vn-kiet-django-training Coverage Results" MODIFIED="1773642465666" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="true" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="" />
   </component>
 </project>

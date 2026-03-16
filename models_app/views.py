@@ -5,7 +5,6 @@ import urllib2  # Python 2 use urllib2 instead urllib.request
 
 from django.conf import settings
 from django.shortcuts import render, get_object_or_404, redirect
-from django.template.context_processors import request
 from django.contrib.auth import logout
 from django.contrib.auth.views import LoginView, LogoutView
 from django.contrib.auth.mixins import LoginRequiredMixin
@@ -18,6 +17,9 @@ except ImportError:
 from django.views.generic import (
     ListView, DetailView, CreateView, UpdateView, DeleteView
 )
+
+import base64
+from django.http import HttpResponse
 
 from rest_framework import viewsets, permissions
 from rest_framework.response import Response
@@ -50,7 +52,7 @@ class AIModelCreateView(LoginRequiredMixin, CreateView):
     success_url = reverse_lazy('models_app:aimodel_list')
 
     def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
+        context = super(AIModelCreateView, self).get_context_data(**kwargs)
         context['title'] = 'Upload New Model AI'
         return context
 
@@ -75,7 +77,7 @@ class AIModelDeleteView(DeleteView):
 
     def get_context_data(self, **kwargs):
         context = super(AIModelDeleteView, self).get_context_data(**kwargs)
-        context['title'] = u'Confirm Delete: {self.object.name}'
+        context['title'] = u'Confirm Delete: {0}'.format(self.object.name)
         return context
 
 def home(request):
@@ -125,7 +127,7 @@ class AIModelViewSet(viewsets.ModelViewSet):
 
         image_file = request.FILES['image']
         image_content = image_file.read()
-        base64_image = base64.b64encode(image_content)
+        base64_image = base64.b64encode(image_content).decode('utf-8')
 
         url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=" + settings.GEMINI_API_KEY
 
@@ -148,7 +150,11 @@ class AIModelViewSet(viewsets.ModelViewSet):
         }
 
         try:
-            req = urllib2.Request(url, json.dumps(payload), {'Content-Type': 'application/json'})
+            req = urllib2.Request(
+                url,
+                json.dumps(payload).encode('utf-8'),
+                {'Content-Type': 'application/json'}
+            )
             response = urllib2.urlopen(req)
             data = json.load(response)
             gemini_response = data['candidates'][0]['content']['parts'][0]['text']
