@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+
+{% block title %}Xác nhận xóa Model{% endblock %}
+
+{% block content %}
+    <h2>Xác nhận xóa Model AI</h2>
+    <div class="card">
+        <p>Bạn có chắc chắn muốn xóa model: <strong>{{ object.name }}</strong>?</p>
+        <p>Hành động này không thể hoàn tác. File model cũng sẽ bị xóa.</p>
+    </div>
+
+    <form method="post">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-danger">Xóa vĩnh viễn</button>
+        <a href="{% url 'models_app:aimodel_detail' pk=object.pk %}" class="btn btn-secondary">Hủy</a>
+    </form>
+{% endblock %}
