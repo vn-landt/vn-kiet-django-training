@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 from django.db import models
 from django.utils import timezone
+import json
 
 
 class UploadedFile(models.Model):
@@ -19,9 +20,19 @@ class UploadedFile(models.Model):
 class ExtractedResult(models.Model):
     uploaded_file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE, related_name='extraction_results')
 
-    status = models.CharField(max_length=20, default='pending')
+    status = models.CharField(
+        max_length=20,
+        choices=[
+            ('pending', 'Pending'),
+            ('processing', 'Processing'),
+            ('success', 'Success'),
+            ('failed', 'Failed'),
+        ],
+        default='pending'
+    )
+
     raw_response = models.TextField(blank=True, null=True)
-    parsed_table = models.TextField(blank=True, null=True)
+    table_data = models.TextField(blank=True, null=True)  # Lưu JSON string của list of lists
     error_message = models.TextField(blank=True, null=True)
 
     processed_at = models.DateTimeField(blank=True, null=True)
@@ -29,3 +40,12 @@ class ExtractedResult(models.Model):
 
     def __unicode__(self):
         return u"%s - %s" % (self.uploaded_file.filename, self.status)
+
+    def get_table(self):
+        """Helper to get table as list of lists"""
+        if self.table_data:
+            try:
+                return json.loads(self.table_data)
+            except:
+                return []
+        return []

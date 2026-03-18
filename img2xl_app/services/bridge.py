@@ -2,61 +2,83 @@
 from __future__ import unicode_literals
 
 import csv
+import json
 from cStringIO import StringIO
+from ..models import UploadedFile, ExtractedResult
+from django.utils import timezone
 from .gemini_rest import extract_with_gemini
 
 
-def process_file_extraction(file_path, mime_type='image/jpeg', custom_prompt=None):
+def process_and_save_extraction(uploaded_file_instance):
     """
-    Bridge function: Extract table from file using Gemini and parse into structured data.
+    Bridge: Process file, call Gemini, parse, and save to model.
 
     Args:
-        file_path (str): Path to saved file on disk
-        mime_type (str): MIME type like 'image/jpeg' or 'application/pdf'
-        custom_prompt (str or None): Optional custom prompt
+        uploaded_file_instance (UploadedFile): Model instance already saved
 
     Returns:
-        dict: {
-            'status': 'success' or 'error',
-            'table': list of lists (rows, first row is header if detected),
-            'raw_csv': full CSV string from Gemini,
-            'error': error message if failed
-        }
+        dict: Result with status, table, etc.
     """
-    result, error = extract_with_gemini(file_path, mime_type=mime_type, custom_prompt=custom_prompt)
+    result_obj = ExtractedResult.objects.create(
+        uploaded_file=uploaded_file_instance,
+        status='processing'
+    )
 
-    if error:
-        return {
-            'status': 'error',
-            'table': [],
-            'raw_csv': '',
-            'error': error
-        }
-
-    # Clean Gemini response - often wrapped in ```csv ... ```
-    cleaned_text = result.strip()
-    if '```csv' in cleaned_text:
-        cleaned_text = cleaned_text.split('```csv')[1].split('```')[0].strip()
-    elif '```' in cleaned_text:
-        cleaned_text = cleaned_text.split('```')[1].strip()
-
-    # Parse CSV to list of lists
-    table_data = []
     try:
-        csv_reader = csv.reader(StringIO(cleaned_text))
-        for row in csv_reader:
-            table_data.append(row)
-    except Exception as parse_error:
+        # Call Gemini
+        result_text, error = extract_with_gemini(
+            uploaded_file_instance.file.path,
+            mime_type=uploaded_file_instance.mime_type
+        )
+
+        if error:
+            result_obj.status = 'failed'
+            result_obj.error_message = error
+            result_obj.save()
+            return {
+                'status': 'error',
+                'error': error
+            }
+
+        # Clean and parse CSV
+        cleaned_text = result_text.strip()
+        if '```csv' in cleaned_text:
+            cleaned_text = cleaned_text.split('```csv')[1].split('```')[0].strip()
+        elif '```' in cleaned_text:
+            cleaned_text = cleaned_text.split('```')[1].strip()
+
+        table_data = []
+        try:
+            csv_reader = csv.reader(StringIO(cleaned_text))
+            table_data = [row for row in csv_reader]
+        except Exception as parse_error:
+            result_obj.status = 'failed'
+            result_obj.error_message = 'CSV parse failed: ' + str(parse_error)
+            result_obj.save()
+            return {
+                'status': 'error',
+                'error': str(parse_error)
+            }
+
+        # Save to model
+        result_obj.raw_response = result_text
+        result_obj.table_data = json.dumps(table_data)
+        result_obj.status = 'success'
+        result_obj.processed_at = timezone.now()
+        result_obj.save()
+
         return {
-            'status': 'error',
-            'table': [],
+            'status': 'success',
+            'table': table_data,
             'raw_csv': cleaned_text,
-            'error': 'CSV parse failed: ' + str(parse_error)
+            'result_id': result_obj.id
         }
 
-    return {
-        'status': 'success',
-        'table': table_data,
-        'raw_csv': cleaned_text,
-        'error': None
-    }
+    except Exception as e:
+        result_obj.status = 'failed'
+        result_obj.error_message = str(e)
+        result_obj.save()
+        return {
+            'status': 'error',
+            'error': str(e)
+        }
