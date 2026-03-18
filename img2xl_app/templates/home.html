@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Table Extractor</title>
+</head>
+<body>
+    <h1>Upload Image or PDF to Extract Table</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Upload and Extract</button>
+    </form>
+
+    <h2>Recent Extractions</h2>
+    {% if recent_results %}
+        <ul>
+        {% for res in recent_results %}
+            <li>
+                <a href="{% url 'result_detail' res.id %}">{{ res.uploaded_file.filename }}</a>
+                - {{ res.status }} - {{ res.created_at }}
+            </li>
+        {% endfor %}
+        </ul>
+    {% else %}
+        <p>No extractions yet.</p>
+    {% endif %}
+</body>
+</html>
