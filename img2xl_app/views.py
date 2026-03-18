@@ -11,7 +11,7 @@ from .forms import UploadFileForm
 from .models import UploadedFile, ExtractedResult
 from .services.bridge import process_and_save_extraction
 from django.urls import reverse
-
+from .services.sheets_export import export_to_google_sheets
 
 def home(request):
     # List of recent extractions for history
@@ -83,3 +83,26 @@ def download_csv(request, result_id):
         writer.writerow(row)
 
     return response
+
+
+def export_to_sheets(request, result_id):
+    result = get_object_or_404(ExtractedResult, id=result_id)
+    table = result.get_table()
+
+    if not table:
+        return HttpResponse("No table data to export.", status=400)
+
+    sheet_url, error = export_to_google_sheets(table, result.uploaded_file.filename)
+
+    if error:
+        return HttpResponse("Export failed: " + error)
+
+    # Redirect to the sheet or show link
+    return HttpResponse(
+        "<h2>Exported to Google Sheets Successfully!</h2>"
+        "<p>Open your sheet here: <a href='{url}' target='_blank'>{url}</a></p>"
+        "<br><a href='{detail_url}'>Back to result</a>".format(
+            url=sheet_url,
+            detail_url=reverse('result_detail', args=[result_id])
+        )
+    )
