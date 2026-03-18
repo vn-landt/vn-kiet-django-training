@@ -1,20 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import logging
 import urllib2
 import json
 import base64
 from cStringIO import StringIO
 from PIL import Image
 import os
-import os
-from dotenv import load_dotenv
 
-# Load các biến từ file .env
-load_dotenv()
+# from dotenv import load_dotenv
+# current_dir = os.path.dirname(os.path.abspath(__file__))
+# root_dir = os.path.dirname(os.path.dirname(current_dir))
+# dotenv_path = os.path.join(root_dir, '.env')
+# # Load các biến từ file .env
+# load_dotenv(dotenv_path)
 
 # Thay bằng API key thật của bạn (lấy từ https://aistudio.google.com/app/apikey)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 # Đừng commit key lên git! Nên dùng os.environ hoặc file .env sau này
 # Ví dụ: GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
@@ -25,8 +28,9 @@ def extract_with_gemini(file_path_or_content, mime_type=None, custom_prompt=None
     Trả về: string (text do Gemini trả về, thường là CSV hoặc bảng dạng text)
              hoặc None nếu lỗi
     """
-    if not GEMINI_API_KEY:
-        return None, "API key chưa được cấu hình"
+    # if not GEMINI_API_KEY:
+    #     print(dotenv_path)
+    #     return None, "API key chưa được cấu hình"
 
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY
 
@@ -52,15 +56,18 @@ def extract_with_gemini(file_path_or_content, mime_type=None, custom_prompt=None
         content = file_path_or_content  # đã là bytes
 
     # Optional: resize ảnh để tiết kiệm token (chỉ áp dụng cho ảnh)
-    if mime_type.startswith('image/') and len(content) > 300 * 1024:  # > ~300KB
+    if mime_type.startswith('image/') and len(content) > 200 * 1024:
         try:
             img = Image.open(StringIO(content))
-            img.thumbnail((1024, 1024))
+            # Giảm xuống 800px để nhẹ hơn nữa cho môi trường GAE
+            img.thumbnail((800, 800))
             output = StringIO()
-            img.save(output, format=img.format or 'JPEG')
+            # Giảm quality xuống 70-80% để tiết kiệm dung lượng
+            img.save(output, format='JPEG', quality=80)
             content = output.getvalue()
         except Exception as e:
-            print("Resize thất bại:", str(e))  # không crash, dùng nguyên file
+            # Thay vì print(e) - đôi khi e chứa dữ liệu thô, hãy in thông báo ngắn
+            logging.error("Resize failed")
 
     base64_data = base64.b64encode(content).decode('utf-8')
 
@@ -154,16 +161,3 @@ You must process the data using the following hierarchical strategy. Attempt Ste
     except Exception as e:
         return None, "Exception: " + str(e)
 
-
-# Để test nhanh (chạy file này trực tiếp)
-if __name__ == '__main__':
-    # Thay bằng đường dẫn file thật của bạn
-    test_file = "D:/img2xls/bienlai1.png"   # hoặc .pdf
-    result, error = extract_with_gemini(test_file)
-    if error:
-        print("LỖI:", error)
-    else:
-        # In ra file text thay vì console
-        with open("gemini_output.txt", "w") as f:
-            f.write(result.encode('utf-8'))  # hoặc f.write(result) nếu dùng unicode_literals
-        print("Saved Result: gemini_output.txt")

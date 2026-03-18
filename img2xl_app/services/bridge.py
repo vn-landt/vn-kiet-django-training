@@ -27,7 +27,7 @@ def process_and_save_extraction(uploaded_file_instance):
     try:
         # Call Gemini
         result_text, error = extract_with_gemini(
-            uploaded_file_instance.file.path,
+            uploaded_file_instance.file_blob,
             mime_type=uploaded_file_instance.mime_type
         )
 

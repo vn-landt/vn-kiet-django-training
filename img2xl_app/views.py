@@ -12,7 +12,9 @@ from .models import UploadedFile, ExtractedResult
 from .services.bridge import process_and_save_extraction
 from django.urls import reverse
 from .services.sheets_export import export_to_google_sheets
-
+import logging
+logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
+logging.getLogger('httplib2').setLevel(logging.WARNING)
 def home(request):
     # List of recent extractions for history
     recent_results = ExtractedResult.objects.order_by('-created_at')[:10]
@@ -32,7 +34,7 @@ def home(request):
             uf = UploadedFile.objects.create(
                 filename=uploaded_file.name,
                 mime_type=uploaded_file.content_type,
-                file=uploaded_file,
+                file_blob=uploaded_file.read(),  # Đọc bytes và lưu Blob
                 file_size=uploaded_file.size
             )
 
