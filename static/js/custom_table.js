@@ -156,3 +156,57 @@ function getCookie(name) {
     }
     return cookieValue;
 }
+
+function generateAIContent() {
+    const promptText = document.getElementById('ai-prompt').value;
+    const resultDisplay = document.getElementById('ai-result-display');
+    const btn = document.getElementById('btn-ai-gen');
+
+    if (!promptText) {
+        alert("Vui lòng nhập yêu cầu!");
+        return;
+    }
+
+    // Hiệu ứng chờ
+    const originalText = btn.innerText;
+    btn.innerText = "...";
+    btn.disabled = true;
+    resultDisplay.value = "Đang lấy kết quả...";
+
+    fetch('/api/generate-ai-content/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            'prompt': promptText
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            let aiResult = data.result;
+
+            // Loại bỏ dấu backtick (`) nếu Gemini trả về dạng markdown code
+            aiResult = aiResult.replace(/`/g, "").trim();
+
+            // Hiển thị vào ô kết quả bên trái nút
+            resultDisplay.value = aiResult;
+
+            // Tự động bôi đen để người dùng nhấn Ctrl+C luôn cho tiện
+            resultDisplay.select();
+        } else {
+            resultDisplay.value = "Lỗi!";
+            alert("Lỗi: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resultDisplay.value = "Lỗi kết nối!";
+    })
+    .finally(() => {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    });
+}
