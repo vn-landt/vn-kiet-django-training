@@ -49,11 +49,34 @@ def process_and_save_extraction(uploaded_file_instance):
 
         table_data = []
         try:
-            csv_reader = csv.reader(StringIO(cleaned_text))
-            table_data = [row for row in csv_reader]
+            # KIỂM TRA: Nếu AI trả về bảng Markdown (có dấu | ở đầu hoặc giữa các từ)
+            if cleaned_text.startswith('|') or ('|' in cleaned_text and '\n|' in cleaned_text):
+                for line in cleaned_text.split('\n'):
+                    line = line.strip()
+
+                    # Bỏ qua các dòng trống hoặc dòng gạch ngang phân cách của bảng (VD: |---|---|)
+                    if not line or line.replace('|', '').replace('-', '').replace(' ', '') == '':
+                        continue
+
+                    # Xóa dấu | ở đầu và cuối dòng (nếu có)
+                    if line.startswith('|'):
+                        line = line[1:]
+                    if line.endswith('|'):
+                        line = line[:-1]
+
+                    # Tách các cột bằng dấu | và xóa khoảng trắng thừa ở mỗi ô
+                    row = [cell.strip() for cell in line.split('|')]
+                    table_data.append(row)
+
+            # KIỂM TRA: Nếu AI trả về CSV chuẩn (phân cách bằng dấu phẩy)
+            else:
+                csv_reader = csv.reader(
+                    StringIO(cleaned_text.encode('utf-8') if isinstance(cleaned_text, unicode) else cleaned_text))
+                table_data = [row for row in csv_reader]
+
         except Exception as parse_error:
             result_obj.status = 'failed'
-            result_obj.error_message = 'CSV parse failed: ' + str(parse_error)
+            result_obj.error_message = 'Parse failed: ' + str(parse_error)
             result_obj.save()
             return {
                 'status': 'error',

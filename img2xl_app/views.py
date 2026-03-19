@@ -6,7 +6,7 @@ import csv
 import os
 import json
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.conf import settings
 from .forms import UploadFileForm
 from .models import UploadedFile, ExtractedResult
@@ -15,6 +15,7 @@ from django.urls import reverse
 from .services.sheets_export import export_to_google_sheets
 from .services.compress_image import compress_image
 from .services.gemini_rest import upload_to_imgbb
+from django.views.decorators.http import require_POST
 
 def home(request):
     # List of recent extractions for history
@@ -59,10 +60,13 @@ def home(request):
             if extraction_result['status'] == 'error':
                 return HttpResponse("Processing failed: " + extraction_result['error'])
 
+            table_data = extraction_result['table']
+
             # Redirect to detail page
             return render(request, 'result_detail.html', {
                 'result': ExtractedResult.objects.get(id=extraction_result['result_id']),
-                'table': extraction_result['table']
+                'table': table_data,
+                'table_json': json.dumps(table_data)  # <--- THÊM DÒNG NÀY
             })
 
         else:
@@ -82,23 +86,37 @@ def result_detail(request, result_id):
     table = result.get_table()
     return render(request, 'result_detail.html', {
         'result': result,
-        'table': table
+        'table': table,
+        'table_json': json.dumps(table)
     })
 
 
 def download_csv(request, result_id):
     result = get_object_or_404(ExtractedResult, id=result_id)
-    table = result.get_table()
-
-    if not table:
-        return HttpResponse("No data to download.", status=404)
+    table = result.get_table()  # Giả sử trả về ["|||", "|S.No|..."]
 
     response = HttpResponse(content_type='text/csv')
-    response['Content-Disposition'] = 'attachment; filename="%s.csv"' % result.uploaded_file.filename.replace(' ', '_')
+    response.write('\xef\xbb\xbf')  # Thêm BOM để Excel đọc đúng tiếng Việt
+    filename = result.uploaded_file.filename.replace(' ', '_')
+    response['Content-Disposition'] = 'attachment; filename="%s.csv"' % filename
 
     writer = csv.writer(response)
-    for row in table:
-        writer.writerow(row)
+
+    for item in table:
+        # 1. Đảm bảo item là chuỗi Unicode (Python 2.7)
+        if not isinstance(item, unicode):
+            item = unicode(str(item), 'utf-8')
+
+        # 2. Tách cột theo dấu |
+        raw_parts = item.split(u'|')
+
+        # 3. LỌC: Chỉ giữ lại những phần tử có nội dung thực sự (loại bỏ ||| rỗng)
+        # p.strip() dùng để loại bỏ khoảng trắng dư thừa
+        clean_row = [p.strip().encode('utf-8') for p in raw_parts if p.strip()]
+
+        # 4. Kiểm tra: Nếu sau khi lọc mà dòng trống (như dòng "||||||") thì bỏ qua không ghi vào CSV
+        if clean_row:
+            writer.writerow(clean_row)
 
     return response
 
@@ -142,3 +160,30 @@ def delete_result(request, result_id):
 
         # Trở về trang chủ và tự động làm mới trang
     return redirect('home')
+
+
+@require_POST
+def update_table_data(request, result_id):
+    """
+    API để nhận dữ liệu bảng Excel chỉnh sửa từ frontend và lưu vào Database.
+    """
+    try:
+        result = get_object_or_404(ExtractedResult, id=result_id)
+
+        # Đọc dữ liệu JSON gửi lên từ request body
+        body_unicode = request.body.decode('utf-8')
+        body_data = json.loads(body_unicode)
+
+        new_table_data = body_data.get('table_data')
+
+        if new_table_data is None:
+            return JsonResponse({'status': 'error', 'message': 'Không tìm thấy dữ liệu bảng.'}, status=400)
+
+        # Cập nhật vào record và lưu lại (dùng json.dumps để đồng nhất với file bridge.py)
+        result.table_data = json.dumps(new_table_data)
+        result.save()
+
+        return JsonResponse({'status': 'success', 'message': 'Đã lưu thay đổi thành công!'})
+
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
