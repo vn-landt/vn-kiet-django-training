@@ -15,7 +15,7 @@ import json
 class UploadedFile(models.Model):
     filename = models.CharField(max_length=255)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
-    file_blob = BlobField()  # Lưu binary trực tiếp vào Datastore
+    image_url = models.TextField()  # Lưu binary trực tiếp vào Datastore
     file_size = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(default=timezone.now)
 

@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import io
 import csv
 import os
 import json
-from django.shortcuts import render, get_object_or_404
+from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse
 from django.conf import settings
 from .forms import UploadFileForm
@@ -12,9 +13,9 @@ from .models import UploadedFile, ExtractedResult
 from .services.bridge import process_and_save_extraction
 from django.urls import reverse
 from .services.sheets_export import export_to_google_sheets
-import logging
-logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
-logging.getLogger('httplib2').setLevel(logging.WARNING)
+from .services.compress_image import compress_image
+from .services.gemini_rest import upload_to_imgbb
+
 def home(request):
     # List of recent extractions for history
     recent_results = ExtractedResult.objects.order_by('-created_at')[:10]
@@ -31,11 +32,26 @@ def home(request):
             if uploaded_file.size > 10 * 1024 * 1024:
                 return HttpResponse("Error: File too large (max 10MB).")
 
+            file_bytes = uploaded_file.read()
+
+            # 🔥 (optional) nén nhẹ
+            compressed_bytes = compress_image(io.BytesIO(file_bytes))
+
+            if hasattr(compressed_bytes, "getvalue"):
+                compressed_bytes = compressed_bytes.getvalue()
+
+            # 🔥 upload lên ImgBB
+            image_url, error = upload_to_imgbb(compressed_bytes)
+
+            if error:
+                return HttpResponse("Upload failed: " + error)
+
+            # 🔥 KHÔNG lưu blob nữa
             uf = UploadedFile.objects.create(
                 filename=uploaded_file.name,
                 mime_type=uploaded_file.content_type,
-                file_blob=uploaded_file.read(),  # Đọc bytes và lưu Blob
-                file_size=uploaded_file.size
+                image_url=image_url,
+                file_size=len(compressed_bytes)
             )
 
             extraction_result = process_and_save_extraction(uf)
@@ -108,3 +124,21 @@ def export_to_sheets(request, result_id):
             detail_url=reverse('result_detail', args=[result_id])
         )
     )
+
+
+def delete_result(request, result_id):
+    if request.method == 'POST':
+        # Tìm kết quả, nếu không có trả về lỗi 404
+        result = get_object_or_404(ExtractedResult, id=result_id)
+
+        # Nếu bạn muốn xóa luôn cả record UploadedFile liên quan trong database:
+        file_record = result.uploaded_file
+
+        # Xóa kết quả (ExtractedResult)
+        result.delete()
+
+        # Xóa file (UploadedFile)
+        file_record.delete()
+
+        # Trở về trang chủ và tự động làm mới trang
+    return redirect('home')
