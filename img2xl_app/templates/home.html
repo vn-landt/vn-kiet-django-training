@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <title>Table Extractor</title>
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extraction Result</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
     <h1>Upload Image or PDF to Extract Table</h1>
@@ -16,11 +23,37 @@
 
     <h2>Recent Extractions</h2>
     {% if recent_results %}
-        <ul>
+        <ul style="list-style-type: none; padding-left: 0;">
         {% for res in recent_results %}
-            <li>
-                <a href="{% url 'result_detail' res.id %}">{{ res.uploaded_file.filename }}</a>
-                - {{ res.status }} - {{ res.created_at }}
+            <li style="margin-bottom: 12px; padding: 5px; border-bottom: 1px solid #eee;">
+
+                {% if res.status == 'failed' %}
+                    <span style="font-weight: bold; color: red;">
+                        {{ res.uploaded_file.filename }}
+                    </span>
+                {% else %}
+                    <a href="{% url 'result_detail' res.id %}" style="font-weight: bold; text-decoration: none; color: {% if res.status == 'success' %}green{% else %}#0056b3{% endif %};">
+                        {{ res.uploaded_file.filename }}
+                    </a>
+                {% endif %}
+
+                <span style="margin-left: 10px;">
+                    <a href="{{ res.uploaded_file.image_url }}" target="_blank" style="color: #17a2b8; text-decoration: none; font-size: 0.9em;">
+                        [Xem ảnh online]
+                    </a>
+                </span>
+
+                <span style="font-size: 0.85em; margin-left: 10px; color: {% if res.status == 'success' %}green{% elif res.status == 'failed' or res.status == 'processing' %}red{% else %}#6c757d{% endif %};">
+                    - Trạng thái: {{ res.status }} ({{ res.created_at|date:"d/m/Y H:i" }})
+                </span>
+
+                <form action="{% url 'delete_result' res.id %}" method="POST" style="display: inline;" onsubmit="return confirm('Bạn có chắc chắn muốn xóa kết quả này không? Thao tác này không thể hoàn tác.');">
+                    {% csrf_token %}
+                    <button type="submit" style="margin-left: 15px; background-color: #dc3545; color: white; border: none; padding: 3px 8px; border-radius: 4px; cursor: pointer; font-size: 0.85em;">
+                        Xóa
+                    </button>
+                </form>
+
             </li>
         {% endfor %}
         </ul>
