@@ -58,13 +58,6 @@ DATABASES = {
     }
 }
 
-DJANGAE = {
-    'DATASTORE': {
-        'PROJECT_ID': 'img2xl-490607',  # Project ID GCP
-        'NAMESPACE': '',
-    }
-}
-
 STATIC_URL = '/static/'
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'media')

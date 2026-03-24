@@ -1,19 +1,12 @@
 document.addEventListener("DOMContentLoaded", function() {
-    // 1. Load dữ liệu ban đầu và chia cột theo '|'
+    // 1. Load dữ liệu ban đầu trực tiếp (Không dùng split('|') nữa)
+    // Vì Backend giờ đã trả về mảng 2 chiều (2D Array) rất chuẩn
     var rawData = window.DJANGO_TABLE_DATA || [['', '', '', '']];
-    var processedData = rawData.map(row => {
-        if (Array.isArray(row)) {
-            return row.flatMap(cell => typeof cell === 'string' ? cell.split('|') : cell);
-        } else if (typeof row === 'string') {
-            return row.split('|');
-        }
-        return row;
-    });
 
     var spreadsheetDiv = document.getElementById('spreadsheet');
     if (spreadsheetDiv) {
         window.mySpreadsheet = jspreadsheet(spreadsheetDiv, {
-            data: processedData,
+            data: rawData, // Nạp thẳng dữ liệu vào
             minDimensions: [11, 5],
             defaultColWidth: 150,
             tableOverflow: true,
@@ -23,7 +16,7 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 });
 
-// Hàm chuyển A1 -> {col: 0, row: 0}
+// Hàm chuyển A1 -> {col: 0, row: 0} (Đã xóa bản trùng lặp bên dưới)
 function parseCoords(cellStr) {
     const match = cellStr.toUpperCase().match(/^([A-Z]+)(\d+)$/);
     if (!match) return null;
@@ -55,12 +48,9 @@ function handleRangeAction(actionType) {
         return;
     }
 
-    // Lấy dữ liệu hiện tại
     let tempData = window.mySpreadsheet.getData();
 
-    // Duyệt ngược từ dưới lên trên (quan trọng khi chia dòng để không làm lệch index dòng chưa xử lý)
     for (let r = end.row; r >= start.row; r--) {
-        // Duyệt ngược từ phải sang trái (quan trọng khi chia cột)
         for (let c = end.col; c >= start.col; c--) {
             let cellValue = tempData[r][c];
 
@@ -69,22 +59,16 @@ function handleRangeAction(actionType) {
 
                 if (lastIdx !== -1) {
                     let textBefore = cellValue.substring(0, lastIdx).trim();
-                    let textAfter = cellValue.substring(lastIdx).trim(); // Bao gồm cả ký tự đặc biệt
+                    let textAfter = cellValue.substring(lastIdx).trim();
 
                     if (actionType === 'split-col') {
-                        // CHIA CỘT: Chèn thêm 1 cột ngay bên phải và đưa phần textAfter vào
                         tempData[r][c] = textBefore;
                         tempData[r].splice(c + 1, 0, textAfter);
                     }
                     else if (actionType === 'split-row') {
-                        // CHIA DÒNG: Tạo 1 mảng mới (dòng mới) và chèn vào dưới dòng r
                         tempData[r][c] = textBefore;
-
-                        // Tạo dòng mới có cùng số lượng cột nhưng chỉ chứa textAfter ở đúng vị trí cột c
                         let newRow = new Array(tempData[r].length).fill("");
                         newRow[c] = textAfter;
-
-                        // Chèn dòng mới vào mảng dữ liệu
                         tempData.splice(r + 1, 0, newRow);
                     }
                     else if (actionType === 'remove') {
@@ -95,25 +79,15 @@ function handleRangeAction(actionType) {
         }
     }
 
-    // Load lại và cập nhật giao diện
     window.mySpreadsheet.setData(tempData);
 }
 
-// Giữ nguyên hàm parseCoords
-function parseCoords(cellStr) {
-    const match = cellStr.toUpperCase().match(/^([A-Z]+)(\d+)$/);
-    if (!match) return null;
-    let colStr = match[1], row = parseInt(match[2]) - 1, col = 0;
-    for (let i = 0; i < colStr.length; i++) col = col * 26 + (colStr.charCodeAt(i) - 64);
-    return { col: col - 1, row: row };
-}
-
-// Hàm lưu dữ liệu thực tế (Đã sửa để gộp bằng '|')
+// Hàm lưu dữ liệu thực tế (ĐÃ SỬA: KHÔNG GỘP BẰNG '|')
 function saveTableData() {
+    // Lấy mảng 2 chiều nguyên bản từ jspreadsheet
     var currentData = mySpreadsheet.getData();
-    var formattedData = currentData.map(row => row.join('|')); // Gộp lại bằng |
 
-    var saveBtn = document.querySelector('.btn-save'); // Đảm bảo bạn có class này ở nút save
+    var saveBtn = document.querySelector('.btn-save');
     if (saveBtn) {
         saveBtn.innerText = 'Đang lưu...';
         saveBtn.disabled = true;
@@ -125,7 +99,8 @@ function saveTableData() {
             'Content-Type': 'application/json',
             'X-CSRFToken': getCookie('csrftoken')
         },
-        body: JSON.stringify({ 'table_data': formattedData })
+        // Gửi thẳng mảng 2 chiều lên server
+        body: JSON.stringify({ 'table_data': currentData })
     })
     .then(response => response.json())
     .then(data => {
@@ -158,6 +133,7 @@ function getCookie(name) {
 }
 
 function generateAIContent() {
+    // ... (Giữ nguyên không đổi vì đã hoạt động tốt)
     const promptText = document.getElementById('ai-prompt').value;
     const resultDisplay = document.getElementById('ai-result-display');
     const btn = document.getElementById('btn-ai-gen');
@@ -167,7 +143,6 @@ function generateAIContent() {
         return;
     }
 
-    // Hiệu ứng chờ
     const originalText = btn.innerText;
     btn.innerText = "...";
     btn.disabled = true;
@@ -187,14 +162,8 @@ function generateAIContent() {
     .then(data => {
         if (data.status === 'success') {
             let aiResult = data.result;
-
-            // Loại bỏ dấu backtick (`) nếu Gemini trả về dạng markdown code
             aiResult = aiResult.replace(/`/g, "").trim();
-
-            // Hiển thị vào ô kết quả bên trái nút
             resultDisplay.value = aiResult;
-
-            // Tự động bôi đen để người dùng nhấn Ctrl+C luôn cho tiện
             resultDisplay.select();
         } else {
             resultDisplay.value = "Lỗi!";

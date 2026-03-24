@@ -17,6 +17,7 @@ from .services.compress_image import compress_image
 from .services.gemini_rest import upload_to_imgbb, generate_text_with_gemini
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_protect
+from .services.table_handler import TableFileHandler
 
 def home(request):
     # List of recent extractions for history
@@ -94,29 +95,33 @@ def result_detail(request, result_id):
 
 def download_csv(request, result_id):
     result = get_object_or_404(ExtractedResult, id=result_id)
-    table = result.get_table()  # Giả sử trả về ["|||", "|S.No|..."]
+    table = result.get_table()  # Giờ đã trả về mảng 2 chiều chuẩn
 
     response = HttpResponse(content_type='text/csv')
     response.write('\xef\xbb\xbf')  # Thêm BOM để Excel đọc đúng tiếng Việt
+
     filename = result.uploaded_file.filename.replace(' ', '_')
     response['Content-Disposition'] = 'attachment; filename="%s.csv"' % filename
 
     writer = csv.writer(response)
 
-    for item in table:
-        # 1. Đảm bảo item là chuỗi Unicode (Python 2.7)
-        if not isinstance(item, unicode):
-            item = unicode(str(item), 'utf-8')
+    for row in table:
+        # row giờ đây là một List (VD: ['1.', 'Wheel chair', '1'])
+        clean_row = []
 
-        # 2. Tách cột theo dấu |
-        raw_parts = item.split(u'|')
+        for cell in row:
+            # Xử lý an toàn cho Python 2.7: Ép kiểu về unicode rồi encode utf-8
+            if cell is None:
+                cell_text = u""
+            elif not isinstance(cell, unicode):
+                cell_text = unicode(str(cell), 'utf-8', errors='ignore')
+            else:
+                cell_text = cell
 
-        # 3. LỌC: Chỉ giữ lại những phần tử có nội dung thực sự (loại bỏ ||| rỗng)
-        # p.strip() dùng để loại bỏ khoảng trắng dư thừa
-        clean_row = [p.strip().encode('utf-8') for p in raw_parts if p.strip()]
+            clean_row.append(cell_text.strip().encode('utf-8'))
 
-        # 4. Kiểm tra: Nếu sau khi lọc mà dòng trống (như dòng "||||||") thì bỏ qua không ghi vào CSV
-        if clean_row:
+        # Lọc: Chỉ ghi vào CSV nếu dòng đó có ít nhất 1 ô chứa dữ liệu
+        if any(clean_row):
             writer.writerow(clean_row)
 
     return response
@@ -147,19 +152,16 @@ def export_to_sheets(request, result_id):
 
 def delete_result(request, result_id):
     if request.method == 'POST':
-        # Tìm kết quả, nếu không có trả về lỗi 404
         result = get_object_or_404(ExtractedResult, id=result_id)
 
-        # Nếu bạn muốn xóa luôn cả record UploadedFile liên quan trong database:
-        file_record = result.uploaded_file
+        # Khởi tạo Handler và dọn dẹp file vật lý trước
+        handler = TableFileHandler(result.id)
+        handler.delete_file()
 
-        # Xóa kết quả (ExtractedResult)
+        # Sau đó mới xóa Database
+        result.uploaded_file.delete()
         result.delete()
 
-        # Xóa file (UploadedFile)
-        file_record.delete()
-
-        # Trở về trang chủ và tự động làm mới trang
     return redirect('home')
 
 
@@ -171,20 +173,19 @@ def update_table_data(request, result_id):
     try:
         result = get_object_or_404(ExtractedResult, id=result_id)
 
-        # Đọc dữ liệu JSON gửi lên từ request body
         body_unicode = request.body.decode('utf-8')
         body_data = json.loads(body_unicode)
-
         new_table_data = body_data.get('table_data')
 
         if new_table_data is None:
-            return JsonResponse({'status': 'error', 'message': 'Không tìm thấy dữ liệu bảng.'}, status=400)
+            return JsonResponse({'status': 'error', 'message': 'Không tìm thấy dữ liệu.'}, status=400)
 
-        # Cập nhật vào record và lưu lại (dùng json.dumps để đồng nhất với file bridge.py)
-        result.table_data = json.dumps(new_table_data)
-        result.save()
-
-        return JsonResponse({'status': 'success', 'message': 'Đã lưu thay đổi thành công!'})
+        # Gọi Handler xử lý nén và lưu đè
+        handler = TableFileHandler(result)
+        if handler.save_data(new_table_data):
+            return JsonResponse({'status': 'success', 'message': 'Đã lưu thay đổi thành công!'})
+        else:
+            return JsonResponse({'status': 'error', 'message': 'Lưu thất bại.'}, status=500)
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
