@@ -1,0 +1,32 @@
+<div id="range-tools" class="tool-section range-tool-bg">
+    <h4>Công cụ Tách Dữ Liệu</h4>
+    <div class="tool-controls">
+        <input type="text" id="range-start" placeholder="Từ (A1)">
+        <input type="text" id="range-end" placeholder="Đến (B10)">
+        <input type="text" id="special-char" placeholder="Ký tự" class="input-char">
+
+        <button onclick="handleRangeAction('split-col')" class="btn-tool btn-blue">Chia cột</button>
+        <button onclick="handleRangeAction('split-row')" class="btn-tool btn-orange">Xuống dòng</button>
+        <button onclick="handleRangeAction('remove')" class="btn-tool btn-red">Xóa ký tự</button>
+    </div>
+</div>
+
+<div id="ai-tools" class="tool-section ai-tool-bg">
+    <h4>Gemini AI Assistant</h4>
+    <div class="ai-controls">
+        <div class="ai-input-group">
+            <label>Yêu cầu:</label>
+            <input type="text" id="ai-prompt" placeholder="VD: Tính tổng cột B...">
+        </div>
+
+        <div class="ai-result-group">
+            <label>Kết quả gợi ý:</label>
+            <input type="text" id="ai-result-display" readonly placeholder="Lệnh/Công thức">
+        </div>
+
+        <button id="btn-ai-gen" onclick="generateAIContent()" class="btn-ai">
+            Generate
+        </button>
+    </div>
+    <small>(Bạn có thể bôi đen và Copy kết quả ở ô màu xanh để sử dụng)</small>
+</div>

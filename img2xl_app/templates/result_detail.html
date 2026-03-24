@@ -4,100 +4,110 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Extraction Result</title>
-
     <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
     <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
     <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
     <script src="https://jsuites.net/v4/jsuites.js"></script>
-
     <link rel="stylesheet" href="{% static 'css/result_detail.css' %}">
 </head>
 <body>
 
-    <a href="{% url 'home' %}" class="btn-home">
-        <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-            <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
-        </svg>
-        Back to Home – home
-    </a>
-
-    <h1>Extraction Result</h1>
-
-    <p class="info-text">
-        Filename:
-        <a href="{{ result.uploaded_file.image_url }}" target="_blank" class="filename-link">
-            {{ result.uploaded_file.filename }}
+    <div class="top-header-row">
+        <h1>Extraction Result</h1>
+        <a href="{% url 'home' %}" class="btn-home">
+            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
+            </svg>
+            Back to Home
         </a>
-        (links: {{ result.uploaded_file.image_url }})
-    </p>
+    </div>
 
-    <p class="info-text">Status: {{ result.status|title }}</p>
-    <p class="info-text">Processed at: {{ result.processed_at|date:"d/m/Y H:i"|default:"Not processed" }}</p>
-
-    <div class="table-card">
-
-        <div class="table-header-row">
-            <h2 class="collapsible-title">
-                Extracted Table
-            </h2>
-
-            <div class="action-buttons">
-                <button onclick="saveTableData()" class="btn-save">Save Changes</button>
-                <a href="{% url 'download_csv' result.id %}" class="btn-primary">Download CSV</a>
-                <a href="{% url 'export_to_sheets' result.id %}" class="btn-success">Export to Google Sheets</a>
-            </div>
+    <div class="info-split-container">
+        <div class="info-box left-side">
+            <h4 class="box-title">File Details</h4>
+            <p><strong>Filename:</strong> <a href="{{ result.uploaded_file.image_url }}" target="_blank">{{ result.uploaded_file.filename }}</a></p>
+            <p><strong>Status:</strong> <span class="status-badge">{{ result.status|title }}</span></p>
+            <p><strong>Processed:</strong> {{ result.processed_at|date:"d/m/Y H:i"|default:"--" }}</p>
         </div>
 
-        <div id="table-content-area" style="display: block;">
-
-            <div id="spreadsheet"></div>
-
-        </div>
-        <div id="range-tools" style="margin-top: 20px; padding: 15px; border: 1px solid #2d54ee; background: #f9f9f9; border-radius: 8px;">
-            <h4 style="margin-top: 0; color: #6b8dd5;">Công cụ Tách Dữ Liệu (Từ phải sang)</h4>
-            <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                <input type="text" id="range-start" placeholder="Từ (A1)" style="width: 70px; padding: 5px;">
-                <input type="text" id="range-end" placeholder="Đến (B10)" style="width: 70px; padding: 5px;">
-                <input type="text" id="special-char" placeholder="Ký tự" style="width: 50px; padding: 5px; text-align: center;">
-
-                <button onclick="handleRangeAction('split-col')" style="background-color: #2196F3; color: white; border: none; padding: 7px 12px; cursor: pointer; border-radius: 4px;">Chia sang phải (Cột)</button>
-                <button onclick="handleRangeAction('split-row')" style="background-color: #FF9800; color: white; border: none; padding: 7px 12px; cursor: pointer; border-radius: 4px;">Xuống dòng mới (Dòng)</button>
-                <button onclick="handleRangeAction('remove')" style="background-color: #f44336; color: white; border: none; padding: 7px 12px; cursor: pointer; border-radius: 4px;">Xóa ký tự</button>
+        <div class="info-box right-side">
+            <h4 class="box-title">Recent History</h4>
+            <div class="history-scroll">
+                <ul>
+                    {% for res in recent_results %}
+                        <li class="history-item {% if res.id == result.id %}active{% endif %}">
+                            <a href="{% url 'result_detail' res.id %}">{{ res.uploaded_file.filename|truncatechars:35 }}</a>
+                            <small>{{ res.status }} - {{ res.created_at|date:"d/m H:i" }}</small>
+                        </li>
+                    {% endfor %}
+                </ul>
             </div>
-        </div>
-        <div id="ai-tools" style="margin-top: 15px; padding: 15px; border: 1px solid #4CAF50; background: #f0f9f0; border-radius: 8px;">
-            <h4 style="margin-top: 0; color: #2e7d32;">Gemini AI Assistant</h4>
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <div style="flex: 2;">
-                    <label>Yêu cầu:</label>
-                    <input type="text" id="ai-prompt" placeholder="VD: Tính tổng cột B..." style="width: 90%; padding: 6px; border: 1px solid #ccc; border-radius: 4px;">
-                </div>
-
-                <div style="margin-bottom: 25px; flex: 1;">
-                    <label>Kết quả gợi ý:</label>
-                    <input type="text" id="ai-result-display" readonly
-                           placeholder="Lệnh/Công thức sẽ hiện ở đây"
-                           style="width: 90%; padding: 6px; background-color: #fff; border: 1px solid #4CAF50; font-weight: bold; color: #d32f2f; border-radius: 4px;">
-                </div>
-
-                <div style="">
-                    <button id="btn-ai-gen" onclick="generateAIContent()"
-                            style="background-color: #4CAF50; color: white; border: none; padding: 8px 15px; cursor: pointer; border-radius: 4px; white-space: nowrap;">
-                        Generate
-                    </button>
-                </div>
-            </div>
-            <small style="display: block; margin-top: 5px; color: #666;">(Bạn có thể bôi đen và Copy kết quả ở ô màu xanh để sử dụng)</small>
         </div>
     </div>
 
-    <a href="{% url 'home' %}" class="bottom-link">Back to Upload</a>
+   <div class="table-card">
+        <div class="table-header-row">
+            <h2 class="table-title">Extracted Table</h2>
+
+            <div class="right-tools-group">
+                <div class="input-item group-purple">
+                    <label for="pic-upload">Image:</label>
+                    <input type="file" id="pic-upload" accept="image/*">
+                    <button onclick="handlePicGenerate()" class="btn-purple">Generate 1 pic into</button>
+                </div>
+
+                <div class="input-item group-secondary">
+                    <label for="csv-upload">CSV:</label>
+                    <input type="file" id="csv-upload" accept=".csv">
+                    <button onclick="handleCSVUpdate()" class="btn-secondary">Update CSV</button>
+                </div>
+
+                <button onclick="saveTableData()" class="btn-save">Save Changes</button>
+            </div>
+        </div>
+
+        <div id="table-content-area">
+            <div id="spreadsheet"></div>
+        </div>
+
+        <div class="table-bottom-actions">
+            <a href="{% url 'download_csv' result.id %}" class="btn-primary">Download CSV</a>
+            <a href="{% url 'export_to_sheets' result.id %}" class="btn-success">Export to Google Sheets</a>
+        </div>
+
+        <div class="tools-grid">
+            <div id="range-tools" class="tool-box range-bg">
+                <h4>Công cụ Tách Dữ Liệu Hàng Loạt</h4>
+                <div class="tool-inputs">
+                    <input type="text" id="range-start" placeholder="A1">
+                    <input type="text" id="range-end" placeholder="B10">
+                    <input type="text" id="special-char" placeholder="Ký tự" class="char-input">
+                </div>
+                <div class="tool-btns">
+                    <button onclick="handleRangeAction('split-col')" class="btn-tool-blue">Chia Cột</button>
+                    <button onclick="handleRangeAction('split-row')" class="btn-tool-orange">Xuống Dòng</button>
+                    <button onclick="handleRangeAction('remove')" class="btn-tool-red">Xóa</button>
+                </div>
+            </div>
+
+            <div id="ai-tools" class="tool-box ai-bg">
+                <h4>Gemini AI Assistant</h4>
+                <div class="ai-input-wrapper">
+                    <input type="text" id="ai-prompt" placeholder="Yêu cầu (VD: Tính tổng cột B...)">
+                    <button id="btn-ai-gen" onclick="generateAIContent()">Generate</button>
+                </div>
+                <div class="ai-result-wrapper">
+                    <label>Kết quả gợi ý:</label>
+                    <input type="text" id="ai-result-display" readonly placeholder="Lệnh/Công thức sẽ hiện ở đây">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <script>
-        // Đã đổi từ table sang table_json ở đây
         window.DJANGO_TABLE_DATA = {{ table_json|safe }};
         window.DJANGO_SAVE_URL = "{% url 'update_table_data' result.id %}";
     </script>
-
-    <script src="{% static 'js/custom_table.js' %}"></script>
+    <script src="{% static 'js/result_detail.js' %}"></script>
 </body>
 </html>

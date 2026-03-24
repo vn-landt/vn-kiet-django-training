@@ -86,10 +86,13 @@ def home(request):
 def result_detail(request, result_id):
     result = get_object_or_404(ExtractedResult, id=result_id)
     table = result.get_table()
+
+    recent_results = ExtractedResult.objects.order_by('-created_at')
     return render(request, 'result_detail.html', {
         'result': result,
         'table': table,
-        'table_json': json.dumps(table)
+        'table_json': json.dumps(table),
+        'recent_results': recent_results
     })
 
 
