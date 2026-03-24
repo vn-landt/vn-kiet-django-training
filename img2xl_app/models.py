@@ -2,14 +2,19 @@
 from __future__ import unicode_literals
 
 from django.db import models
+from djangae.fields import JSONField  # Import từ djangae
+try:
+    from djangae.db.models.fields import BlobField
+except ImportError:
+    # Nếu không tìm thấy, có thể dùng BinaryField mặc định của Django
+    from django.db.models import BinaryField as BlobField
 from django.utils import timezone
 import json
-
 
 class UploadedFile(models.Model):
     filename = models.CharField(max_length=255)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
-    file = models.FileField(upload_to='uploads/')
+    image_url = models.TextField()  # Lưu binary trực tiếp vào Datastore
     file_size = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(default=timezone.now)
 
@@ -20,21 +25,11 @@ class UploadedFile(models.Model):
 class ExtractedResult(models.Model):
     uploaded_file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE, related_name='extraction_results')
 
-    status = models.CharField(
-        max_length=20,
-        choices=[
-            ('pending', 'Pending'),
-            ('processing', 'Processing'),
-            ('success', 'Success'),
-            ('failed', 'Failed'),
-        ],
-        default='pending'
-    )
-
+    status = models.CharField(max_length=20, default='pending')
     raw_response = models.TextField(blank=True, null=True)
-    table_data = models.TextField(blank=True, null=True)  # Lưu JSON string của list of lists
-    error_message = models.TextField(blank=True, null=True)
+    table_data_compressed = BlobField(blank=True, null=True)
 
+    error_message = models.TextField(blank=True, null=True)
     processed_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -42,10 +37,11 @@ class ExtractedResult(models.Model):
         return u"%s - %s" % (self.uploaded_file.filename, self.status)
 
     def get_table(self):
-        """Helper to get table as list of lists"""
-        if self.table_data:
-            try:
-                return json.loads(self.table_data)
-            except:
-                return []
-        return []
+        """Sử dụng OOP Handler để lấy dữ liệu"""
+        if not self.id:
+            return []
+
+        # Gọi file handler nằm trong thư mục services
+        from .services.table_handler import TableFileHandler
+        handler = TableFileHandler(self)  # Chuyền cả object vào thay vì self.id
+        return handler.load_data()

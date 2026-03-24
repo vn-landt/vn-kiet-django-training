@@ -1,72 +1,65 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
-import urllib2
+import os
 import json
 import base64
-from cStringIO import StringIO
+import urllib
+from google.appengine.api import urlfetch
 from PIL import Image
-import os
-import os
 from dotenv import load_dotenv
+from .compress_image import compress_image
 
-# Load các biến từ file .env
 load_dotenv()
 
-# Thay bằng API key thật của bạn (lấy từ https://aistudio.google.com/app/apikey)
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+IMGBB_API_KEY = os.environ.get("IMGBB_API_KEY")
 
-# Đừng commit key lên git! Nên dùng os.environ hoặc file .env sau này
-# Ví dụ: GEMINI_API_KEY = os.environ.get('GEMINI_API_KEY', '')
 
-def extract_with_gemini(file_path_or_content, mime_type=None, custom_prompt=None):
-    """
-    Gọi Gemini 2.5 Flash qua REST API để trích xuất bảng từ ảnh hoặc PDF.
-    Trả về: string (text do Gemini trả về, thường là CSV hoặc bảng dạng text)
-             hoặc None nếu lỗi
-    """
-    if not GEMINI_API_KEY:
-        return None, "API key chưa được cấu hình"
+# =====================================
+# 🔹 Upload ảnh lên ImgBB bằng urlfetch
+# =====================================
+def upload_to_imgbb(image_bytes):
+    url = "https://api.imgbb.com/1/upload"
 
+    # Encode payload chuẩn form-urlencoded
+    payload = urllib.urlencode({
+        "key": IMGBB_API_KEY,
+        "image": base64.b64encode(image_bytes)
+    })
+
+    try:
+        res = urlfetch.fetch(
+            url=url,
+            payload=payload,
+            method=urlfetch.POST,
+            headers={'Content-Type': 'application/x-www-form-urlencoded'},
+            deadline=30
+        )
+
+        if res.status_code != 200:
+            return None, "HTTP Error: " + str(res.status_code)
+
+        data = json.loads(res.content)
+
+        if not data.get("success"):
+            return None, str(data)
+
+        return data["data"]["url"], None
+
+    except urlfetch.Error as e:
+        return None, "GAE urlfetch error: " + str(e)
+    except Exception as e:
+        return None, "Unexpected: " + str(e)
+
+
+# =====================================
+# 🔹 Gọi Gemini bằng urlfetch
+# =====================================
+def extract_image_with_gemini(image_url, mime_type="image/jpeg", custom_prompt=None):
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY
 
-    # Xác định mime_type nếu chưa có
-    if mime_type is None:
-        ext = os.path.splitext(file_path_or_content)[1].lower() if isinstance(file_path_or_content, basestring) else ""
-        if ext in ['.jpg', '.jpeg']:
-            mime_type = "image/jpeg"
-        elif ext == '.png':
-            mime_type = "image/png"
-        elif ext == '.pdf':
-            mime_type = "application/pdf"
-        else:
-            mime_type = "image/jpeg"  # mặc định
-
-    # Đọc nội dung file
-    if isinstance(file_path_or_content, basestring):  # là đường dẫn file
-        if not os.path.exists(file_path_or_content):
-            return None, "File không tồn tại: " + file_path_or_content
-        with open(file_path_or_content, 'rb') as f:
-            content = f.read()
-    else:
-        content = file_path_or_content  # đã là bytes
-
-    # Optional: resize ảnh để tiết kiệm token (chỉ áp dụng cho ảnh)
-    if mime_type.startswith('image/') and len(content) > 300 * 1024:  # > ~300KB
-        try:
-            img = Image.open(StringIO(content))
-            img.thumbnail((1024, 1024))
-            output = StringIO()
-            img.save(output, format=img.format or 'JPEG')
-            content = output.getvalue()
-        except Exception as e:
-            print("Resize thất bại:", str(e))  # không crash, dùng nguyên file
-
-    base64_data = base64.b64encode(content).decode('utf-8')
-
-    # Prompt tốt cho extract bảng
-    default_prompt = (
-        """
+    prompt_text = """
             You are a high-precision, automated data extraction engine. Your only function is to convert the primary table or list from a file into a pure, machine-parsable CSV string.
 
 **Your Extraction Strategy:**
@@ -105,65 +98,108 @@ You must process the data using the following hierarchical strategy. Attempt Ste
 2.  **If No Data Found:** Your response **must ONLY be the exact string: `NO_TABLE_FOUND`**.
 3.  **DO NOT** include any explanations, summaries, or markdown formatting (like ` ```csv `).
             """
-    )
-    prompt = custom_prompt or default_prompt
 
     payload = {
         "contents": [{
             "parts": [
-                {"text": prompt},
+                {"text": prompt_text},
                 {
-                    "inline_data": {
+                    "file_data": {
                         "mime_type": mime_type,
-                        "data": base64_data
+                        "file_uri": image_url
                     }
                 }
             ]
         }],
         "generationConfig": {
-            "temperature": 0.1,
-            "maxOutputTokens": 2048
+            "temperature": 0.2,
+            "maxOutputTokens": 4096,
         }
     }
 
     try:
-        req = urllib2.Request(
-            url,
-            json.dumps(payload),
-            {'Content-Type': 'application/json'}
+        res = urlfetch.fetch(
+            url=url,
+            payload=json.dumps(payload),
+            method=urlfetch.POST,
+            headers={"Content-Type": "application/json"},
+            deadline=90  # API AI thường cần timeout dài
         )
-        response = urllib2.urlopen(req)
-        result = json.load(response)
 
-        # Lấy text từ response
+        if res.status_code != 200:
+            return None, "Gemini HTTP error {}: {}".format(res.status_code, res.content)
+
+        data = json.loads(res.content)
+
         try:
-            text = result['candidates'][0]['content']['parts'][0]['text']
-            return text.strip(), None
-        except (KeyError, IndexError):
-            return None, "Không tìm thấy nội dung trong response"
+            candidates = data.get("candidates", [])
+            if not candidates:
+                return None, "No candidates in response"
 
-    except urllib2.HTTPError as e:
-        try:
-            error_body = e.read()
-            error_json = json.loads(error_body)
-            msg = error_json.get('error', {}).get('message', str(e))
-        except:
-            msg = str(e)
-        return None, "HTTP Error %d: %s" % (e.code, msg)
+            content = candidates[0].get("content", {})
+            parts = content.get("parts", [])
+            if not parts:
+                return None, "No parts in content"
 
+            text = parts[0].get("text", "").strip()
+            return text, None
+
+        except Exception as e:
+            return None, "Parse error: " + str(e) + "\nRaw: " + res.content
+
+    except urlfetch.Error as e:
+        return None, "GAE urlfetch Request failed: " + str(e)
     except Exception as e:
-        return None, "Exception: " + str(e)
+        return None, "Unexpected: " + str(e)
 
 
-# Để test nhanh (chạy file này trực tiếp)
-if __name__ == '__main__':
-    # Thay bằng đường dẫn file thật của bạn
-    test_file = "D:/img2xls/bienlai1.png"   # hoặc .pdf
-    result, error = extract_with_gemini(test_file)
-    if error:
-        print("LỖI:", error)
-    else:
-        # In ra file text thay vì console
-        with open("gemini_output.txt", "w") as f:
-            f.write(result.encode('utf-8'))  # hoặc f.write(result) nếu dùng unicode_literals
-        print("Saved Result: gemini_output.txt")
+def generate_text_with_gemini(custom_prompt):
+    """
+    Hàm này nhận vào một đoạn text và trả về kết quả từ Gemini.
+    Dùng cho chức năng 'Generate Formula' hoặc Assistant.
+    """
+    # Sử dụng model flash để có tốc độ phản hồi nhanh nhất
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY
+
+    custom_prompt = ('No explanation or analysis needed, just give the command to copy and insert into the Excel cell immediately to '
+                     'perform this request (excluding special characters, starting with the equals sign =): '
+                     +custom_prompt)
+
+    # Cấu trúc payload cho yêu cầu chỉ có văn bản
+    payload = {
+        "contents": [{
+            "parts": [
+                {"text": custom_prompt}
+            ]
+        }],
+        "generationConfig": {
+            "temperature": 0.7,  # Tăng một chút sáng tạo cho yêu cầu văn bản
+            "maxOutputTokens": 2048,
+        }
+    }
+
+    try:
+        res = urlfetch.fetch(
+            url=url,
+            payload=json.dumps(payload),
+            method=urlfetch.POST,
+            headers={"Content-Type": "application/json"},
+            deadline=60
+        )
+
+        if res.status_code != 200:
+            return None, "Gemini API Error {}: {}".format(res.status_code, res.content)
+
+        data = json.loads(res.content)
+
+        # Parse kết quả từ cấu trúc JSON của Gemini
+        try:
+            text = data['candidates'][0]['content']['parts'][0]['text'].strip()
+            return text, None
+        except (KeyError, IndexError):
+            return None, "Could not parse AI response. Raw: " + res.content
+
+    except urlfetch.Error as e:
+        return None, "Network error (urlfetch): " + str(e)
+    except Exception as e:
+        return None, "Unexpected error: " + str(e)
