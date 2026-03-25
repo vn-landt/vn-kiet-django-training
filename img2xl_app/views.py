@@ -213,17 +213,9 @@ def update_table_data(request, result_id):
 
         handler = TableFileHandler(result)
         if handler.save_data(new_table_data):
-            # Trả về HttpResponse thuần túy để tránh lỗi serialization của JsonResponse
-            return HttpResponse(
-                json.dumps({'status': 'success', 'message': 'OK'}),
-                content_type='application/json'
-            )
+            return JsonResponse({'status': 'success', 'message': 'OK'})
         else:
-            return HttpResponse(
-                json.dumps({'status': 'error', 'message': 'Save failed'}),
-                content_type='application/json',
-                status=500
-            )
+            return JsonResponse({'status': 'error', 'message': 'Save failed'}, status=500)
 
     except Exception as e:
         print "--- TRACEBACK VIEW ERROR ---"

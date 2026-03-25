@@ -132,8 +132,25 @@ function handleRangeAction(actionType) {
 
     let tempData = window.mySpreadsheet.getData();
 
-    for (let r = end.row; r >= start.row; r--) {
-        for (let c = end.col; c >= start.col; c--) {
+    // --- BẮT ĐẦU LOGIC THÔNG MINH ---
+    const actualMaxRow = tempData.length - 1;
+    const actualMaxCol = (tempData[0] ? tempData[0].length : 0) - 1;
+
+    // Nếu người dùng nhập lố, ta ép nó về giới hạn thực tế của bảng
+    const rStart = Math.max(0, start.row);
+    const rEnd = Math.min(end.row, actualMaxRow);
+    const cStart = Math.max(0, start.col);
+    const cEnd = Math.min(end.col, actualMaxCol);
+
+    // Kiểm tra nếu sau khi ép, phạm vi không còn hợp lệ (vùng nhập nằm hoàn toàn ngoài bảng)
+    if (rStart > rEnd || cStart > cEnd) {
+        return alert("Phạm vi bạn nhập nằm ngoài vùng dữ liệu hiện tại!");
+    }
+    // --- KẾT THÚC LOGIC THÔNG MINH ---
+
+    // Chạy vòng lặp dựa trên phạm vi đã được "ép" (rEnd, rStart, cEnd, cStart)
+    for (let r = rEnd; r >= rStart; r--) {
+        for (let c = cEnd; c >= cStart; c--) {
             let cellValue = tempData[r][c];
             if (cellValue && typeof cellValue === 'string') {
                 let lastIdx = cellValue.lastIndexOf(char);
@@ -158,7 +175,6 @@ function handleRangeAction(actionType) {
     }
     window.mySpreadsheet.setData(tempData);
 }
-
 // Hàm lưu dữ liệu thực tế (ĐÃ SỬA: KHÔNG GỘP BẰNG '|')
 function saveTableData() {
     if (!window.mySpreadsheet) return;
