@@ -14,13 +14,62 @@ from .services.bridge import process_and_save_extraction
 from django.urls import reverse
 from .services.sheets_export import export_to_google_sheets
 from .services.compress_image import compress_image
-from .services.gemini_rest import upload_to_imgbb, generate_text_with_gemini
+from .services.gemini_rest import upload_to_imgbb, generate_text_with_gemini, extract_image_with_gemini
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_protect
 from .services.table_handler import TableFileHandler
+import traceback  # Thêm thư viện này ở đầu file
+
+def _perform_extraction_logic(uploaded_file):
+    """
+    Hàm trợ giúp tái sử dụng: Nhận file -> Trả về (table_data, image_url, error)
+    Logic này được tách ra từ bridge.py và home để dùng chung.
+    """
+    try:
+        file_bytes = uploaded_file.read()
+
+        # 1. Nén ảnh (Sử dụng hàm từ services)
+        compressed_bytes = compress_image(io.BytesIO(file_bytes))
+        if hasattr(compressed_bytes, "getvalue"):
+            compressed_bytes = compressed_bytes.getvalue()
+
+        # 2. Upload lên ImgBB
+        image_url, error = upload_to_imgbb(compressed_bytes)
+        if error:
+            return None, None, u"Upload ImgBB failed: " + error
+
+        # 3. Gọi Gemini trích xuất (Sử dụng hàm từ services)
+        result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type)
+        if error:
+            return None, image_url, u"Gemini AI error: " + error
+
+        # 4. Làm sạch và Parse CSV (Logic từ bridge.py)
+        cleaned_text = result_text.strip()
+        if '```csv' in cleaned_text:
+            cleaned_text = cleaned_text.split('```csv')[1].split('```')[0].strip()
+        elif '```' in cleaned_text:
+            cleaned_text = cleaned_text.split('```')[1].strip()
+
+        if cleaned_text == 'NO_TABLE_FOUND':
+            return None, image_url, u"Không tìm thấy bảng dữ liệu trong ảnh."
+
+        # Parse CSV thành List
+        csv_content = cleaned_text.encode('utf-8') if isinstance(cleaned_text, unicode) else cleaned_text
+        csv_reader = csv.reader(io.BytesIO(csv_content))
+        table_data = [row for row in csv_reader]
+
+        # Bộ lọc rác (Chỉ giữ dòng có > 1 cột)
+        if table_data:
+            max_cols = max(len(row) for row in table_data)
+            if max_cols > 1:
+                table_data = [row for row in table_data if len(row) > 1]
+
+        return table_data, image_url, None
+
+    except Exception as e:
+        return None, None, str(e)
 
 def home(request):
-    # List of recent extractions for history
     recent_results = ExtractedResult.objects.order_by('-created_at')[:10]
 
     if request.method == 'POST':
@@ -28,59 +77,42 @@ def home(request):
         if form.is_valid():
             uploaded_file = request.FILES['file']
 
-            allowed_types = ['image/jpeg', 'image/png', 'application/pdf']
-            if uploaded_file.content_type not in allowed_types:
-                return HttpResponse("Error: Only JPG, PNG, PDF allowed.")
+            # Kiểm tra định dạng/dung lượng...
 
-            if uploaded_file.size > 10 * 1024 * 1024:
-                return HttpResponse("Error: File too large (max 10MB).")
-
-            file_bytes = uploaded_file.read()
-
-            # 🔥 (optional) nén nhẹ
-            compressed_bytes = compress_image(io.BytesIO(file_bytes))
-
-            if hasattr(compressed_bytes, "getvalue"):
-                compressed_bytes = compressed_bytes.getvalue()
-
-            # 🔥 upload lên ImgBB
-            image_url, error = upload_to_imgbb(compressed_bytes)
+            # --- TÁI SỬ DỤNG HÀM LOGIC ---
+            table_data, image_url, error = _perform_extraction_logic(uploaded_file)
 
             if error:
-                return HttpResponse("Upload failed: " + error)
+                return HttpResponse(u"Lỗi: " + error)
 
-            # 🔥 KHÔNG lưu blob nữa
+            # --- LƯU VÀO DATABASE (Chỉ làm ở Home) ---
             uf = UploadedFile.objects.create(
                 filename=uploaded_file.name,
                 mime_type=uploaded_file.content_type,
                 image_url=image_url,
-                file_size=len(compressed_bytes)
+                file_size=uploaded_file.size
             )
 
-            extraction_result = process_and_save_extraction(uf)
+            # Tạo bản ghi kết quả và lưu table_data qua Handler
+            res_obj = ExtractedResult.objects.create(
+                uploaded_file=uf,
+                status='success',
+                raw_response=u"Initial Extraction",
+                processed_at=timezone.now()
+            )
+            handler = TableFileHandler(res_obj)  #
+            handler.save_data(table_data)
 
-            if extraction_result['status'] == 'error':
-                return HttpResponse("Processing failed: " + extraction_result['error'])
-
-            table_data = extraction_result['table']
-
-            # Redirect to detail page
             return render(request, 'result_detail.html', {
-                'result': ExtractedResult.objects.get(id=extraction_result['result_id']),
+                'result': res_obj,
                 'table': table_data,
-                'table_json': json.dumps(table_data)  # <--- THÊM DÒNG NÀY
+                'table_json': json.dumps(table_data),
+                'recent_results': recent_results
             })
-
-        else:
-            return HttpResponse("Invalid form.")
-
     else:
         form = UploadFileForm()
 
-    return render(request, 'home.html', {
-        'form': form,
-        'recent_results': recent_results
-    })
+    return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
 
 
 def result_detail(request, result_id):
@@ -170,28 +202,37 @@ def delete_result(request, result_id):
 
 @require_POST
 def update_table_data(request, result_id):
-    """
-    API để nhận dữ liệu bảng Excel chỉnh sửa từ frontend và lưu vào Database.
-    """
+    print "DEBUG: Received POST for ID: %s" % result_id
     try:
         result = get_object_or_404(ExtractedResult, id=result_id)
 
-        body_unicode = request.body.decode('utf-8')
-        body_data = json.loads(body_unicode)
+        # Đảm bảo đọc body an toàn
+        raw_body = request.body.decode('utf-8')
+        body_data = json.loads(raw_body)
         new_table_data = body_data.get('table_data')
 
-        if new_table_data is None:
-            return JsonResponse({'status': 'error', 'message': 'Không tìm thấy dữ liệu.'}, status=400)
-
-        # Gọi Handler xử lý nén và lưu đè
         handler = TableFileHandler(result)
         if handler.save_data(new_table_data):
-            return JsonResponse({'status': 'success', 'message': 'Đã lưu thay đổi thành công!'})
+            # Trả về HttpResponse thuần túy để tránh lỗi serialization của JsonResponse
+            return HttpResponse(
+                json.dumps({'status': 'success', 'message': 'OK'}),
+                content_type='application/json'
+            )
         else:
-            return JsonResponse({'status': 'error', 'message': 'Lưu thất bại.'}, status=500)
+            return HttpResponse(
+                json.dumps({'status': 'error', 'message': 'Save failed'}),
+                content_type='application/json',
+                status=500
+            )
 
     except Exception as e:
-        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+        print "--- TRACEBACK VIEW ERROR ---"
+        traceback.print_exc()
+        return HttpResponse(
+            json.dumps({'status': 'error', 'message': str(e)}),
+            content_type='application/json',
+            status=500
+        )
 
 @csrf_protect
 def ai_generate_view(request):
@@ -234,3 +275,23 @@ def ai_generate_view(request):
             })
 
     return JsonResponse({'status': 'error', 'message': 'Invalid Method'})
+
+@require_POST
+def extract_only_api(request):
+    """
+    API mới: Chỉ trích xuất dữ liệu trả về JSON, không chuyển trang, không lưu DB phức tạp.
+    Dùng cho nút "Generate 1 pic into".
+    """
+    if 'file' not in request.FILES:
+        return JsonResponse({'status': 'error', 'message': u'Chưa chọn file.'})
+
+    # TÁI SỬ DỤNG CÙNG MỘT HÀM LOGIC
+    table_data, image_url, error = _perform_extraction_logic(request.FILES['file'])
+
+    if error:
+        return JsonResponse({'status': 'error', 'message': error})
+
+    return JsonResponse({
+        'status': 'success',
+        'table': table_data
+    })

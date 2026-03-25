@@ -188,16 +188,16 @@ h1 {
 }
 .btn-primary {
     background-color: #3b78d8;
-    border: 1px solid #2a5eb5;
-    border-radius: 6px;
+    border: 3px solid #2a5eb5;
+    border-radius: 3px;
     color: #fff;
 }
 .btn-primary:hover { background-color: #2a5eb5; }
 
 .btn-success {
     background-color: #3a8d54;
-    border: 1px solid #2d7342;
-    border-radius: 6px;
+    border: 3px solid #2d7342;
+    border-radius: 3px;
     color: #fff;
 }
 .btn-success:hover { background-color: #2d7342; }
@@ -215,6 +215,22 @@ h1 {
     transition: background-color 0.2s;
 }
 .btn-save:hover { background-color: #f0f0f0; }
+
+/* Căn giữa container chứa bảng */
+#table-content-area {
+    display: flex;
+    justify-content: center; /* Căn giữa theo chiều ngang */
+    align-items: flex-start;
+    padding: 20px 0;
+    width: 100%;
+}
+
+/* Tùy chỉnh div spreadsheet để nó không tràn màn hình và có bóng đổ */
+#spreadsheet {
+    margin: 0 auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    max-width: 95%; /* Không để bảng dính sát mép màn hình */
+}
 
 /* Tùy chỉnh hiển thị Jspreadsheet cho giống Excel hơn */
 .jexcel > thead > tr > td { background-color: #eef0f3; font-weight: bold; color: #555;}
