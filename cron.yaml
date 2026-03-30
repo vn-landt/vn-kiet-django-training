@@ -1,0 +1,4 @@
+cron:
+- description: "Dọn dẹp dữ liệu cũ sau 7 ngày"
+  url: /tasks/cleanup/
+  schedule: every 24 hours

@@ -27,6 +27,7 @@ class UploadedFile(models.Model):
 
 
 class ExtractedResult(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='extraction_results', null=True)
     uploaded_file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE, related_name='extraction_results')
 
     status = models.CharField(max_length=20, default='pending')
@@ -40,7 +41,8 @@ class ExtractedResult(models.Model):
     updated_at = models.DateTimeField(auto_now=True)  # Lưu mốc thời gian auto-save #38
 
     def __unicode__(self):
-        return u"%s - %s" % (self.uploaded_file.filename, self.status)
+        filename = self.uploaded_file.filename if self.uploaded_file else "Unknown"
+        return u"%s - %s" % (filename, self.status)
 
     def get_table(self):
         """Sử dụng OOP Handler để lấy dữ liệu"""
