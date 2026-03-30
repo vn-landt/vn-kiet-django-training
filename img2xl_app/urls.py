@@ -15,4 +15,5 @@ urlpatterns = [
     url(r'^result/(?P<result_id>\d+)/update/$', views.update_table_data, name='update_table_data'),
     url(r'^api/generate-ai-content/$', views.ai_generate_view, name='ai_generate_view'),
     url(r'^extract-only-api/$', views.extract_only_api, name='extract_only_api'),
+    url(r'^tasks/cleanup/$', views.cleanup_old_data, name='cleanup_old_data'),
 ]

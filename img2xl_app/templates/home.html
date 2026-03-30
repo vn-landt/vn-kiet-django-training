@@ -28,32 +28,60 @@
         </div>
     </div>
 
-    <h1>Upload Image or PDF to Extract Table</h1>
-
-    {% if user.is_authenticated %}
-        <form method="post" enctype="multipart/form-data">
-            {% csrf_token %}
-            {{ form.as_p }}
-            <button type="submit">Upload and Extract</button>
-        </form>
-    {% else %}
-        <p style="color: red;">Vui lòng <a href="{% url 'login' %}">đăng nhập</a> để sử dụng chức năng upload.</p>
+    {% if not user.is_authenticated %}
+        <div style="background: #fff3cd; padding: 10px; border: 1px solid #ffeeba; margin-bottom: 20px;">
+            <strong>Lưu ý:</strong> Bạn đang sử dụng với quyền Khách.
+            Dữ liệu sẽ <strong>không được lưu trữ</strong> sau khi bạn thoát trang.
+            Hãy đảm bảo tải kết quả về máy ngay.
+        </div>
     {% endif %}
 
-    <hr>
-
-    <h2>Recent Extractions</h2>
-    {% if recent_results %}
-        <ul style="list-style-type: none; padding-left: 0;">
-        {% for res in recent_results %}
-            <li>
-                <a href="{% url 'result_detail' res.id %}">{{ res.uploaded_file.filename }}</a>
-                - <strong>{{ res.status }}</strong> - {{ res.created_at }}
-            </li>
+    {% if messages %}
+        {% for message in messages %}
+            <p style="color: red;">{{ message }}</p>
         {% endfor %}
-        </ul>
-    {% else %}
-        <p>No extractions yet.</p>
     {% endif %}
+
+    <h1>Upload Image or PDF</h1>
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Upload and Extract</button>
+    </form>
+
+    <h2>Lịch sử gần đây (Tối đa 10)</h2>
+    {% if user.is_authenticated %}
+        {% if recent_results %}
+            <ul>
+            {% for res in recent_results %}
+                <li>
+                    <a href="{% url 'result_detail' res.id %}">
+                        {{ res.uploaded_file.filename }}
+                    </a>
+                    - <span class="status-{{ res.status }}"><strong>{{ res.status }}</strong></span>
+                    - <small>{{ res.created_at|date:"d/m/Y H:i" }}</small>
+                </li>
+            {% endfor %}
+            </ul>
+        {% else %}
+            <p>Bạn chưa có bản trích xuất nào. Hãy thử upload ngay!</p>
+        {% endif %}
+    {% else %}
+        <p>
+            <a href="{% url 'login' %}"><strong>Đăng nhập</strong></a>
+            để lưu trữ và xem lại lịch sử trích xuất của bạn.
+        </p>
+    {% endif %}
+
+    <script>
+        {% if not user.is_authenticated %}
+        // Cảnh báo khi khách thoát trang
+        window.addEventListener('beforeunload', function (e) {
+            var confirmationMessage = 'Dữ liệu của bạn sẽ bị mất nếu chưa tải về. Bạn có chắc muốn thoát?';
+            (e || window.event).returnValue = confirmationMessage;
+            return confirmationMessage;
+        });
+        {% endif %}
+    </script>
 </body>
 </html>
