@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <title>Table Extractor</title>
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extraction Result</title>
+    <link rel="stylesheet" href="{% static 'css/style.css' %}">
 </head>
 <body>
     <div class="nav-bar">
@@ -37,7 +44,7 @@
 
     <h2>Recent Extractions</h2>
     {% if recent_results %}
-        <ul>
+        <ul style="list-style-type: none; padding-left: 0;">
         {% for res in recent_results %}
             <li>
                 <a href="{% url 'result_detail' res.id %}">{{ res.uploaded_file.filename }}</a>
