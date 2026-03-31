@@ -285,3 +285,212 @@ function generateAIContent() {
         btn.disabled = false;
     });
 }
+function openExportModal() {
+    document.getElementById('export-modal').style.display = 'block';
+    // Ép về mặc định Excel khi mở
+    const radioExcel = document.querySelector('input[name="export_type"][value="xlsx"]');
+    if (radioExcel) radioExcel.checked = true;
+    handleTypeChange('xlsx');
+}
+
+function closeExportModal() {
+    document.getElementById('export-modal').style.display = 'none';
+}
+
+function togglePngOptions(show) {
+    document.getElementById('png-settings').style.display = show ? 'block' : 'none';
+}
+
+// Đóng modal khi click ra ngoài
+window.onclick = function(event) {
+    let modal = document.getElementById('export-modal');
+    if (event.target == modal) closeExportModal();
+}
+
+/**
+ * Hàm chuyển số cột thành chữ (0 -> A, 1 -> B, 25 -> Z, 26 -> AA)
+ */
+function getColumnLabel(n) {
+    let label = "";
+    while (n >= 0) {
+        label = String.fromCharCode((n % 26) + 65) + label;
+        n = Math.floor(n / 26) - 1;
+    }
+    return label;
+}
+
+/**
+ * Khi mở Modal: Mặc định chọn Excel và render preview Excel
+ */
+function openExportModal() {
+    document.getElementById('export-modal').style.display = 'block';
+    // Reset radio về Excel mỗi khi mở
+    const radioExcel = document.querySelector('input[name="export_type"][value="xlsx"]');
+    radioExcel.checked = true;
+
+    // Gọi hàm chuyển đổi để áp dụng giao diện Excel mặc định
+    handleTypeChange('xlsx');
+}
+
+/**
+ * Xử lý thay đổi giữa Excel và PNG
+ */
+function handleTypeChange(type) {
+    const pngSettings = document.getElementById('png-settings');
+    const container = document.getElementById('preview-container');
+
+    if (type === 'png') {
+        pngSettings.style.display = 'block';
+
+        // Cấu hình cho PNG: Căn giữa tuyệt đối
+        container.style.display = 'flex';
+        container.style.justifyContent = 'center';
+        container.style.alignItems = 'center';
+        container.style.overflow = 'hidden'; // Tắt cuộn để scale không bị lệch
+
+        updatePngPreview();
+    } else {
+        pngSettings.style.display = 'none';
+
+        // Cấu hình cho Excel: Cho phép cuộn ngang dọc
+        container.style.display = 'block';
+        container.style.overflow = 'auto';
+
+        // Reset các style của PNG
+        container.style.backgroundColor = 'white';
+        container.style.backgroundImage = 'none';
+
+        renderExcelPreview();
+    }
+}
+
+/**
+ * Render Preview kiểu Excel (Có tiêu đề hàng/cột)
+ */
+function renderExcelPreview() {
+    if (!window.mySpreadsheet) return;
+    const data = window.mySpreadsheet.getData();
+    const container = document.getElementById('preview-container');
+
+    // 1. Reset các thuộc tính scale của PNG (nếu có)
+    container.style.backgroundColor = 'white';
+    container.style.backgroundImage = 'none';
+
+    // 2. Tăng giới hạn xem trước lên (ví dụ 20 hàng thay vì 5) để tận dụng thanh cuộn
+    const maxR = Math.min(data.length, 20);
+    const maxC = data[0] ? data[0].length : 0;
+
+    let html = '<table class="preview-table" id="table-excel-preview">';
+
+    // Header chữ cái (A, B, C...)
+    html += '<tr style="position: sticky; top: 0; z-index: 10;">';
+    html += '<td class="excel-header" style="background:#f0f0f0; border:1px solid #ccc; position: sticky; left: 0; z-index: 20;"></td>';
+    for (let c = 0; c < maxC; c++) {
+        html += `<td class="excel-header" style="background:#f0f0f0; border:1px solid #ccc; text-align:center; font-weight:bold; min-width:80px;">${getColumnLabel(c)}</td>`;
+    }
+    html += '</tr>';
+
+    // Dữ liệu
+    for (let r = 0; r < maxR; r++) {
+        html += '<tr>';
+        // Cột số thứ tự (1, 2, 3...) - Sticky bên trái
+        html += `<td class="excel-header" style="background:#f0f0f0; border:1px solid #ccc; text-align:center; font-weight:bold; position: sticky; left: 0; z-index: 5;">${r + 1}</td>`;
+        for (let c = 0; c < maxC; c++) {
+            let cellVal = data[r][c] || '';
+            html += `<td>${cellVal}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+
+    container.innerHTML = html;
+
+    // Đảm bảo bảng không bị scale
+    const table = document.getElementById('table-excel-preview');
+    if (table) table.style.transform = 'none';
+}
+
+/**
+ * Render Preview kiểu PNG (Theo vùng chọn và màu nền)
+ */
+function updatePngPreview() {
+    if (!window.mySpreadsheet) return;
+
+    const startCell = document.getElementById('png-start').value || "A1";
+    let rows = parseInt(document.getElementById('png-rows').value) || 1;
+    let cols = parseInt(document.getElementById('png-cols').value) || 1;
+    const bgColor = document.getElementById('bg-color-select').value;
+    const container = document.getElementById('preview-container');
+    const data = window.mySpreadsheet.getData();
+    const startPos = parseCoords(startCell);
+
+    // Giới hạn hiển thị preview tối đa 30x30
+    rows = Math.min(rows, 30);
+    cols = Math.min(cols, 30);
+
+    let html = '<table id="table-render-preview" style="border-collapse: collapse; border: 1px solid #ddd;">';
+    for (let r = 0; r < rows; r++) {
+        html += '<tr>';
+        for (let c = 0; c < cols; c++) {
+            const rIdx = startPos.row + r;
+            const cIdx = startPos.col + c;
+            const val = (data[rIdx] && data[rIdx][cIdx] !== undefined) ? data[rIdx][cIdx] : '';
+            html += `<td style="border: 1px solid #ddd; padding: 8px; min-width: 80px; height: 30px;">${val}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+    container.innerHTML = html;
+    autoScalePreview();
+    // Cập nhật Màu nền trực tiếp trong hàm này
+    const table = document.getElementById('table-render-preview');
+    if (bgColor === 'black') {
+        container.style.backgroundColor = '#333';
+        table.style.color = 'white';
+        table.style.borderColor = '#555';
+        container.style.backgroundImage = 'none';
+    } else if (bgColor === 'transparent') {
+        container.style.backgroundColor = 'transparent';
+        container.style.backgroundImage = 'repeating-conic-gradient(#f0f0f0 0% 25%, #fff 0% 50%)';
+        container.style.backgroundSize = '20px 20px';
+        table.style.color = 'black';
+        table.style.borderColor = '#ddd';
+    } else {
+        container.style.backgroundColor = 'white';
+        container.style.backgroundImage = 'none';
+        table.style.color = 'black';
+        table.style.borderColor = '#ddd';
+    }
+}
+
+function autoScalePreview() {
+    const container = document.getElementById('preview-container');
+    const table = document.getElementById('table-render-preview');
+
+    if (!container || !table) return;
+
+    // Reset để đo kích thước thực
+    table.style.transform = 'scale(1)';
+    table.style.margin = '0'; // Đảm bảo không bị margin làm lệch
+
+    const containerW = container.offsetWidth - 40;
+    const containerH = container.offsetHeight - 40;
+    const tableW = table.scrollWidth;
+    const tableH = table.scrollHeight;
+
+    const scaleW = containerW / tableW;
+    const scaleH = containerH / tableH;
+    let scale = Math.min(scaleW, scaleH);
+
+    if (scale > 1) scale = 1;
+
+    // Áp dụng thu nhỏ
+    table.style.transform = 'scale(' + scale + ')';
+    // Đảm bảo thu nhỏ từ tâm để bảng nằm giữa khung flex
+    table.style.transformOrigin = 'center';
+}
+
+
+
+
+
