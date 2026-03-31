@@ -1,492 +1,577 @@
-# -*- coding: utf-8 -*-
-from __future__ import unicode_literals
+document.addEventListener("DOMContentLoaded", function() {
+        var rawData = window.DJANGO_TABLE_DATA || [['', '', '', '']];
+    var spreadsheetDiv = document.getElementById('spreadsheet');
+    if (spreadsheetDiv) {
+        window.mySpreadsheet = jspreadsheet(spreadsheetDiv, {
+            data: rawData,
+            minDimensions: [10, 10],
+            defaultColWidth: 120,
+            tableOverflow: true,
+            tableWidth: "100%",
+            tableHeight: "400px",
+            allowInsertRow: true, // Cho phép thêm dòng
+            allowInsertColumn: true, // Cho phép thêm cột
+            search: true,
+            columnSorting: true,
+        });
+    }
+});
 
-import traceback  # Thêm thư viện này ở đầu file
-import io
-import csv
-import os
-import json
-from datetime import timedelta
+/**
+ * Hàm dùng chung để cập nhật dữ liệu lên giao diện (không lưu DB)
+ * @param {Array} newData - Mảng 2 chiều chứa dữ liệu mới
+ * @param {Object} coords - Tọa độ bắt đầu {col, row}
+ */
+function updateTableDisplay(newData, coords) {
+    if (!window.mySpreadsheet) return;
 
-from django.utils import timezone
-from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
-from django.conf import settings
-from .forms import UploadFileForm, RegisterForm
-from .models import UploadedFile, ExtractedResult, UsageLog
-from .services.bridge import process_and_save_extraction
-from django.urls import reverse
-from .services.sheets_export import export_to_google_sheets
-from .services.compress_image import compress_image
-from .services.gemini_rest import upload_to_imgbb, generate_text_with_gemini, extract_image_with_gemini
-from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_protect
-from .services.table_handler import TableFileHandler
-from django.shortcuts import render, redirect
-from django.contrib.auth import login
-from django.contrib import messages
-from django.template.loader import get_template
-from xhtml2pdf import pisa  # Dùng cho PDF
-import xlsxwriter           # Dùng cho Excel
-import io
-import json
-import re
-# Cần import thêm thư viện xử lý ảnh (hãy đảm bảo bạn đã cài 'Pillow' trong requirements.txt)
-from PIL import Image, ImageDraw, ImageFont
+    let currentData = window.mySpreadsheet.getData();
+    let neededRows = coords.row + newData.length;
+    let maxColsInNew = Math.max(...newData.map(r => r.length));
+    let neededCols = coords.col + maxColsInNew;
 
-def _perform_extraction_logic(uploaded_file):
-    """
-    Hàm trợ giúp tái sử dụng: Nhận file -> Trả về (table_data, image_url, error)
-    Logic này được tách ra từ bridge.py và home để dùng chung.
-    """
-    try:
-        file_bytes = uploaded_file.read()
+    // Tự động thêm dòng/cột nếu dữ liệu mới lớn hơn bảng hiện tại
+    if (neededRows > currentData.length) {
+        window.mySpreadsheet.insertRow(neededRows - currentData.length);
+    }
+    if (neededCols > (currentData[0] ? currentData[0].length : 0)) {
+        window.mySpreadsheet.insertColumn(neededCols - currentData[0].length);
+    }
 
-        # 1. Nén ảnh (Sử dụng hàm từ services)
-        compressed_bytes = compress_image(io.BytesIO(file_bytes))
-        if hasattr(compressed_bytes, "getvalue"):
-            compressed_bytes = compressed_bytes.getvalue()
+    // Lấy lại dữ liệu mới nhất sau khi đã mở rộng
+    let updatedData = window.mySpreadsheet.getData();
+    newData.forEach((rowData, rIdx) => {
+        rowData.forEach((val, cIdx) => {
+            let targetR = coords.row + rIdx;
+            let targetC = coords.col + cIdx;
+            if (updatedData[targetR]) {
+                updatedData[targetR][targetC] = val;
+            }
+        });
+    });
 
-        # 2. Upload lên ImgBB
-        image_url, error = upload_to_imgbb(compressed_bytes)
-        if error:
-            return None, None, u"Upload ImgBB failed: " + error
+    window.mySpreadsheet.setData(updatedData);
+}
 
-        # 3. Gọi Gemini trích xuất (Sử dụng hàm từ services)
-        result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type)
+const TableCoordinateHelper = {
+    parse: parseCoords,
+    ask: function(msg, def = "A1") {
+        const input = prompt(msg, def);
+        if (input === null) return null;
+        const coords = this.parse(input.trim());
+        if (!coords || coords.col < 0 || coords.row < 0) { alert("Lỗi tọa độ!"); return this.ask(msg, def); }
+        return coords;
+    }
+};
 
-        if result_text == "INVALID_DOCUMENT":
-            return None, image_url, u"Tài liệu không hợp lệ hoặc không đủ độ rõ nét. Vui lòng chọn ảnh hóa đơn, chứng từ khác."
-
-        if error:
-            return None, image_url, u"Gemini AI error: " + error
-
-        # 4. Làm sạch và Parse CSV (Logic từ bridge.py)
-        cleaned_text = result_text.strip()
-        if '```csv' in cleaned_text:
-            cleaned_text = cleaned_text.split('```csv')[1].split('```')[0].strip()
-        elif '```' in cleaned_text:
-            cleaned_text = cleaned_text.split('```')[1].strip()
-
-        if cleaned_text == 'NO_TABLE_FOUND':
-            return None, image_url, u"Không tìm thấy bảng dữ liệu trong ảnh."
-
-        # Parse CSV thành List
-        csv_content = cleaned_text.encode('utf-8') if isinstance(cleaned_text, unicode) else cleaned_text
-        csv_reader = csv.reader(io.BytesIO(csv_content))
-        table_data = [row for row in csv_reader]
-
-        # Bộ lọc rác (Chỉ giữ dòng có > 1 cột)
-        if table_data:
-            max_cols = max(len(row) for row in table_data)
-            if max_cols > 1:
-                table_data = [row for row in table_data if len(row) > 1]
-
-        return table_data, image_url, None
-
-    except Exception as e:
-        return None, None, str(e)
-
-def home(request):
-    user = request.user
-    recent_results = []
-    if user.is_authenticated():
-        recent_results = ExtractedResult.objects.filter(
-            user=user
-        ).order_by('-created_at')[:10]
-
-    if request.method == 'POST':
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            # 1. Kiểm tra Quota cho User đã đăng nhập [#35]
-            if user.is_authenticated():
-                today = timezone.now().date()
-                usage, created = UsageLog.objects.get_or_create(user=user, usage_date=today)
-
-                if usage.upload_count >= 10:
-                    messages.error(request, "Bạn đã hết lượt upload trong ngày (Tối đa 10 ảnh).")
-                    return render(request, 'home.html', {'recent_results': recent_results})
-            uploaded_file = request.FILES['file']
-
-            # --- KIỂM TRA KỸ THUẬT (SỬA TẠI ĐÂY) ---
-            MAX_SIZE = 5 * 1024 * 1024  # 5MB
-            ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-
-            # 2. Kiểm tra định dạng
-            if uploaded_file.content_type not in ALLOWED_TYPES:
-                messages.error(request, u"Định dạng file không hỗ trợ. Vui lòng chỉ tải lên ảnh JPG, PNG hoặc WebP.")
-                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
-
-            # 1. Kiểm tra dung lượng
-            if uploaded_file.size > MAX_SIZE:
-                messages.error(request, u"File quá lớn (Tối đa 5MB). Vui lòng chọn ảnh khác.")
-                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
-
-            # --- NẾU VƯỢT QUA, TIẾP TỤC TRÍCH XUẤT ---
-            table_data, image_url, error = _perform_extraction_logic(uploaded_file)
-
-            if error:
-                # Thông báo lỗi từ Gemini (bao gồm cả lỗi INVALID_DOCUMENT đã sửa ở bước trước)
-                messages.error(request, error)
-                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
-
-            # --- LƯU VÀO DATABASE (Chỉ làm ở Home) ---
-            uf = UploadedFile.objects.create(
-                user=user if user.is_authenticated() else None,
-                filename=uploaded_file.name,
-                mime_type=uploaded_file.content_type,
-                image_url=image_url,
-                file_size=uploaded_file.size
-            )
-
-            # Tạo bản ghi kết quả và lưu table_data qua Handler
-            res_obj = ExtractedResult.objects.create(
-                user=user if user.is_authenticated() else None,
-                uploaded_file=uf,
-                status='success',
-                raw_response=u"Initial Extraction",
-                processed_at=timezone.now()
-            )
-            handler = TableFileHandler(res_obj)  #
-            handler.save_data(table_data)
-
-            if user.is_authenticated():
-                # Cập nhật số lượng dùng trong ngày
-                usage.upload_count += 1  # hoặc +1 tùy logic của bạn
-                usage.save()
-
-                # [#35] Giới hạn 10 lịch sử (Xóa file thứ 11 trở đi)
-                old_files = UploadedFile.objects.filter(user=user).order_by('-uploaded_at')[10:]
-                for old_f in old_files:
-                    old_f.delete()  # Datastore sẽ xóa các bản ghi liên quan nếu có CASCADE
-            return render(request, 'result_detail.html', {
-                'result': res_obj,
-                'table': table_data,
-                'table_json': json.dumps(table_data),
-                'recent_results': recent_results
-            })
-    else:
-        form = UploadFileForm()
-
-    return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
+// Hàm chuyển A1 -> {col: 0, row: 0} (Đã xóa bản trùng lặp bên dưới)
+function parseCoords(cellStr) {
+    const match = cellStr.toUpperCase().match(/^([A-Z]+)(\d+)$/);
+    if (!match) return null;
+    let colStr = match[1];
+    let row = parseInt(match[2]) - 1;
+    let col = 0;
+    for (let i = 0; i < colStr.length; i++) {
+        col = col * 26 + (colStr.charCodeAt(i) - 64);
+    }
+    return { col: col - 1, row: row };
+}
 
 
-def result_detail(request, result_id):
-    result = get_object_or_404(ExtractedResult, id=result_id)
-    table = result.get_table()
 
-    recent_results = ExtractedResult.objects.order_by('-created_at')
-    return render(request, 'result_detail.html', {
-        'result': result,
-        'table': table,
-        'table_json': json.dumps(table),
-        'recent_results': recent_results
+async function handlePicGenerate() {
+    const fileInput = document.getElementById('pic-upload');
+
+    // 1. Thông báo nếu chưa chọn file
+    if (fileInput.files.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Thông báo',
+            text: 'Vui lòng chọn ảnh trước khi thực hiện!',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+
+    // Hỏi tọa độ bằng SweetAlert2 (Thay thế TableCoordinateHelper.ask)
+    const { value: targetCoords } = await Swal.fire({
+        title: 'Chọn ô bắt đầu',
+        input: 'text',
+        inputLabel: 'Ví dụ: A1, B5, C10...',
+        inputValue: 'A1', // Giá trị mặc định
+        showCancelButton: true,
+        confirmButtonText: 'Tiếp tục',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Bạn cần nhập tọa độ ô!';
+            }
+            // Regex kiểm tra định dạng ô Excel (VD: A1, AB10)
+            const regex = /^[A-Z]+\d+$/i;
+            if (!regex.test(value)) {
+                return 'Tọa độ không hợp lệ (Ví dụ đúng: A1, B10)';
+            }
+        }
+    });
+    if (!targetCoords) return;
+
+    // 2. Hiển thị trạng thái Loading chuyên nghiệp
+    Swal.fire({
+        title: 'Đang xử lý...',
+        text: 'Vui lòng chờ Gemini phân tích dữ liệu',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading(); // Hiển thị vòng xoay
+        }
+    });
+
+    const btn = document.querySelector('.btn-purple');
+    const originalText = btn.innerText;
+    btn.innerText = "...";
+    btn.disabled = true;
+
+    const formData = new FormData();
+    formData.append('file', fileInput.files[0]);
+
+    fetch("/extract-only-api/", {
+        method: 'POST',
+        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        body: formData
     })
+    .then(res => res.json())
+    .then(data => {
+        // Đóng loading khi có phản hồi
+        Swal.close();
 
-def export_to_sheets(request, result_id):
-    result = get_object_or_404(ExtractedResult, id=result_id)
-    table = result.get_table()
+        if (data.status === 'success') {
+            updateTableDisplay(data.table, targetCoords);
 
-    if not table:
-        return HttpResponse("No table data to export.", status=400)
+            // Thông báo thành công nhẹ nhàng (Toast)
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+            Toast.fire({
+                icon: 'success',
+                title: 'Trích xuất thành công!'
+            });
 
-    sheet_url, error = export_to_google_sheets(table, result.uploaded_file.filename)
-
-    if error:
-        return HttpResponse("Export failed: " + error)
-
-    # Redirect to the sheet or show link
-    return HttpResponse(
-        "<h2>Exported to Google Sheets Successfully!</h2>"
-        "<p>Open your sheet here: <a href='{url}' target='_blank'>{url}</a></p>"
-        "<br><a href='{detail_url}'>Back to result</a>".format(
-            url=sheet_url,
-            detail_url=reverse('result_detail', args=[result_id])
-        )
-    )
-
-
-def delete_result(request, result_id):
-    if request.method == 'POST':
-        result = get_object_or_404(ExtractedResult, id=result_id)
-
-        # Khởi tạo Handler và dọn dẹp file vật lý trước
-        handler = TableFileHandler(result.id)
-        handler.delete_file()
-
-        # Sau đó mới xóa Database
-        result.uploaded_file.delete()
-        result.delete()
-
-    return redirect('home')
-
-
-@require_POST
-def update_table_data(request, result_id):
-    print "DEBUG: Received POST for ID: %s" % result_id
-    try:
-        result = get_object_or_404(ExtractedResult, id=result_id)
-
-        # Đảm bảo đọc body an toàn
-        raw_body = request.body.decode('utf-8')
-        body_data = json.loads(raw_body)
-        new_table_data = body_data.get('table_data')
-
-        handler = TableFileHandler(result)
-        if handler.save_data(new_table_data):
-            return JsonResponse({'status': 'success', 'message': 'OK'})
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Save failed'}, status=500)
-
-    except Exception as e:
-        print "--- TRACEBACK VIEW ERROR ---"
-        traceback.print_exc()
-        return HttpResponse(
-            json.dumps({'status': 'error', 'message': str(e)}),
-            content_type='application/json',
-            status=500
-        )
-
-@csrf_protect
-def ai_generate_view(request):
-    """
-    API nhận prompt từ giao diện và trả về văn bản từ Gemini
-    """
-    if request.method == 'POST':
-        try:
-            # Parse dữ liệu JSON từ request body
-            data = json.loads(request.body)
-            prompt_text = data.get('prompt', '')
-            target_cell = data.get('cell', '')
-
-            if not prompt_text:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': u'Nội dung yêu cầu không được để trống.'
-                })
-
-            # Gọi hàm từ services.py
-            # prompt_text có thể cần decode/encode nếu là tiếng Việt trong Py 2.7
-            result, error = generate_text_with_gemini(prompt_text)
-
-            if error:
-                return JsonResponse({
-                    'status': 'error',
-                    'message': error
-                })
-
-            return JsonResponse({
-                'status': 'success',
-                'result': result,
-                'cell': target_cell
-            })
-
-        except Exception as e:
-            return JsonResponse({
-                'status': 'error',
-                'message': str(e)
-            })
-
-    return JsonResponse({'status': 'error', 'message': 'Invalid Method'})
-
-@require_POST
-def extract_only_api(request):
-    """
-    API mới: Chỉ trích xuất dữ liệu trả về JSON, không chuyển trang, không lưu DB phức tạp.
-    Dùng cho nút "Generate 1 pic into".
-    """
-    if 'file' not in request.FILES:
-        return JsonResponse({'status': 'error', 'message': u'Chưa chọn file.'})
-
-    # TÁI SỬ DỤNG CÙNG MỘT HÀM LOGIC
-    table_data, image_url, error = _perform_extraction_logic(request.FILES['file'])
-
-    if error:
-        return JsonResponse({'status': 'error', 'message': error})
-
-    return JsonResponse({
-        'status': 'success',
-        'table': table_data
+        } else {
+            // 3. Hiển thị lỗi từ Backend (Lỗi size, định dạng, mặt người...)
+            Swal.fire({
+                icon: 'error',
+                title: 'Không thể trích xuất',
+                text: data.message, // Thông báo từ _perform_extraction_logic
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Đóng'
+            });
+        }
     })
-
-def register(request):
-    if request.method == "POST":
-        form = RegisterForm(request.POST)
-        if form.is_valid():
-            user = form.save() # Mật khẩu tự động được băm tại đây
-            login(request, user)
-            return redirect('home')
-    else:
-        form = RegisterForm()
-    return render(request, 'registration/register.html', {'form': form})
-
-
-def cleanup_old_data(request):
-    # Chỉ cho phép App Engine Cron gọi vào URL này
-    if request.META.get('HTTP_X_APPENGINE_CRON') != 'true':
-        return HttpResponseForbidden()
-
-    seven_days_ago = timezone.now() - timedelta(days=7)
-
-    # Tìm các file không có thay đổi trong 7 ngày qua
-    old_results = ExtractedResult.objects.filter(updated_at__lt=seven_days_ago)
-
-    count = 0
-    for res in old_results:
-        res.uploaded_file.delete()  # Xóa file gốc kéo theo kết quả trích xuất
-        count += 1
-
-    return HttpResponse("Đã dọn dẹp %d bản ghi cũ." % count)
-
-
-def export(request, result_id):
-    result = get_object_or_404(ExtractedResult, id=result_id)
-    table_data = result.get_table()
-
-    # XỬ LÝ KHI NGƯỜI DÙNG ẤN NÚT DOWNLOAD (METHOD POST)
-    if request.method == 'POST':
-        export_type = request.POST.get('export_type', 'xlsx')
-
-        if export_type == 'png':
-            # 1. Lấy màu nền
-            bg_color = request.POST.get('bg_color', 'white')
-
-            # 2. Lấy ô bắt đầu (Ví dụ: "A1")
-            start_cell = request.POST.get('start_cell', 'A1')
-
-            # 3. Lấy số hàng và số cột, ép kiểu về int để tính toán
-            try:
-                num_rows = int(request.POST.get('num_rows', 5))
-                num_cols = int(request.POST.get('num_cols', 5))
-            except ValueError:
-                # Nếu có lỗi nhập liệu không phải số, đặt mặc định
-                num_rows = 5
-                num_cols = 5
-
-            # 4. Truyền đầy đủ 6 tham số vào hàm xử lý PNG
-            return _export_png(result, table_data, bg_color, start_cell, num_rows, num_cols)
-
-        else:
-            # Đối với Excel/CSV (Bạn có thể thêm logic cắt phạm vi ở đây nếu muốn)
-            return _export_excel(result, table_data)
-
-    # XỬ LÝ KHI TRUY CẬP URL (METHOD GET)
-    # Preview mặc định 10 cột, 5 hàng đầu
-    preview_data = [row[:10] for row in table_data[:5]]
-
-    return render(request, 'export_ui.html', {
-        'result': result,
-        'preview_data': preview_data,
-        'total_rows': len(table_data),
-        'total_cols': max(len(r) for r in table_data) if table_data else 0
+    .catch(err => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Lỗi kết nối',
+            text: 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.'
+        });
     })
+    .finally(() => {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    });
+}
 
-def _export_excel(result, table_data, start_coords=None, end_coords=None):
-    # 1. Xử lý tên file: bienlai1.png -> bienlai1
-    original_name = result.uploaded_file.filename
-    base_name = os.path.splitext(original_name)[0].replace(' ', '_')
+function handleCSVUpdate() {
+    const fileInput = document.getElementById('csv-upload');
+    if (fileInput.files.length === 0) return alert("Vui lòng chọn CSV!");
+    const targetCoords = TableCoordinateHelper.ask("Chọn ô bắt đầu:");
+    if (!targetCoords) return;
 
-    # Dùng lại logic CSV của bạn nhưng với tên file đã sạch
-    response = HttpResponse(content_type='text/csv')
-    response.write('\xef\xbb\xbf')  # BOM cho tiếng Việt
-    response['Content-Disposition'] = 'attachment; filename="%s.csv"' % base_name
+    const reader = new FileReader();
+    reader.onload = (e) => {
+        const rows = e.target.result.split("\n").filter(l => l.trim()).map(row => row.split(","));
+        updateTableDisplay(rows, targetCoords);
+    };
+    reader.readAsText(fileInput.files[0]);
+}
 
-    writer = csv.writer(response)
-    for row in result.get_table():
-        clean_row = []
-        for cell in row:
-            if cell is None:
-                cell_text = u""
-            elif not isinstance(cell, unicode):
-                cell_text = unicode(str(cell), 'utf-8', errors='ignore')
-            else:
-                cell_text = cell
-            clean_row.append(cell_text.strip().encode('utf-8'))
-        if any(clean_row):
-            writer.writerow(clean_row)
-    return response
+// Xử lý Chia Cột hoặc Xóa Ký Tự theo phạm vi
+function handleRangeAction(actionType) {
+    const startInput = document.getElementById('range-start').value;
+    const endInput = document.getElementById('range-end').value;
+    const char = document.getElementById('special-char').value;
+
+    if (!startInput || !endInput || !char) return alert("Vui lòng nhập đủ thông tin!");
+
+    const start = parseCoords(startInput);
+    const end = parseCoords(endInput);
+    if (!start || !end) return alert("Phạm vi lỗi!");
+
+    let tempData = window.mySpreadsheet.getData();
+
+    // --- BẮT ĐẦU LOGIC THÔNG MINH ---
+    const actualMaxRow = tempData.length - 1;
+    const actualMaxCol = (tempData[0] ? tempData[0].length : 0) - 1;
+
+    // Nếu người dùng nhập lố, ta ép nó về giới hạn thực tế của bảng
+    const rStart = Math.max(0, start.row);
+    const rEnd = Math.min(end.row, actualMaxRow);
+    const cStart = Math.max(0, start.col);
+    const cEnd = Math.min(end.col, actualMaxCol);
+
+    // Kiểm tra nếu sau khi ép, phạm vi không còn hợp lệ (vùng nhập nằm hoàn toàn ngoài bảng)
+    if (rStart > rEnd || cStart > cEnd) {
+        return alert("Phạm vi bạn nhập nằm ngoài vùng dữ liệu hiện tại!");
+    }
+    // --- KẾT THÚC LOGIC THÔNG MINH ---
+
+    // Chạy vòng lặp dựa trên phạm vi đã được "ép" (rEnd, rStart, cEnd, cStart)
+    for (let r = rEnd; r >= rStart; r--) {
+        for (let c = cEnd; c >= cStart; c--) {
+            let cellValue = tempData[r][c];
+            if (cellValue && typeof cellValue === 'string') {
+                let lastIdx = cellValue.lastIndexOf(char);
+                if (lastIdx !== -1) {
+                    let textBefore = cellValue.substring(0, lastIdx).trim();
+                    let textAfter = cellValue.substring(lastIdx).trim();
+
+                    if (actionType === 'split-col') {
+                        tempData[r][c] = textBefore;
+                        tempData[r].splice(c + 1, 0, textAfter);
+                    } else if (actionType === 'split-row') {
+                        tempData[r][c] = textBefore;
+                        let newRow = new Array(tempData[r].length).fill("");
+                        newRow[c] = textAfter;
+                        tempData.splice(r + 1, 0, newRow);
+                    } else if (actionType === 'remove') {
+                        tempData[r][c] = cellValue.split(char).join('');
+                    }
+                }
+            }
+        }
+    }
+    window.mySpreadsheet.setData(tempData);
+}
+// Hàm lưu dữ liệu thực tế (ĐÃ SỬA: KHÔNG GỘP BẰNG '|')
+function saveTableData() {
+    if (!window.mySpreadsheet) return;
+
+    // Làm sạch dữ liệu: Biến null/undefined thành chuỗi rỗng
+    var currentData = window.mySpreadsheet.getData().map(function(row) {
+        return row.map(function(cell) {
+            return (cell === null || cell === undefined) ? "" : String(cell);
+        });
+    });
+
+    var saveBtn = document.querySelector('.btn-save');
+    if (saveBtn) {
+        saveBtn.innerText = 'Đang lưu...';
+        saveBtn.disabled = true;
+    }
+
+    fetch(window.DJANGO_SAVE_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({ 'table_data': currentData })
+    })
+    .then(function(res) {
+        if (!res.ok) {
+            // Nếu gặp lỗi 405 hoặc 500, nhảy xuống .catch
+            throw new Error('Server error: ' + res.status);
+        }
+        return res.json();
+    })
+    .then(function(data) {
+        if (data.status === 'success') alert('Lưu thành công!');
+        else alert('Lỗi: ' + data.message);
+    })
+    .catch(function(err) {
+        console.error("Fetch error detail:", err);
+        alert('Lỗi hệ thống (Vui lòng xem F12 Console)');
+    })
+    .finally(function() {
+        if (saveBtn) {
+            saveBtn.innerText = 'Save Changes';
+            saveBtn.disabled = false;
+        }
+    });
+}
+
+function getCookie(name) {
+    var cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        var cookies = document.cookie.split(';');
+        for (var i = 0; i < cookies.length; i++) {
+            var cookie = cookies[i].trim();
+            if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+function generateAIContent() {
+    // ... (Giữ nguyên không đổi vì đã hoạt động tốt)
+    const promptText = document.getElementById('ai-prompt').value;
+    const resultDisplay = document.getElementById('ai-result-display');
+    const btn = document.getElementById('btn-ai-gen');
+
+    if (!promptText) {
+        alert("Vui lòng nhập yêu cầu!");
+        return;
+    }
+
+    const originalText = btn.innerText;
+    btn.innerText = "...";
+    btn.disabled = true;
+    resultDisplay.value = "Đang lấy kết quả...";
+
+    fetch('/api/generate-ai-content/', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            'prompt': promptText
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            let aiResult = data.result;
+            aiResult = aiResult.replace(/`/g, "").trim();
+            resultDisplay.value = aiResult;
+            resultDisplay.select();
+        } else {
+            resultDisplay.value = "Lỗi!";
+            alert("Lỗi: " + data.message);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        resultDisplay.value = "Lỗi kết nối!";
+    })
+    .finally(() => {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    });
+}
+function openExportModal() {
+    document.getElementById('export-modal').style.display = 'block';
+    // Ép về mặc định Excel khi mở
+    const radioExcel = document.querySelector('input[name="export_type"][value="xlsx"]');
+    if (radioExcel) radioExcel.checked = true;
+    handleTypeChange('xlsx');
+}
+
+function closeExportModal() {
+    document.getElementById('export-modal').style.display = 'none';
+}
+
+function togglePngOptions(show) {
+    document.getElementById('png-settings').style.display = show ? 'block' : 'none';
+}
+
+// Đóng modal khi click ra ngoài
+window.onclick = function(event) {
+    let modal = document.getElementById('export-modal');
+    if (event.target == modal) closeExportModal();
+}
+
+/**
+ * Hàm chuyển số cột thành chữ (0 -> A, 1 -> B, 25 -> Z, 26 -> AA)
+ */
+function getColumnLabel(n) {
+    let label = "";
+    while (n >= 0) {
+        label = String.fromCharCode((n % 26) + 65) + label;
+        n = Math.floor(n / 26) - 1;
+    }
+    return label;
+}
+
+/**
+ * Khi mở Modal: Mặc định chọn Excel và render preview Excel
+ */
+function openExportModal() {
+    document.getElementById('export-modal').style.display = 'block';
+    // Reset radio về Excel mỗi khi mở
+    const radioExcel = document.querySelector('input[name="export_type"][value="xlsx"]');
+    radioExcel.checked = true;
+
+    // Gọi hàm chuyển đổi để áp dụng giao diện Excel mặc định
+    handleTypeChange('xlsx');
+}
+
+/**
+ * Xử lý thay đổi giữa Excel và PNG
+ */
+function handleTypeChange(type) {
+    const pngSettings = document.getElementById('png-settings');
+    const container = document.getElementById('preview-container');
+
+    if (type === 'png') {
+        pngSettings.style.display = 'block';
+
+        // Cấu hình cho PNG: Căn giữa tuyệt đối
+        container.style.display = 'flex';
+        container.style.justifyContent = 'center';
+        container.style.alignItems = 'center';
+        container.style.overflow = 'hidden'; // Tắt cuộn để scale không bị lệch
+
+        updatePngPreview();
+    } else {
+        pngSettings.style.display = 'none';
+
+        // Cấu hình cho Excel: Cho phép cuộn ngang dọc
+        container.style.display = 'block';
+        container.style.overflow = 'auto';
+
+        // Reset các style của PNG
+        container.style.backgroundColor = 'white';
+        container.style.backgroundImage = 'none';
+
+        renderExcelPreview();
+    }
+}
+
+/**
+ * Render Preview kiểu Excel (Có tiêu đề hàng/cột)
+ */
+function renderExcelPreview() {
+    if (!window.mySpreadsheet) return;
+    const data = window.mySpreadsheet.getData();
+    const container = document.getElementById('preview-container');
+
+    // 1. Reset các thuộc tính scale của PNG (nếu có)
+    container.style.backgroundColor = 'white';
+    container.style.backgroundImage = 'none';
+
+    // 2. Tăng giới hạn xem trước lên (ví dụ 20 hàng thay vì 5) để tận dụng thanh cuộn
+    const maxR = Math.min(data.length, 20);
+    const maxC = data[0] ? data[0].length : 0;
+
+    let html = '<table class="preview-table" id="table-excel-preview">';
+
+    // Header chữ cái (A, B, C...)
+    html += '<tr style="position: sticky; top: 0; z-index: 10;">';
+    html += '<td class="excel-header" style="background:#f0f0f0; border:1px solid #ccc; position: sticky; left: 0; z-index: 20;"></td>';
+    for (let c = 0; c < maxC; c++) {
+        html += `<td class="excel-header" style="background:#f0f0f0; border:1px solid #ccc; text-align:center; font-weight:bold; min-width:80px;">${getColumnLabel(c)}</td>`;
+    }
+    html += '</tr>';
+
+    // Dữ liệu
+    for (let r = 0; r < maxR; r++) {
+        html += '<tr>';
+        // Cột số thứ tự (1, 2, 3...) - Sticky bên trái
+        html += `<td class="excel-header" style="background:#f0f0f0; border:1px solid #ccc; text-align:center; font-weight:bold; position: sticky; left: 0; z-index: 5;">${r + 1}</td>`;
+        for (let c = 0; c < maxC; c++) {
+            let cellVal = data[r][c] || '';
+            html += `<td>${cellVal}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+
+    container.innerHTML = html;
+
+    // Đảm bảo bảng không bị scale
+    const table = document.getElementById('table-excel-preview');
+    if (table) table.style.transform = 'none';
+}
+
+/**
+ * Render Preview kiểu PNG (Theo vùng chọn và màu nền)
+ */
+function updatePngPreview() {
+    if (!window.mySpreadsheet) return;
+
+    const startCell = document.getElementById('png-start').value || "A1";
+    let rows = parseInt(document.getElementById('png-rows').value) || 1;
+    let cols = parseInt(document.getElementById('png-cols').value) || 1;
+    const bgColor = document.getElementById('bg-color-select').value;
+    const container = document.getElementById('preview-container');
+    const data = window.mySpreadsheet.getData();
+    const startPos = parseCoords(startCell);
+
+    // Giới hạn hiển thị preview tối đa 30x30
+    rows = Math.min(rows, 30);
+    cols = Math.min(cols, 30);
+
+    let html = '<table id="table-render-preview" style="border-collapse: collapse; border: 1px solid #ddd;">';
+    for (let r = 0; r < rows; r++) {
+        html += '<tr>';
+        for (let c = 0; c < cols; c++) {
+            const rIdx = startPos.row + r;
+            const cIdx = startPos.col + c;
+            const val = (data[rIdx] && data[rIdx][cIdx] !== undefined) ? data[rIdx][cIdx] : '';
+            html += `<td style="border: 1px solid #ddd; padding: 8px; min-width: 80px; height: 30px;">${val}</td>`;
+        }
+        html += '</tr>';
+    }
+    html += '</table>';
+    container.innerHTML = html;
+    autoScalePreview();
+    // Cập nhật Màu nền trực tiếp trong hàm này
+    const table = document.getElementById('table-render-preview');
+    if (bgColor === 'black') {
+        container.style.backgroundColor = '#333';
+        table.style.color = 'white';
+        table.style.borderColor = '#555';
+        container.style.backgroundImage = 'none';
+    } else if (bgColor === 'transparent') {
+        container.style.backgroundColor = 'transparent';
+        container.style.backgroundImage = 'repeating-conic-gradient(#f0f0f0 0% 25%, #fff 0% 50%)';
+        container.style.backgroundSize = '20px 20px';
+        table.style.color = 'black';
+        table.style.borderColor = '#ddd';
+    } else {
+        container.style.backgroundColor = 'white';
+        container.style.backgroundImage = 'none';
+        table.style.color = 'black';
+        table.style.borderColor = '#ddd';
+    }
+}
+
+function autoScalePreview() {
+    const container = document.getElementById('preview-container');
+    const table = document.getElementById('table-render-preview');
+
+    if (!container || !table) return;
+
+    // Reset để đo kích thước thực
+    table.style.transform = 'scale(1)';
+    table.style.margin = '0'; // Đảm bảo không bị margin làm lệch
+
+    const containerW = container.offsetWidth - 40;
+    const containerH = container.offsetHeight - 40;
+    const tableW = table.scrollWidth;
+    const tableH = table.scrollHeight;
+
+    const scaleW = containerW / tableW;
+    const scaleH = containerH / tableH;
+    let scale = Math.min(scaleW, scaleH);
+
+    if (scale > 1) scale = 1;
+
+    // Áp dụng thu nhỏ
+    table.style.transform = 'scale(' + scale + ')';
+    // Đảm bảo thu nhỏ từ tâm để bảng nằm giữa khung flex
+    table.style.transformOrigin = 'center';
+}
 
 
-def _export_png(result, table_data, bg_color, start_cell, num_rows, num_cols):
-    """Xuất PNG dựa trên ô bắt đầu và kích thước vùng chọn"""
-    # 1. Xử lý tên file (bỏ đuôi cũ)
-    base_name = os.path.splitext(result.uploaded_file.filename)[0].replace(' ', '_')
 
-    # 2. Parse tọa độ ô bắt đầu (VD: A1 -> col:0, row:0)
-    def parse_start(s):
-        m = re.match(r"([A-Z]+)(\d+)", s.upper())
-        if not m: return 0, 0
-        col_str, row_str = m.groups()
-        col = 0
-        for char in col_str: col = col * 26 + (ord(char) - 64)
-        return int(row_str) - 1, col - 1
 
-    s_row, s_col = parse_start(start_cell)
 
-    # 3. Giới hạn vùng chọn (Max 30x30)
-    num_rows = min(int(num_rows), 30)
-    num_cols = min(int(num_cols), 30)
 
-    # 4. Cắt mảng dữ liệu (Slice)
-    # Lấy từ hàng s_row đến s_row + num_rows
-    sliced_data = []
-    for r in range(s_row, s_row + num_rows):
-        if r < len(table_data):
-            # Lấy từ cột s_col đến s_col + num_cols
-            row_data = table_data[r][s_col: s_col + num_cols]
-            # Nếu dòng ngắn hơn số cột yêu cầu, bù thêm ô rỗng
-            while len(row_data) < num_cols:
-                row_data.append(u"")
-            sliced_data.append(row_data)
-        else:
-            # Nếu hết dòng trong data, bù dòng rỗng
-            sliced_data.append([u""] * num_cols)
 
-    # 5. Cấu hình vẽ ảnh
-    cell_w, cell_h = 140, 45  # Tăng nhẹ size ô
-    img_w, img_h = num_cols * cell_w, num_rows * cell_h
-
-    # Màu sắc palette hiện đại
-    COLOR_BG = (255, 255, 255) if bg_color != 'black' else (28, 28, 28)
-    COLOR_STRIPE = (245, 247, 249) if bg_color != 'black' else (38, 38, 38)
-    COLOR_LINE = (220, 225, 230) if bg_color != 'black' else (60, 60, 60)
-    COLOR_TEXT = (33, 37, 41) if bg_color != 'black' else (240, 240, 240)
-
-    img = Image.new('RGB', (img_w, img_h), COLOR_BG)
-    draw = ImageDraw.Draw(img)
-
-    # Load font (Nhớ copy file .ttf vào thư mục code nhé)
-    try:
-        font = ImageFont.truetype("arial.ttf", 14)
-    except:
-        font = ImageFont.load_default()
-
-    # Vẽ dữ liệu
-    for r_idx, row in enumerate(sliced_data):
-        for c_idx, cell_value in enumerate(row):
-            x0, y0 = c_idx * cell_w, r_idx * cell_h
-            rect = [x0, y0, x0 + cell_w, y0 + cell_h]
-
-            # Vẽ nền xen kẽ (Zebra)
-            fill_color = COLOR_STRIPE if r_idx % 2 == 0 else COLOR_BG
-            draw.rectangle(rect, fill=fill_color, outline=COLOR_LINE)
-
-            # Xử lý nội dung
-            val = cell_value if isinstance(cell_value, unicode) else unicode(str(cell_value), 'utf-8', errors='ignore')
-            if len(val) > 20: val = val[:17] + "..."
-
-            # Căn giữa "thần thánh"
-            try:
-                tw, th = draw.textsize(val, font=font)
-                draw.text((x0 + (cell_w - tw) / 2, y0 + (cell_h - th) / 2), val, fill=COLOR_TEXT, font=font)
-            except:
-                # Fallback nếu textsize lỗi trên bản PIL cũ
-                draw.text((x0 + 10, y0 + 12), val, fill=COLOR_TEXT, font=font)
-
-    buf = io.BytesIO()
-    img.save(buf, format='PNG')
-    buf.seek(0)
-
-    response = HttpResponse(buf.read(), content_type='image/png')
-    response['Content-Disposition'] = 'attachment; filename="%s.png"' % base_name
-    return response
