@@ -112,14 +112,14 @@ def home(request):
             MAX_SIZE = 5 * 1024 * 1024  # 5MB
             ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-            # 1. Kiểm tra dung lượng
-            if uploaded_file.size > MAX_SIZE:
-                messages.error(request, u"File quá lớn (Tối đa 5MB). Vui lòng chọn ảnh khác.")
-                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
-
             # 2. Kiểm tra định dạng
             if uploaded_file.content_type not in ALLOWED_TYPES:
                 messages.error(request, u"Định dạng file không hỗ trợ. Vui lòng chỉ tải lên ảnh JPG, PNG hoặc WebP.")
+                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
+
+            # 1. Kiểm tra dung lượng
+            if uploaded_file.size > MAX_SIZE:
+                messages.error(request, u"File quá lớn (Tối đa 5MB). Vui lòng chọn ảnh khác.")
                 return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
 
             # --- NẾU VƯỢT QUA, TIẾP TỤC TRÍCH XUẤT ---
