@@ -54,6 +54,10 @@ def _perform_extraction_logic(uploaded_file):
 
         # 3. Gọi Gemini trích xuất (Sử dụng hàm từ services)
         result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type)
+
+        if result_text == "INVALID_DOCUMENT":
+            return None, image_url, u"Tài liệu không hợp lệ hoặc không đủ độ rõ nét. Vui lòng chọn ảnh hóa đơn, chứng từ khác."
+
         if error:
             return None, image_url, u"Gemini AI error: " + error
 
@@ -104,13 +108,27 @@ def home(request):
                     return render(request, 'home.html', {'recent_results': recent_results})
             uploaded_file = request.FILES['file']
 
-            # Kiểm tra định dạng/dung lượng...
+            # --- KIỂM TRA KỸ THUẬT (SỬA TẠI ĐÂY) ---
+            MAX_SIZE = 5 * 1024 * 1024  # 5MB
+            ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-            # --- TÁI SỬ DỤNG HÀM LOGIC ---
+            # 2. Kiểm tra định dạng
+            if uploaded_file.content_type not in ALLOWED_TYPES:
+                messages.error(request, u"Định dạng file không hỗ trợ. Vui lòng chỉ tải lên ảnh JPG, PNG hoặc WebP.")
+                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
+
+            # 1. Kiểm tra dung lượng
+            if uploaded_file.size > MAX_SIZE:
+                messages.error(request, u"File quá lớn (Tối đa 5MB). Vui lòng chọn ảnh khác.")
+                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
+
+            # --- NẾU VƯỢT QUA, TIẾP TỤC TRÍCH XUẤT ---
             table_data, image_url, error = _perform_extraction_logic(uploaded_file)
 
             if error:
-                return HttpResponse(u"Lỗi: " + error)
+                # Thông báo lỗi từ Gemini (bao gồm cả lỗi INVALID_DOCUMENT đã sửa ở bước trước)
+                messages.error(request, error)
+                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
 
             # --- LƯU VÀO DATABASE (Chỉ làm ở Home) ---
             uf = UploadedFile.objects.create(

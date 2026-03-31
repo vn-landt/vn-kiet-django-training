@@ -4,13 +4,7 @@
     <meta charset="UTF-8">
     <title>Table Extractor</title>
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extraction Result</title>
-    <link rel="stylesheet" href="{% static 'css/style.css' %}">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div class="nav-bar">
@@ -36,17 +30,18 @@
         </div>
     {% endif %}
 
-    {% if messages %}
-        {% for message in messages %}
-            <p style="color: red;">{{ message }}</p>
-        {% endfor %}
-    {% endif %}
+
 
     <h1>Upload Image or PDF</h1>
     <form method="post" enctype="multipart/form-data">
         {% csrf_token %}
         {{ form.as_p }}
-        <button type="submit">Upload and Extract</button>
+        {% if messages %}
+            {% for message in messages %}
+                <p style="color: red;">{{ message }}</p>
+            {% endfor %}
+        {% endif %}
+        <button type="submit" onclick="handleGenerate()">Upload and Extract</button>
     </form>
 
     <h2>Lịch sử gần đây (Tối đa 10)</h2>
@@ -82,6 +77,18 @@
             return confirmationMessage;
         });
         {% endif %}
+        {% if messages %}
+            {% for message in messages %}
+                Swal.fire({
+                    icon: "{% if message.tags == 'error' %}error{% else %}success{% endif %}",
+                    title: "Thông báo",
+                    text: "{{ message }}",
+                    confirmButtonColor: '#3085d6',
+                    confirmButtonText: 'Đóng'
+                });
+            {% endfor %}
+        {% endif %}
     </script>
+    <script src="{% static 'js/home.js' %}"></script>
 </body>
 </html>
