@@ -54,6 +54,10 @@ def _perform_extraction_logic(uploaded_file):
 
         # 3. Gọi Gemini trích xuất (Sử dụng hàm từ services)
         result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type)
+
+        if result_text == "INVALID_DOCUMENT":
+            return None, image_url, u"Tài liệu không hợp lệ hoặc không đủ độ rõ nét. Vui lòng chọn ảnh hóa đơn, chứng từ khác."
+
         if error:
             return None, image_url, u"Gemini AI error: " + error
 
@@ -105,12 +109,28 @@ def home(request):
             uploaded_file = request.FILES['file']
 
             # Kiểm tra định dạng/dung lượng...
+            # 1. Kiểm tra File Size (VD: Giới hạn 5MB)
+            MAX_SIZE = 5 * 1024 * 1024
+            if uploaded_file.size > MAX_SIZE:
+                return JsonResponse({'status': 'error', 'message': u'File quá lớn (Tối đa 5MB).'})
+
+            # 2. Kiểm tra MIME Type
+            ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+            if uploaded_file.content_type not in ALLOWED_TYPES:
+                return JsonResponse({'status': 'error', 'message': u'Định dạng file không hỗ trợ.'})
 
             # --- TÁI SỬ DỤNG HÀM LOGIC ---
             table_data, image_url, error = _perform_extraction_logic(uploaded_file)
 
             if error:
-                return HttpResponse(u"Lỗi: " + error)
+                from django.contrib import messages
+                messages.error(request, error)  # Đưa câu "Tài liệu không hợp lệ..." vào hàng đợi tin nhắn
+
+                # Trả về trang home cùng với form và danh sách kết quả cũ
+                return render(request, 'home.html', {
+                    'form': form,
+                    'recent_results': recent_results
+                })
 
             # --- LƯU VÀO DATABASE (Chỉ làm ở Home) ---
             uf = UploadedFile.objects.create(
