@@ -71,7 +71,8 @@
         </div>
 
         <div class="table-bottom-actions">
-            <a href="{% url 'download_csv' result.id %}" class="btn-primary">Download CSV</a>
+            <button type="button" onclick="openExportModal()" class="btn-primary">Export</button>
+
             <a href="{% url 'export_to_sheets' result.id %}" class="btn-success">Export to Google Sheets</a>
         </div>
 
@@ -103,7 +104,63 @@
             </div>
         </div>
     </div>
+    <div id="export-modal">
+        <div class="modal-content">
+            <span class="btn-close" onclick="closeExportModal()">&times;</span>
 
+            <div class="modal-left">
+                <h3>Xuất dữ liệu</h3>
+                <form id="form-export" method="POST" action="{% url 'export' result.id %}" target="_blank">
+                    {% csrf_token %}
+
+                    <div style="margin-bottom: 20px;">
+                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Định dạng:</label>
+                        <label><input type="radio" name="export_type" value="xlsx" checked onchange="handleTypeChange('xlsx')"> Excel (.csv)</label><br>
+                        <label><input type="radio" name="export_type" value="png" onchange="handleTypeChange('png')"> Hình ảnh (.png)</label>
+                    </div>
+
+                    <div id="png-settings" style="display: none; border-top: 1px solid #ddd; padding-top: 15px;">
+                        <label style="font-weight: bold; font-size: 13px;">Vùng dữ liệu PNG:</label>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; margin-bottom: 15px;">
+                            <div>
+                                <small>Ô bắt đầu:</small>
+                                <input type="text" name="start_cell" id="png-start" value="A1" class="form-control" oninput="updatePngPreview()">
+                            </div>
+                            <div></div>
+                            <div>
+                                <small>Số hàng:</small>
+                                <input type="number" name="num_rows" id="png-rows" value="5" max="30" class="form-control" oninput="updatePngPreview()">
+                            </div>
+                            <div>
+                                <small>Số cột:</small>
+                                <input type="number" name="num_cols" id="png-cols" value="5" max="30" class="form-control" oninput="updatePngPreview()">
+                            </div>
+                        </div>
+
+                        <label style="font-weight: bold; font-size: 13px;">Màu nền PNG:</label>
+                        <select name="bg_color" id="bg-color-select" class="form-control" onchange="updatePngPreview()">
+                            <option value="white">Trắng</option>
+                            <option value="black">Đen</option>
+                            <option value="transparent">Trong suốt</option>
+                        </select>
+                    </div>
+                </form>
+            </div>
+
+            <div class="modal-right">
+                <h4 id="preview-title">Xem trước: Excel</h4>
+                <div id="preview-container">
+                    </div>
+
+                <div class="footer-actions" style="margin-top: auto; text-align: right; padding-top: 15px;">
+                    <button type="button" class="btn-secondary" onclick="closeExportModal()" style="margin-right: 10px;">Hủy</button>
+                    <button type="submit" form="form-export" class="btn-primary" style="background: #28a745; color: white; padding: 10px 25px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                        Download
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
     <script>
         window.DJANGO_TABLE_DATA = {{ table_json|safe }};
         window.DJANGO_SAVE_URL = "{% url 'update_table_data' result.id %}";
