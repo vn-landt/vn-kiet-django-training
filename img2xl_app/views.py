@@ -40,26 +40,36 @@ def _perform_extraction_logic(uploaded_file):
     Logic này được tách ra từ bridge.py và home để dùng chung.
     """
     try:
+        # 1. Kiểm tra Kỹ thuật (Chặn sớm để tiết kiệm tài nguyên)
+        MAX_SIZE = 5 * 1024 * 1024  # 5MB
+        ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+        if uploaded_file.size > MAX_SIZE:
+            return None, None, u"File quá lớn (Tối đa 5MB). Vui lòng chọn ảnh khác."
+
+        if uploaded_file.content_type not in ALLOWED_TYPES:
+            return None, None, u"Định dạng file không hỗ trợ (Chỉ nhận JPG, PNG, WebP)."
+
         file_bytes = uploaded_file.read()
 
-        # 1. Nén ảnh (Sử dụng hàm từ services)
+        # 2. Nén ảnh
         compressed_bytes = compress_image(io.BytesIO(file_bytes))
         if hasattr(compressed_bytes, "getvalue"):
             compressed_bytes = compressed_bytes.getvalue()
 
-        # 2. Upload lên ImgBB
+        # 3. Upload lên ImgBB
         image_url, error = upload_to_imgbb(compressed_bytes)
         if error:
-            return None, None, u"Upload ImgBB failed: " + error
+            return None, None, u"Lỗi kết nối máy chủ ảnh. Vui lòng thử lại."
 
-        # 3. Gọi Gemini trích xuất (Sử dụng hàm từ services)
+        # 4. Gọi Gemini trích xuất & Kiểm tra nội dung (Mặt người/Hoá đơn)
         result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type)
 
         if result_text == "INVALID_DOCUMENT":
             return None, image_url, u"Tài liệu không hợp lệ hoặc không đủ độ rõ nét. Vui lòng chọn ảnh hóa đơn, chứng từ khác."
 
         if error:
-            return None, image_url, u"Gemini AI error: " + error
+            return None, image_url, u"Hệ thống AI không thể xử lý ảnh này. Vui lòng thử lại."
 
         # 4. Làm sạch và Parse CSV (Logic từ bridge.py)
         cleaned_text = result_text.strip()
@@ -108,27 +118,17 @@ def home(request):
                     return render(request, 'home.html', {'recent_results': recent_results})
             uploaded_file = request.FILES['file']
 
-            # --- KIỂM TRA KỸ THUẬT (SỬA TẠI ĐÂY) ---
-            MAX_SIZE = 5 * 1024 * 1024  # 5MB
-            ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-
-            # 2. Kiểm tra định dạng
-            if uploaded_file.content_type not in ALLOWED_TYPES:
-                messages.error(request, u"Định dạng file không hỗ trợ. Vui lòng chỉ tải lên ảnh JPG, PNG hoặc WebP.")
-                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
-
-            # 1. Kiểm tra dung lượng
-            if uploaded_file.size > MAX_SIZE:
-                messages.error(request, u"File quá lớn (Tối đa 5MB). Vui lòng chọn ảnh khác.")
-                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
-
             # --- NẾU VƯỢT QUA, TIẾP TỤC TRÍCH XUẤT ---
             table_data, image_url, error = _perform_extraction_logic(uploaded_file)
 
             if error:
-                # Thông báo lỗi từ Gemini (bao gồm cả lỗi INVALID_DOCUMENT đã sửa ở bước trước)
+                # Đưa lỗi vào hệ thống Messages của Django
                 messages.error(request, error)
-                return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
+                # Render lại home để script SweetAlert bắt được tin nhắn
+                return render(request, 'home.html', {
+                    'form': form,
+                    'recent_results': recent_results
+                })
 
             # --- LƯU VÀO DATABASE (Chỉ làm ở Home) ---
             uf = UploadedFile.objects.create(
@@ -290,20 +290,49 @@ def ai_generate_view(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid Method'})
 
 @require_POST
+@require_POST
 def extract_only_api(request):
     """
-    API mới: Chỉ trích xuất dữ liệu trả về JSON, không chuyển trang, không lưu DB phức tạp.
-    Dùng cho nút "Generate 1 pic into".
+    API: Chỉ trích xuất dữ liệu trả về JSON.
+    Đã tích hợp: Kiểm tra Quota, Kiểm tra kỹ thuật, và Kiểm tra nội dung AI.
     """
-    if 'file' not in request.FILES:
-        return JsonResponse({'status': 'error', 'message': u'Chưa chọn file.'})
+    user = request.user
 
-    # TÁI SỬ DỤNG CÙNG MỘT HÀM LOGIC
+    # 1. Kiểm tra Quota (Giới hạn 10 lượt/ngày)
+    if user.is_authenticated():
+        today = timezone.now().date()
+        usage, created = UsageLog.objects.get_or_create(user=user, usage_date=today)
+
+        if usage.upload_count >= 10:
+            return JsonResponse({
+                'status': 'error',
+                'message': u'Bạn đã hết lượt trích xuất trong ngày (Tối đa 10 ảnh).'
+            })
+
+    # 2. Kiểm tra file có tồn tại trong request không
+    if 'file' not in request.FILES:
+        return JsonResponse({
+            'status': 'error',
+            'message': u'Không tìm thấy tệp tin. Vui lòng thử lại.'
+        })
+
+    # 3. Gọi logic xử lý chung
+    # (Hàm này đã bao gồm: Check Size, Check MIME, Nén ảnh, Check Mặt người/Hóa đơn)
     table_data, image_url, error = _perform_extraction_logic(request.FILES['file'])
 
     if error:
-        return JsonResponse({'status': 'error', 'message': error})
+        # Trả về lỗi để Javascript (SweetAlert2) hiển thị khung thông báo
+        return JsonResponse({
+            'status': 'error',
+            'message': error
+        })
 
+    # 4. Nếu thành công, cập nhật số lượng dùng trong ngày
+    if user.is_authenticated():
+        usage.upload_count += 1
+        usage.save()
+
+    # 5. Trả về dữ liệu bảng để hiển thị trực tiếp vào Editor
     return JsonResponse({
         'status': 'success',
         'table': table_data
