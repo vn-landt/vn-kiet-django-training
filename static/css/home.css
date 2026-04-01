@@ -1,0 +1,189 @@
+/* Thiết lập font chữ và màu nền tổng thể */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #f4f7f6;
+    color: #333;
+    margin: 0;
+    padding: 40px 20px;
+    line-height: 1.6;
+}
+
+/* Khung chứa nội dung căn giữa */
+.container {
+    max-width: 1000px;
+    margin: 0 auto;
+    background-color: #ffffff;
+    padding: 30px 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+}
+
+/* Phần Tiêu đề */
+.header-section {
+    text-align: center;
+    margin-bottom: 30px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #eaeaea;
+}
+
+h1 {
+    margin: 0 0 10px 0;
+    color: #2c3e50;
+}
+
+.filename {
+    font-size: 1.1em;
+    color: #555;
+    font-weight: 500;
+    margin-bottom: 15px;
+}
+
+.date-text {
+    font-size: 0.9em;
+    color: #888;
+}
+
+/* Badge trạng thái */
+.status-badge {
+    display: inline-block;
+    padding: 5px 12px;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 10px;
+}
+.status-success { background-color: #28a745; }
+.status-failed { background-color: #dc3545; }
+.status-processing { background-color: #ffc107; color: #333; }
+.status-pending { background-color: #17a2b8; }
+
+.section-title h2 {
+    color: #2c3e50;
+    font-size: 1.4em;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    border-left: 4px solid #3498db;
+    padding-left: 10px;
+}
+
+/* Kiểu dáng cho Bảng (Table) */
+.table-responsive {
+    overflow-x: auto;
+    border-radius: 6px;
+    box-shadow: 0 0 0 1px #eaeaea; /* Viền mỏng bọc ngoài bảng */
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #fff;
+}
+
+th, td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #eaeaea;
+}
+
+th {
+    background-color: #f8f9fa;
+    font-weight: 600;
+    color: #495057;
+    white-space: nowrap; /* Giữ tiêu đề không bị xuống dòng */
+}
+
+/* Hiệu ứng hover khi di chuột qua dòng */
+tbody tr:hover {
+    background-color: #f1f7ff;
+    transition: background-color 0.2s ease;
+}
+
+/* Dòng cuối cùng không cần viền dưới */
+tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.empty-state {
+    text-align: center;
+    padding: 30px;
+    color: #6c757d;
+    background-color: #f8f9fa;
+    border-radius: 6px;
+}
+
+/* Khung hiển thị Raw Response */
+.raw-response pre {
+    background-color: #272822;
+    color: #f8f8f2;
+    padding: 15px;
+    border-radius: 6px;
+    overflow-x: auto;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.95em;
+    line-height: 1.5;
+}
+
+/* Kiểu dáng cho các Nút bấm (Buttons) */
+.action-buttons {
+    margin-top: 35px;
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.btn {
+    display: inline-block;
+    padding: 10px 20px;
+    border-radius: 5px;
+    text-decoration: none;
+    font-weight: 500;
+    font-size: 0.95em;
+    transition: all 0.2s ease;
+    border: 1px solid transparent;
+}
+
+.btn-primary {
+    background-color: #3498db;
+    color: #fff;
+}
+.btn-primary:hover {
+    background-color: #2980b9;
+}
+
+.btn-success {
+    background-color: #28a745;
+    color: #fff;
+}
+.btn-success:hover {
+    background-color: #218838;
+}
+
+.btn-secondary {
+    background-color: #e9ecef;
+    color: #495057;
+    border-color: #ced4da;
+}
+.btn-secondary:hover {
+    background-color: #dde2e6;
+}
+
+/* Style cho thanh điều hướng */
+.nav-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 20px;
+    background-color: #f4f4f4;
+    border-bottom: 1px solid #ddd;
+    margin-bottom: 20px;
+}
+.nav-links a {
+    margin-left: 15px;
+    text-decoration: none;
+    color: #333;
+    font-weight: bold;
+}
+.nav-links a:hover { color: #007bff; }
+.auth-status { font-style: italic; }
