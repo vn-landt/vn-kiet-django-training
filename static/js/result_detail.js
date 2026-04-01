@@ -1,3 +1,5 @@
+// Thêm biến toàn cục để quản lý thời gian chờ
+let autosaveTimeout = null;
 document.addEventListener("DOMContentLoaded", function() {
         var rawData = window.DJANGO_TABLE_DATA || [['', '', '', '']];
     var spreadsheetDiv = document.getElementById('spreadsheet');
@@ -13,9 +15,89 @@ document.addEventListener("DOMContentLoaded", function() {
             allowInsertColumn: true, // Cho phép thêm cột
             search: true,
             columnSorting: true,
+            onchange: function() {
+                // Kích hoạt tự động lưu khi có bất kỳ thay đổi nào
+                triggerAutoSave();
+            },
+            oninsertrow: triggerAutoSave,
+            oninsertcolumn: triggerAutoSave,
+            ondeleterow: triggerAutoSave,
+            ondeletecolumn: triggerAutoSave
         });
     }
 });
+
+/**
+ * Hàm trì hoãn việc lưu (Debounce)
+ */
+function triggerAutoSave() {
+    const statusEl = document.getElementById('autosave-status');
+    if (statusEl) statusEl.innerText = "Đang chờ thay đổi...";
+
+    clearTimeout(autosaveTimeout);
+    // Chờ 2.5 giây sau khi người dùng ngừng thao tác mới gửi lên server
+    autosaveTimeout = setTimeout(function() {
+        performSave(true); // true = is_draft
+    }, 2500);
+}
+
+/**
+ * Hàm thực hiện gửi dữ liệu lên server
+ * @param {boolean} isDraft - Trạng thái nháp hay chốt
+ */
+function performSave(isDraft) {
+    if (!window.mySpreadsheet) return;
+
+    const statusEl = document.getElementById('autosave-status');
+    const finalTimeEl = document.getElementById('final-save-time-text'); // Phần tử trong modal
+    const currentData = window.mySpreadsheet.getData().map(row =>
+        row.map(cell => (cell === null || cell === undefined) ? "" : String(cell))
+    );
+
+    if (statusEl) {
+        statusEl.innerText = isDraft ? "Đang tự động lưu bản nháp..." : "Đang chốt dữ liệu...";
+    }
+
+    fetch(window.DJANGO_SAVE_URL, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': getCookie('csrftoken')
+        },
+        body: JSON.stringify({
+            'table_data': currentData,
+            'is_draft': isDraft
+        })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success') {
+            // 1. Cập nhật dòng trạng thái nháp (Dành cho cả Auto-save và Save Changes)
+            if (statusEl) {
+                statusEl.innerText = "Đã lưu bản nháp lúc " + data.updated_at;
+            }
+
+            // 2. Nếu là Save Changes (is_draft = false)
+            if (isDraft === false) {
+                // Cập nhật biến Final để Preview thay đổi theo
+                window.FINAL_TABLE_DATA = JSON.parse(JSON.stringify(currentData));
+
+                // Cập nhật dòng chữ thời gian bản chính trong Modal
+                // Vì data.updated_at chỉ có Giờ:Phút:Giây, bạn có thể cộng thêm ngày từ JS hoặc Backend gửi thêm
+                if (finalTimeEl) {
+                    let now = new Date();
+                    // Định dạng: dd/mm/yyyy HH:mm:ss
+                    let dateStr = now.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit', year: 'numeric' });
+                    let timeStr = now.toLocaleTimeString('vi-VN', { hour12: false });
+                    finalTimeEl.innerText = dateStr + " " + timeStr;
+                }
+            }
+        }
+    })
+    .catch(err => {
+        if (statusEl) statusEl.innerText = "Lỗi lưu dữ liệu!";
+    });
+}
 
 /**
  * Hàm dùng chung để cập nhật dữ liệu lên giao diện (không lưu DB)
@@ -254,50 +336,20 @@ function handleRangeAction(actionType) {
     }
     window.mySpreadsheet.setData(tempData);
 }
-// Hàm lưu dữ liệu thực tế (ĐÃ SỬA: KHÔNG GỘP BẰNG '|')
+
+// Cập nhật lại hàm Save Changes cũ để nó trở thành nút "Chốt Final"
 function saveTableData() {
-    if (!window.mySpreadsheet) return;
-
-    // Làm sạch dữ liệu: Biến null/undefined thành chuỗi rỗng
-    var currentData = window.mySpreadsheet.getData().map(function(row) {
-        return row.map(function(cell) {
-            return (cell === null || cell === undefined) ? "" : String(cell);
-        });
-    });
-
-    var saveBtn = document.querySelector('.btn-save');
-    if (saveBtn) {
-        saveBtn.innerText = 'Đang lưu...';
-        saveBtn.disabled = true;
-    }
-
-    fetch(window.DJANGO_SAVE_URL, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'X-CSRFToken': getCookie('csrftoken')
-        },
-        body: JSON.stringify({ 'table_data': currentData })
-    })
-    .then(function(res) {
-        if (!res.ok) {
-            // Nếu gặp lỗi 405 hoặc 500, nhảy xuống .catch
-            throw new Error('Server error: ' + res.status);
-        }
-        return res.json();
-    })
-    .then(function(data) {
-        if (data.status === 'success') alert('Lưu thành công!');
-        else alert('Lỗi: ' + data.message);
-    })
-    .catch(function(err) {
-        console.error("Fetch error detail:", err);
-        alert('Lỗi hệ thống (Vui lòng xem F12 Console)');
-    })
-    .finally(function() {
-        if (saveBtn) {
-            saveBtn.innerText = 'Save Changes';
-            saveBtn.disabled = false;
+    // Khi bấm nút này, ta coi như người dùng muốn chốt dữ liệu (Final)
+    Swal.fire({
+        title: 'Xác nhận lưu?',
+        text: "Dữ liệu sẽ được đánh dấu là Final.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Đồng ý'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            performSave(false); // isDraft = false
+            Swal.fire('Thành công!', 'Dữ liệu đã được chốt.', 'success');
         }
     });
 }
@@ -448,7 +500,7 @@ function handleTypeChange(type) {
  */
 function renderExcelPreview() {
     if (!window.mySpreadsheet) return;
-    const data = window.mySpreadsheet.getData();
+    const data = window.FINAL_TABLE_DATA || [['']];
     const container = document.getElementById('preview-container');
 
     // 1. Reset các thuộc tính scale của PNG (nếu có)
@@ -500,7 +552,7 @@ function updatePngPreview() {
     let cols = parseInt(document.getElementById('png-cols').value) || 1;
     const bgColor = document.getElementById('bg-color-select').value;
     const container = document.getElementById('preview-container');
-    const data = window.mySpreadsheet.getData();
+    const data = window.FINAL_TABLE_DATA || [['']];
     const startPos = parseCoords(startCell);
 
     // Giới hạn hiển thị preview tối đa 30x30

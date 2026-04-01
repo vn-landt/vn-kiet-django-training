@@ -33,6 +33,7 @@ import json
 import re
 # Cần import thêm thư viện xử lý ảnh (hãy đảm bảo bạn đã cài 'Pillow' trong requirements.txt)
 from PIL import Image, ImageDraw, ImageFont
+from django.utils import timezone
 
 def _perform_extraction_logic(uploaded_file):
     """
@@ -172,15 +173,34 @@ def home(request):
 
 
 def result_detail(request, result_id):
-    result = get_object_or_404(ExtractedResult, id=result_id)
-    table = result.get_table()
+    result = get_object_or_404(ExtractedResult, pk=result_id)
+
+    # 1. Lấy dữ liệu từ handler (dạng list của Python)
+    raw_table_data = result.get_table(for_export=False)
+    raw_final_data = result.get_table(for_export=True)
+
+    # 2. CHUYỂN THÀNH CHUỖI JSON (Sẽ mất ký tự 'u' và biến None thành null)
+    # ensure_ascii=False giúp giữ nguyên tiếng Việt
+    table_json_str = json.dumps(raw_table_data, ensure_ascii=False)
+    final_table_json_str = json.dumps(raw_final_data, ensure_ascii=False)
+
+    # Sử dụng timezone.localtime để chuyển từ UTC sang Asia/Ho_Chi_Minh
+    local_draft_time = timezone.localtime(result.updated_at)
+    last_draft_time = local_draft_time.strftime('%d/%m/%Y %H:%M:%S')
+
+    # Thời gian bản chính (Modal)
+    last_final_time = "Chưa lưu"
+    if result.processed_at:
+        last_final_time = timezone.localtime(result.processed_at).strftime('%d/%m/%Y %H:%M:%S')
 
     recent_results = ExtractedResult.objects.order_by('-created_at')
     return render(request, 'result_detail.html', {
         'result': result,
-        'table': table,
-        'table_json': json.dumps(table),
-        'recent_results': recent_results
+        'table_json': table_json_str,
+        'final_table_json': final_table_json_str,
+        'recent_results': recent_results,
+        'last_draft_time': last_draft_time,
+        'last_final_time': last_final_time,
     })
 
 def export_to_sheets(request, result_id):
@@ -223,29 +243,28 @@ def delete_result(request, result_id):
 
 @require_POST
 def update_table_data(request, result_id):
-    print "DEBUG: Received POST for ID: %s" % result_id
-    try:
-        result = get_object_or_404(ExtractedResult, id=result_id)
+    if request.method == 'POST':
+        result = ExtractedResult.objects.get(pk=result_id, user=request.user)
+        data = json.loads(request.body)
 
-        # Đảm bảo đọc body an toàn
-        raw_body = request.body.decode('utf-8')
-        body_data = json.loads(raw_body)
-        new_table_data = body_data.get('table_data')
+        # Lấy flag từ frontend: if is_draft=True -> lưu nháp, if False -> lưu final
+        is_draft_request = data.get('is_draft', True)
 
         handler = TableFileHandler(result)
-        if handler.save_data(new_table_data):
-            return JsonResponse({'status': 'success', 'message': 'OK'})
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Save failed'}, status=500)
+        # Nếu is_draft_request là False nghĩa là người dùng bấm nút Save Changes (is_final=True)
+        success = handler.save_data(data.get('table_data'), is_final=not is_draft_request)
 
-    except Exception as e:
-        print "--- TRACEBACK VIEW ERROR ---"
-        traceback.print_exc()
-        return HttpResponse(
-            json.dumps({'status': 'error', 'message': str(e)}),
-            content_type='application/json',
-            status=500
-        )
+        result.refresh_from_db()  # Lấy dữ liệu mới nhất vừa lưu vào DB
+
+        # Chuyển về giờ Việt Nam và định dạng chuỗi đầy đủ
+        local_now = timezone.localtime(result.updated_at)
+        full_time_str = local_now.strftime('%d/%m/%Y %H:%M:%S')
+
+        return JsonResponse({
+            'status': 'success',
+            'updated_at':full_time_str ,  # Trả về giờ VN
+            'is_draft': result.is_draft
+        })
 
 @csrf_protect
 def ai_generate_view(request):
@@ -289,7 +308,6 @@ def ai_generate_view(request):
 
     return JsonResponse({'status': 'error', 'message': 'Invalid Method'})
 
-@require_POST
 @require_POST
 def extract_only_api(request):
     """
@@ -368,46 +386,45 @@ def cleanup_old_data(request):
     return HttpResponse("Đã dọn dẹp %d bản ghi cũ." % count)
 
 
+# views.py
+
 def export(request, result_id):
     result = get_object_or_404(ExtractedResult, id=result_id)
-    table_data = result.get_table()
 
     # XỬ LÝ KHI NGƯỜI DÙNG ẤN NÚT DOWNLOAD (METHOD POST)
     if request.method == 'POST':
+        # LẤY BẢN CHỐT (Final) ĐỂ XUẤT FILE
+        final_table_data = result.get_table(for_export=True)
+
         export_type = request.POST.get('export_type', 'xlsx')
 
         if export_type == 'png':
-            # 1. Lấy màu nền
             bg_color = request.POST.get('bg_color', 'white')
-
-            # 2. Lấy ô bắt đầu (Ví dụ: "A1")
             start_cell = request.POST.get('start_cell', 'A1')
-
-            # 3. Lấy số hàng và số cột, ép kiểu về int để tính toán
             try:
                 num_rows = int(request.POST.get('num_rows', 5))
                 num_cols = int(request.POST.get('num_cols', 5))
             except ValueError:
-                # Nếu có lỗi nhập liệu không phải số, đặt mặc định
-                num_rows = 5
-                num_cols = 5
+                num_rows, num_cols = 5, 5
 
-            # 4. Truyền đầy đủ 6 tham số vào hàm xử lý PNG
-            return _export_png(result, table_data, bg_color, start_cell, num_rows, num_cols)
+            # Truyền final_table_data vào
+            return _export_png(result, final_table_data, bg_color, start_cell, num_rows, num_cols)
 
         else:
-            # Đối với Excel/CSV (Bạn có thể thêm logic cắt phạm vi ở đây nếu muốn)
-            return _export_excel(result, table_data)
+            # Truyền final_table_data vào
+            return _export_excel(result, final_table_data)
 
-    # XỬ LÝ KHI TRUY CẬP URL (METHOD GET)
-    # Preview mặc định 10 cột, 5 hàng đầu
-    preview_data = [row[:10] for row in table_data[:5]]
+    # XỬ LÝ KHI TRUY CẬP URL (METHOD GET - Xem Preview)
+    # LẤY BẢN NHÁP (Draft) ĐỂ HIỂN THỊ XEM TRƯỚC
+    draft_table_data = result.get_table(for_export=False)
+
+    preview_data = [row[:10] for row in draft_table_data[:5]]
 
     return render(request, 'export_ui.html', {
         'result': result,
         'preview_data': preview_data,
-        'total_rows': len(table_data),
-        'total_cols': max(len(r) for r in table_data) if table_data else 0
+        'total_rows': len(draft_table_data),
+        'total_cols': max(len(r) for r in draft_table_data) if draft_table_data else 0
     })
 
 def _export_excel(result, table_data, start_coords=None, end_coords=None):
@@ -421,7 +438,7 @@ def _export_excel(result, table_data, start_coords=None, end_coords=None):
     response['Content-Disposition'] = 'attachment; filename="%s.csv"' % base_name
 
     writer = csv.writer(response)
-    for row in result.get_table():
+    for row in table_data:
         clean_row = []
         for cell in row:
             if cell is None:

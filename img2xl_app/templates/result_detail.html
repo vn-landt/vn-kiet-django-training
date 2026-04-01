@@ -70,6 +70,9 @@
         <div id="table-content-area">
             <div id="spreadsheet"></div>
         </div>
+       <div id="autosave-status" style="font-size: 12px; color: #666; margin-top: 5px; text-align: right;">
+            Đã lưu bản nháp lúc {{ last_draft_time }}
+        </div>
 
         <div class="table-bottom-actions">
             <button type="button" onclick="openExportModal()" class="btn-primary">Export</button>
@@ -111,6 +114,10 @@
 
             <div class="modal-left">
                 <h3>Xuất dữ liệu</h3>
+                <div id="final-time-display" style="margin-bottom: 15px; padding: 10px; background: #e9ecef; border-radius: 4px; font-size: 13px;">
+                    <strong>Thời gian lưu bản chính:</strong> <br>
+                    <span id="final-save-time-text">{{ last_final_time }}</span>
+                </div>
                 <form id="form-export" method="POST" action="{% url 'export' result.id %}" target="_blank">
                     {% csrf_token %}
 
@@ -164,6 +171,8 @@
     </div>
     <script>
         window.DJANGO_TABLE_DATA = {{ table_json|safe }};
+        // Lưu thêm bản Final để dùng riêng cho Modal Export
+        window.FINAL_TABLE_DATA = {{ final_table_json|safe }};
         window.DJANGO_SAVE_URL = "{% url 'update_table_data' result.id %}";
     </script>
     <script src="{% static 'js/result_detail.js' %}"></script>
