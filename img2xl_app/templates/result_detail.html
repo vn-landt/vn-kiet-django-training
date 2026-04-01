@@ -8,8 +8,10 @@
     <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
     <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
     <script src="https://jsuites.net/v4/jsuites.js"></script>
+    <link rel="stylesheet" href="{% static 'css/image_editor.css' %}">
     <link rel="stylesheet" href="{% static 'css/result_detail.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 </head>
 <body>
 
@@ -53,9 +55,14 @@
             <div class="right-tools-group">
                 <div class="input-item group-purple">
                     <label for="pic-upload">Image:</label>
-                    <input type="file" id="pic-upload" accept="image/*">
-                    <button onclick="handlePicGenerate()" class="btn-purple">Generate 1 pic into</button>
+                    <input type="file" id="pic-upload" accept="image/*" style="display:none;" onchange="initEditor(this)">
+                    
+                    <button type="button" onclick="document.getElementById('pic-upload').click()" class="btn-purple">
+                        Chỉnh sửa & Chèn ảnh vào bảng
+                    </button>
                 </div>
+                
+                {% include "includes/image_editor.html" with api_url="/extract-only-api/" %}
 
                 <div class="input-item group-secondary">
                     <label for="csv-upload">CSV:</label>
@@ -175,6 +182,8 @@
         window.FINAL_TABLE_DATA = {{ final_table_json|safe }};
         window.DJANGO_SAVE_URL = "{% url 'update_table_data' result.id %}";
     </script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="{% static 'js/image_handler.js' %}"></script>
     <script src="{% static 'js/result_detail.js' %}"></script>
 </body>
 </html>

@@ -98,79 +98,28 @@ def _perform_extraction_logic(uploaded_file):
     except Exception as e:
         return None, None, str(e)
 
+
+# views.py
+
 def home(request):
+    """
+    Chỉ làm nhiệm vụ hiển thị trang chủ và danh sách lịch sử.
+    Mọi hoạt động trích xuất đã chuyển sang extract_only_api.
+    """
     user = request.user
     recent_results = []
+
     if user.is_authenticated():
+        # Lấy 10 kết quả gần nhất của user
         recent_results = ExtractedResult.objects.filter(
             user=user
         ).order_by('-created_at')[:10]
 
-    if request.method == 'POST':
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            # 1. Kiểm tra Quota cho User đã đăng nhập [#35]
-            if user.is_authenticated():
-                today = timezone.now().date()
-                usage, created = UsageLog.objects.get_or_create(user=user, usage_date=today)
-
-                if usage.upload_count >= 10:
-                    messages.error(request, "Bạn đã hết lượt upload trong ngày (Tối đa 10 ảnh).")
-                    return render(request, 'home.html', {'recent_results': recent_results})
-            uploaded_file = request.FILES['file']
-
-            # --- NẾU VƯỢT QUA, TIẾP TỤC TRÍCH XUẤT ---
-            table_data, image_url, error = _perform_extraction_logic(uploaded_file)
-
-            if error:
-                # Đưa lỗi vào hệ thống Messages của Django
-                messages.error(request, error)
-                # Render lại home để script SweetAlert bắt được tin nhắn
-                return render(request, 'home.html', {
-                    'form': form,
-                    'recent_results': recent_results
-                })
-
-            # --- LƯU VÀO DATABASE (Chỉ làm ở Home) ---
-            uf = UploadedFile.objects.create(
-                user=user if user.is_authenticated() else None,
-                filename=uploaded_file.name,
-                mime_type=uploaded_file.content_type,
-                image_url=image_url,
-                file_size=uploaded_file.size
-            )
-
-            # Tạo bản ghi kết quả và lưu table_data qua Handler
-            res_obj = ExtractedResult.objects.create(
-                user=user if user.is_authenticated() else None,
-                uploaded_file=uf,
-                status='success',
-                raw_response=u"Initial Extraction",
-                processed_at=timezone.now()
-            )
-            handler = TableFileHandler(res_obj)  #
-            handler.save_data(table_data)
-
-            if user.is_authenticated():
-                # Cập nhật số lượng dùng trong ngày
-                usage.upload_count += 1  # hoặc +1 tùy logic của bạn
-                usage.save()
-
-                # [#35] Giới hạn 10 lịch sử (Xóa file thứ 11 trở đi)
-                old_files = UploadedFile.objects.filter(user=user).order_by('-uploaded_at')[10:]
-                for old_f in old_files:
-                    old_f.delete()  # Datastore sẽ xóa các bản ghi liên quan nếu có CASCADE
-            return render(request, 'result_detail.html', {
-                'result': res_obj,
-                'table': table_data,
-                'table_json': json.dumps(table_data),
-                'recent_results': recent_results
-            })
-    else:
-        form = UploadFileForm()
-
-    return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
-
+    # Không còn xử lý request.method == 'POST' ở đây nữa
+    return render(request, 'home.html', {
+        'form': UploadFileForm(),
+        'recent_results': recent_results
+    })
 
 def result_detail(request, result_id):
     result = get_object_or_404(ExtractedResult, pk=result_id)
@@ -310,47 +259,55 @@ def ai_generate_view(request):
 
 @require_POST
 def extract_only_api(request):
-    """
-    API: Chỉ trích xuất dữ liệu trả về JSON.
-    Đã tích hợp: Kiểm tra Quota, Kiểm tra kỹ thuật, và Kiểm tra nội dung AI.
-    """
     user = request.user
-
-    # 1. Kiểm tra Quota (Giới hạn 10 lượt/ngày)
-    if user.is_authenticated():
-        today = timezone.now().date()
-        usage, created = UsageLog.objects.get_or_create(user=user, usage_date=today)
-
-        if usage.upload_count >= 10:
-            return JsonResponse({
-                'status': 'error',
-                'message': u'Bạn đã hết lượt trích xuất trong ngày (Tối đa 10 ảnh).'
-            })
-
-    # 2. Kiểm tra file có tồn tại trong request không
     if 'file' not in request.FILES:
-        return JsonResponse({
-            'status': 'error',
-            'message': u'Không tìm thấy tệp tin. Vui lòng thử lại.'
-        })
+        return JsonResponse({'status': 'error', 'message': u'Chưa chọn file.'})
 
-    # 3. Gọi logic xử lý chung
-    # (Hàm này đã bao gồm: Check Size, Check MIME, Nén ảnh, Check Mặt người/Hóa đơn)
-    table_data, image_url, error = _perform_extraction_logic(request.FILES['file'])
+    # Đọc tham số 'save_db' từ FormData (mặc định là false)
+    # Vì FormData gửi lên là string nên ta so sánh với 'true'
+    should_save = request.POST.get('save_db') == 'true'
+
+    # 1. Logic trích xuất AI dùng chung
+    uploaded_file = request.FILES['file']
+    table_data, image_url, error = _perform_extraction_logic(uploaded_file)
 
     if error:
-        # Trả về lỗi để Javascript (SweetAlert2) hiển thị khung thông báo
+        return JsonResponse({'status': 'error', 'message': error})
+
+    # 2. CHỈ LƯU NẾU CÓ YÊU CẦU (Dành cho trang Home)
+    if should_save:
+        now_str = timezone.now().strftime('%Y%m%d_%H%M%S')
+        uf = UploadedFile.objects.create(
+            user=user if user.is_authenticated() else None,
+            filename="IMG_%s.jpg" % now_str,
+            mime_type='image/jpeg',
+            image_url=image_url,
+            file_size=uploaded_file.size
+        )
+
+        res_obj = ExtractedResult.objects.create(
+            user=user if user.is_authenticated() else None,
+            uploaded_file=uf,
+            status='success',
+            processed_at=timezone.now()
+        )
+
+        handler = TableFileHandler(res_obj)
+        handler.save_data(table_data)
+
+        if user.is_authenticated():
+            usage, _ = UsageLog.objects.get_or_create(user=user, usage_date=timezone.now().date())
+            usage.upload_count += 1
+            usage.save()
+
         return JsonResponse({
-            'status': 'error',
-            'message': error
+            'status': 'success',
+            'result_id': res_obj.id, # Trả về ID để chuyển trang
+            'table': table_data
         })
 
-    # 4. Nếu thành công, cập nhật số lượng dùng trong ngày
-    if user.is_authenticated():
-        usage.upload_count += 1
-        usage.save()
-
-    # 5. Trả về dữ liệu bảng để hiển thị trực tiếp vào Editor
+    # 3. NẾU KHÔNG LƯU (Dành cho trang Detail)
+    # Chỉ trả về dữ liệu bảng thô
     return JsonResponse({
         'status': 'success',
         'table': table_data

@@ -1,0 +1,98 @@
+/* Modal định dạng với tiền tố ice- */
+.ice-modal {
+    display: block;
+    position: fixed;
+    z-index: 9999; /* Đảm bảo luôn nằm trên JSpreadsheet */
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.85);
+}
+
+.ice-modal-content {
+    background-color: #fefefe;
+    margin: 2% auto;
+    padding: 20px;
+    width: 90%;
+    max-width: 1000px;
+    border-radius: 12px;
+    box-shadow: 0 5px 30px rgba(0,0,0,0.3);
+}
+
+.ice-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #eee;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+.ice-title {
+    margin: 0;
+    color: #333;
+}
+
+.ice-close {
+    font-size: 28px;
+    font-weight: bold;
+    color: #aaa;
+    cursor: pointer;
+}
+
+.ice-close:hover {
+    color: #000;
+}
+
+/* Khung chứa ảnh để cắt */
+.ice-img-container {
+    max-height: 65vh; /* Giới hạn chiều cao theo màn hình */
+    width: 100%;
+    overflow: hidden;
+    background-color: #1a1a1a;
+    border-radius: 4px;
+}
+
+#imageToEdit {
+    max-width: 100%;
+    display: block;
+}
+
+/* Footer & Buttons */
+.ice-modal-footer {
+    padding-top: 20px;
+    text-align: right;
+    border-top: 1px solid #eee;
+    margin-top: 15px;
+}
+
+.ice-btn-primary {
+    background: #28a745;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+
+.ice-btn-primary:hover {
+    background: #218838;
+}
+
+.ice-btn-secondary {
+    background: #6c757d;
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-right: 12px;
+    transition: opacity 0.2s;
+}
+
+.ice-btn-secondary:hover {
+    opacity: 0.9;
+}

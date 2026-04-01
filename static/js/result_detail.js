@@ -161,74 +161,64 @@ function parseCoords(cellStr) {
 
 
 
-async function handlePicGenerate() {
-    const fileInput = document.getElementById('pic-upload');
-
-    // 1. Thông báo nếu chưa chọn file
-    if (fileInput.files.length === 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Thông báo',
-            text: 'Vui lòng chọn ảnh trước khi thực hiện!',
-            confirmButtonColor: '#3085d6'
-        });
-        return;
-    }
-
-    // Hỏi tọa độ bằng SweetAlert2 (Thay thế TableCoordinateHelper.ask)
-    const { value: targetCoords } = await Swal.fire({
+/**
+ * Hàm Callback đã sửa lỗi để hiển thị được lên bảng
+ */
+async function onImageCropped(blob) {
+    // 1. Hỏi tọa độ (Kết quả trả về là STRING, ví dụ: "A1")
+    const { value: targetCoordsStr } = await Swal.fire({
         title: 'Chọn ô bắt đầu',
         input: 'text',
-        inputLabel: 'Ví dụ: A1, B5, C10...',
-        inputValue: 'A1', // Giá trị mặc định
+        inputLabel: 'Dữ liệu AI sẽ được chèn từ ô này (Ví dụ: A1, B5...)',
+        inputValue: 'A1',
         showCancelButton: true,
         confirmButtonText: 'Tiếp tục',
         cancelButtonText: 'Hủy',
         inputValidator: (value) => {
-            if (!value) {
-                return 'Bạn cần nhập tọa độ ô!';
-            }
-            // Regex kiểm tra định dạng ô Excel (VD: A1, AB10)
+            if (!value) return 'Bạn cần nhập tọa độ ô!';
             const regex = /^[A-Z]+\d+$/i;
-            if (!regex.test(value)) {
-                return 'Tọa độ không hợp lệ (Ví dụ đúng: A1, B10)';
-            }
+            if (!regex.test(value)) return 'Tọa độ không hợp lệ (Ví dụ: A1, B10)';
         }
     });
-    if (!targetCoords) return;
 
-    // 2. Hiển thị trạng thái Loading chuyên nghiệp
+    if (!targetCoordsStr) return;
+
+    // --- BƯỚC QUAN TRỌNG: CHUYỂN STRING THÀNH OBJECT ---
+    const coordsObj = parseCoords(targetCoordsStr);
+    // --------------------------------------------------
+
+    // 2. Hiển thị Loading
     Swal.fire({
         title: 'Đang xử lý...',
-        text: 'Vui lòng chờ Gemini phân tích dữ liệu',
+        text: 'Đang phân tích vùng ảnh đã cắt',
         allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading(); // Hiển thị vòng xoay
-        }
+        didOpen: () => { Swal.showLoading(); }
     });
 
-    const btn = document.querySelector('.btn-purple');
-    const originalText = btn.innerText;
-    btn.innerText = "...";
-    btn.disabled = true;
-
+    // 3. Chuẩn bị dữ liệu
     const formData = new FormData();
-    formData.append('file', fileInput.files[0]);
+    formData.append('file', blob, 'extracted_part.jpg');
+    formData.append('save_db', 'false');
 
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+    // 4. Gửi Request
     fetch("/extract-only-api/", {
         method: 'POST',
-        headers: { 'X-CSRFToken': getCookie('csrftoken') },
+        headers: { 'X-CSRFToken': csrftoken },
         body: formData
     })
     .then(res => res.json())
     .then(data => {
-        // Đóng loading khi có phản hồi
         Swal.close();
 
         if (data.status === 'success') {
-            updateTableDisplay(data.table, targetCoords);
+            // 5. CẬP NHẬT GIAO DIỆN: Dùng coordsObj đã parse thay vì targetCoordsStr
+            updateTableDisplay(data.table, coordsObj);
 
-            // Thông báo thành công nhẹ nhàng (Toast)
+            // Kích hoạt tự động lưu nháp
+            triggerAutoSave();
+
             const Toast = Swal.mixin({
                 toast: true,
                 position: 'top-end',
@@ -236,32 +226,15 @@ async function handlePicGenerate() {
                 timer: 3000,
                 timerProgressBar: true
             });
-            Toast.fire({
-                icon: 'success',
-                title: 'Trích xuất thành công!'
-            });
+            Toast.fire({ icon: 'success', title: 'Đã chèn dữ liệu thành công!' });
 
         } else {
-            // 3. Hiển thị lỗi từ Backend (Lỗi size, định dạng, mặt người...)
-            Swal.fire({
-                icon: 'error',
-                title: 'Không thể trích xuất',
-                text: data.message, // Thông báo từ _perform_extraction_logic
-                confirmButtonColor: '#d33',
-                confirmButtonText: 'Đóng'
-            });
+            Swal.fire({ icon: 'error', title: 'Không thể trích xuất', text: data.message });
         }
     })
     .catch(err => {
-        Swal.fire({
-            icon: 'error',
-            title: 'Lỗi kết nối',
-            text: 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.'
-        });
-    })
-    .finally(() => {
-        btn.innerText = originalText;
-        btn.disabled = false;
+        Swal.close();
+        Swal.fire({ icon: 'error', title: 'Lỗi kết nối', text: 'Không thể kết nối tới máy chủ.' });
     });
 }
 

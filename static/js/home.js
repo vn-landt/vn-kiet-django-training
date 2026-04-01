@@ -1,70 +1,49 @@
-function handleGenerate() {
-    // 1. Lấy phần tử input (Đảm bảo ID này trùng với ID trong HTML của bạn)
-    const fileInput = document.getElementById('fileInput');
+// static/js/home.js
 
-    // 2. KIỂM TRA FILE TRƯỚC KHI LÀM BẤT CỨ BIẾN NÀO KHÁC
-    if (!fileInput || fileInput.files.length === 0) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Chú ý!',
-            text: 'Bạn chưa chọn file ảnh nào để trích xuất.',
-            confirmButtonText: 'Tôi sẽ chọn ngay',
-            confirmButtonColor: '#f39c12'
-        });
-        return; // Dừng ngay lập tức, không chạy code phía dưới
-    }
-
-    // 3. Nếu đã có file, lúc này mới tạo FormData
-    const file = fileInput.files[0];
+/**
+ * Luồng xử lý: image_handler.js (Modal) sau khi cắt xong
+ * sẽ gọi hàm này và truyền miếng ảnh đã cắt (blob) vào.
+ */
+function onImageCropped(blob) {
     const formData = new FormData();
-    formData.append('file', file);
+    formData.append('file', blob, "receipt_processed.jpg");
+    formData.append('save_db', 'true'); // BẬT CÔNG TẮC LƯU
 
-    // 4. Lấy CSRF Token (Bắt buộc cho Django)
-    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]') ?
-                      document.querySelector('[name=csrfmiddlewaretoken]').value : '';
+    const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // 5. Hiển thị Loading tiếng Việt
     Swal.fire({
         title: 'Đang trích xuất...',
-        text: 'AI đang đọc dữ liệu biên lai, vui lòng đợi.',
+        text: 'AI đang phân tích ảnh bạn đã chọn.',
         allowOutsideClick: false,
-        didOpen: () => {
-            Swal.showLoading();
-        }
+        didOpen: () => { Swal.showLoading(); }
     });
 
-    // 6. Gửi request
     fetch('/extract-only-api/', {
         method: 'POST',
         body: formData,
-        headers: {
-            'X-CSRFToken': csrftoken
-        }
+        headers: { 'X-CSRFToken': csrftoken }
     })
     .then(response => response.json())
     .then(data => {
         Swal.close();
         if (data.status === 'success') {
-            // Xử lý khi thành công (ví dụ: vẽ bảng)
-            console.log("Dữ liệu nhận được:", data.table);
-            // Gọi hàm renderTable(data.table) của bạn ở đây
-        } else {
-            // Lỗi từ phía Python (file quá lớn, không phải hóa đơn...)
+            // Xử lý thành công
             Swal.fire({
-                icon: 'error',
-                title: 'Lỗi xử lý',
-                text: data.message, // Tiếng Việt từ views.py trả về
-                confirmButtonText: 'Đã hiểu'
+                icon: 'success',
+                title: 'Hoàn tất!',
+                text: 'Đã tìm thấy ' + data.table.length + ' hàng dữ liệu.',
+                confirmButtonText: 'Xem chi tiết'
+            }).then(() => {
+                window.location.href = "/result/" + data.result_id + "/";
             });
+        } else {
+            Swal.fire('Lỗi AI', data.message, 'error');
+            // Reset input để người dùng có thể chọn lại ảnh khác
+            document.getElementById('id_file').value = "";
         }
     })
     .catch(error => {
         Swal.close();
-        console.error("Lỗi Fetch:", error);
-        Swal.fire({
-            icon: 'error',
-            title: 'Lỗi kết nối',
-            text: 'Không thể kết nối với máy chủ. Vùi lòng kiểm tra mạng.',
-        });
+        Swal.fire('Lỗi kết nối', 'Không thể gửi dữ liệu lên server.', 'error');
     });
 }

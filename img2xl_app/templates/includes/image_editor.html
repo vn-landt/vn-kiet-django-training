@@ -1,0 +1,19 @@
+<div id="editorModal" class="ice-modal" style="display:none;">
+    <div class="ice-modal-content">
+        <div class="ice-modal-header">
+            <h3 class="ice-title">Chỉnh sửa ảnh</h3>
+            <span class="ice-close" onclick="closeEditor()">&times;</span>
+        </div>
+        <div class="ice-modal-body">
+            <div class="ice-img-container">
+                <img id="imageToEdit">
+            </div>
+        </div>
+        <div class="ice-modal-footer">
+            <button type="button" class="ice-btn-secondary" onclick="closeEditor()">Hủy</button>
+            <button type="button" class="ice-btn-primary" id="btnConfirmExtract" onclick="processAndExtract()">
+                Xác nhận & Xử lý
+            </button>
+        </div>
+    </div>
+</div>
