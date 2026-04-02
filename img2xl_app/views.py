@@ -34,6 +34,7 @@ import re
 # Cần import thêm thư viện xử lý ảnh (hãy đảm bảo bạn đã cài 'Pillow' trong requirements.txt)
 from PIL import Image, ImageDraw, ImageFont
 from django.utils import timezone
+from django.contrib.auth.decorators import login_required
 
 def _perform_extraction_logic(uploaded_file, languages='all'):
     """
@@ -497,3 +498,13 @@ def _export_png(result, table_data, bg_color, start_cell, num_rows, num_cols):
     response = HttpResponse(buf.read(), content_type='image/png')
     response['Content-Disposition'] = 'attachment; filename="%s.png"' % base_name
     return response
+
+@login_required
+def profile_view(request):
+    # Tạm thời để trống như yêu cầu
+    return render(request, 'profile.html')
+
+@login_required
+def settings_view(request):
+    # Trả về trang settings, dữ liệu user đã có sẵn trong request.user
+    return render(request, 'settings.html')
