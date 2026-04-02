@@ -65,10 +65,9 @@ def extract_image_with_gemini(image_url, mime_type="image/jpeg", languages='All 
         lang_instruction = u"Language Instruction: Please auto-detect the languages in the document and extract the text accordingly."
     else:
         # Nếu languages là 'vie,eng', câu lệnh sẽ là: "... primarily contains these language codes: vie,eng..."
-        lang_instruction = u"Language Instruction: The document primarily contains text in these languages: {}. Please ensure highly accurate character extraction for these specific languages.".format(
-            languages)
+        lang_instruction = "Language Instruction: The document primarily contains text in these languages: " + languages +". Please ensure highly accurate character extraction for these specific languages."
 
-    prompt_text = u"""
+    prompt_text = """
 CRITICAL INSTRUCTION:
 Before processing, check the image content:
 1. If the image contains a human face.
@@ -79,7 +78,9 @@ If either condition is met, your ONLY response must be: INVALID_DOCUMENT
 If the image is a valid document, proceed with the extraction below:
 ---
 You are a high-precision, automated data extraction engine. Your only function is to convert the primary table or list from a file into a pure, machine-parsable CSV string.
-{lang_instruction}
+    """
+    prompt_text += lang_instruction
+    prompt_text += """
 **Your Extraction Strategy:**
 
 You must process the data using the following hierarchical strategy. Attempt Step 1 first. Only if it fails, proceed to Step 2.
@@ -115,7 +116,7 @@ You must process the data using the following hierarchical strategy. Attempt Ste
 1.  **If Data Found:** Your response **must ONLY be the pure CSV string**.
 2.  **If No Data Found:** Your response **must ONLY be the exact string: `NO_TABLE_FOUND`**.
 3.  **DO NOT** include any explanations, summaries, or markdown formatting (like ` ```csv `).
-            """.format(lang_instruction=lang_instruction)
+            """
 
     payload = {
         "contents": [{
