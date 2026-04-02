@@ -50,16 +50,13 @@ document.addEventListener('DOMContentLoaded', function() {
 /**
  * Hàm gọi khi hoàn tất Crop ảnh (giữ nguyên logic cũ của bạn)
  */
-function onImageCropped(blob) {
+function onImageCropped(blob, languagesStr) {
     const formData = new FormData();
     formData.append('file', blob, "processed_image.jpg");
     formData.append('save_db', 'true');
 
-    const selectedLangs = [];
-    document.querySelectorAll('input[name="langs"]:checked').forEach((checkbox) => {
-        selectedLangs.push(checkbox.value);
-    });
-    formData.append('languages', selectedLangs.join(','));
+    // Gắn chuỗi ngôn ngữ vào form data
+    formData.append('languages', languagesStr || 'all')
 
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 

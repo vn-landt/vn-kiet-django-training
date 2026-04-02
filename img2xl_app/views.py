@@ -35,7 +35,7 @@ import re
 from PIL import Image, ImageDraw, ImageFont
 from django.utils import timezone
 
-def _perform_extraction_logic(uploaded_file):
+def _perform_extraction_logic(uploaded_file, languages='all'):
     """
     Hàm trợ giúp tái sử dụng: Nhận file -> Trả về (table_data, image_url, error)
     Logic này được tách ra từ bridge.py và home để dùng chung.
@@ -64,7 +64,7 @@ def _perform_extraction_logic(uploaded_file):
             return None, None, u"Lỗi kết nối máy chủ ảnh. Vui lòng thử lại."
 
         # 4. Gọi Gemini trích xuất & Kiểm tra nội dung (Mặt người/Hoá đơn)
-        result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type)
+        result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type, languages)
 
         if result_text == "INVALID_DOCUMENT":
             return None, image_url, u"Tài liệu không hợp lệ hoặc không đủ độ rõ nét. Vui lòng chọn ảnh hóa đơn, chứng từ khác."
@@ -267,9 +267,13 @@ def extract_only_api(request):
     # Vì FormData gửi lên là string nên ta so sánh với 'true'
     should_save = request.POST.get('save_db') == 'true'
 
+    # Đọc tham số 'languages' từ FormData (nếu không có thì mặc định là 'all')
+    languages = request.POST.get('languages', 'all')
+
     # 1. Logic trích xuất AI dùng chung
     uploaded_file = request.FILES['file']
-    table_data, image_url, error = _perform_extraction_logic(uploaded_file)
+
+    table_data, image_url, error = _perform_extraction_logic(uploaded_file, languages)
 
     if error:
         return JsonResponse({'status': 'error', 'message': error})
