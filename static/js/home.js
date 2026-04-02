@@ -1,19 +1,71 @@
-// static/js/home.js
+document.addEventListener('DOMContentLoaded', function() {
+    const fileInput = document.getElementById('id_file');
+    const selectBtn = document.getElementById('selectBtn'); // Nút chọn/đổi ảnh
+    const extractBtn = document.getElementById('extractBtn'); // Nút thực hiện trích xuất
+
+    const previewContainer = document.getElementById('previewContainer');
+    const previewPlaceholder = document.getElementById('previewPlaceholder');
+    const imagePreview = document.getElementById('imagePreview');
+    const fileNameDisplay = document.getElementById('fileNameDisplay');
+
+    // 1. Khi nhấn nút "Chọn ảnh", luôn mở trình chọn file
+    selectBtn.addEventListener('click', function() {
+        fileInput.click();
+    });
+
+    // 2. Khi file thay đổi (chọn mới hoặc chọn lại)
+    fileInput.addEventListener('change', function() {
+        if (this.files && this.files[0]) {
+            const file = this.files[0];
+
+            // Hiển thị tên file
+            fileNameDisplay.innerText = "📄 File: " + file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+
+                // Hiện khung preview, ẩn placeholder
+                previewContainer.style.display = 'block';
+                previewPlaceholder.style.display = 'none';
+
+                // Cuộn xuống nhẹ để người dùng thấy ảnh nếu màn hình nhỏ
+                previewContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            };
+            reader.readAsDataURL(file);
+        }
+    });
+
+    // 3. Khi nhấn nút "Bắt đầu trích xuất" (nút dưới ảnh)
+    extractBtn.addEventListener('click', function() {
+        if (fileInput.files && fileInput.files[0]) {
+            // Gọi hàm initEditor từ file image_handler.js
+            initEditor(fileInput);
+        } else {
+            Swal.fire('Thông báo', 'Vui lòng chọn ảnh trước!', 'info');
+        }
+    });
+});
 
 /**
- * Luồng xử lý: image_handler.js (Modal) sau khi cắt xong
- * sẽ gọi hàm này và truyền miếng ảnh đã cắt (blob) vào.
+ * Hàm gọi khi hoàn tất Crop ảnh (giữ nguyên logic cũ của bạn)
  */
 function onImageCropped(blob) {
     const formData = new FormData();
-    formData.append('file', blob, "receipt_processed.jpg");
-    formData.append('save_db', 'true'); // BẬT CÔNG TẮC LƯU
+    formData.append('file', blob, "processed_image.jpg");
+    formData.append('save_db', 'true');
+
+    const selectedLangs = [];
+    document.querySelectorAll('input[name="langs"]:checked').forEach((checkbox) => {
+        selectedLangs.push(checkbox.value);
+    });
+    formData.append('languages', selectedLangs.join(','));
 
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
     Swal.fire({
-        title: 'Đang trích xuất...',
-        text: 'AI đang phân tích ảnh bạn đã chọn.',
+        title: 'Đang xử lý...',
+        text: 'AI đang phân tích bảng biểu...',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
@@ -27,23 +79,13 @@ function onImageCropped(blob) {
     .then(data => {
         Swal.close();
         if (data.status === 'success') {
-            // Xử lý thành công
-            Swal.fire({
-                icon: 'success',
-                title: 'Hoàn tất!',
-                text: 'Đã tìm thấy ' + data.table.length + ' hàng dữ liệu.',
-                confirmButtonText: 'Xem chi tiết'
-            }).then(() => {
-                window.location.href = "/result/" + data.result_id + "/";
-            });
+            window.location.href = "/result/" + data.result_id + "/";
         } else {
             Swal.fire('Lỗi AI', data.message, 'error');
-            // Reset input để người dùng có thể chọn lại ảnh khác
-            document.getElementById('id_file').value = "";
         }
     })
     .catch(error => {
         Swal.close();
-        Swal.fire('Lỗi kết nối', 'Không thể gửi dữ liệu lên server.', 'error');
+        Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
     });
 }

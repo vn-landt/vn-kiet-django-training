@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Table Extractor</title>
+    <title>Table Extractor AI</title>
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
     <link rel="stylesheet" href="{% static 'css/image_editor.css' %}">
@@ -14,7 +14,7 @@
         <div class="nav-links">
             {% if user.is_authenticated %}
                 <span class="auth-status">Xin chào, <strong>{{ user.username }}</strong>!</span>
-                <a href="{% url 'logout' %}">Đăng xuất</a>
+                <a href="{% url 'logout' %}" class="btn-logout">Đăng xuất</a>
             {% else %}
                 <a href="{% url 'login' %}">Đăng nhập</a>
                 <a href="{% url 'register' %}">Đăng ký</a>
@@ -22,83 +22,76 @@
         </div>
     </div>
 
-    {% if not user.is_authenticated %}
-        <div style="background: #fff3cd; padding: 10px; border: 1px solid #ffeeba; margin-bottom: 20px;">
-            <strong>Lưu ý:</strong> Bạn đang dùng quyền Khách. Dữ liệu sẽ không được lưu lại.
+    <div class="main-container">
+        <div class="workspace">
+            <div class="control-panel">
+                <section class="card">
+                    <h2>Cấu hình trích xuất</h2>
+                    <form id="uploadForm">
+                        {% csrf_token %}
+                        <div style="display: none;">
+                            {{ form.file }}
+                        </div>
+
+                        <div class="button-group">
+                            <button type="button" id="selectBtn" class="btn-select">
+                                📷 Chọn ảnh để bắt đầu
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="card history-section">
+                    <h2>Lịch sử gần đây</h2>
+                    <div class="history-list">
+                        {% if user.is_authenticated %}
+                            {% if recent_results %}
+                                <ul>
+                                {% for res in recent_results %}
+                                    <li>
+                                        <a href="{% url 'result_detail' res.id %}">{{ res.uploaded_file.filename|truncatechars:20 }}</a>
+                                        <span class="status-tag {{ res.status }}">{{ res.status }}</span>
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p>Chưa có dữ liệu.</p>
+                            {% endif %}
+                        {% else %}
+                            <p><a href="{% url 'login' %}">Đăng nhập</a> để xem lịch sử.</p>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+
+            <div class="preview-panel">
+                <div id="previewPlaceholder" class="placeholder">
+                    <p>Chưa có ảnh nào được chọn</p>
+                </div>
+
+                <div id="previewContainer" style="display: none; width: 100%;">
+                    <div class="file-info">
+                        <span id="fileNameDisplay">filename.jpg</span>
+                    </div>
+                    
+                    <div class="image-wrapper">
+                        <img id="imagePreview" src="#" alt="Preview">
+                    </div>
+
+                    <div class="action-footer">
+                        <button type="button" id="extractBtn" class="btn-extract">
+                            🚀 Bắt đầu trích xuất ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
-    {% endif %}
-
-    <h1>Upload & Extract Table</h1>
-
-    <div class="upload-section">
-        <form id="uploadForm">
-            {% csrf_token %}
-            <div style="display: none;">
-                {{ form.file }}
-            </div>
-
-            <div class="button-group">
-                <button type="button" class="btn-main" onclick="document.getElementById('id_file').click()"
-                        style="padding: 15px 30px; font-size: 18px; background-color: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">
-                    Chọn ảnh để bắt đầu
-                </button>
-            </div>
-        </form>
     </div>
 
     {% include "includes/image_editor.html" with api_url="/extract-only-api/" %}
 
-    <h2>Lịch sử gần đây</h2>
-    {% if user.is_authenticated %}
-        {% if recent_results %}
-            <ul>
-            {% for res in recent_results %}
-                <li>
-                    <a href="{% url 'result_detail' res.id %}">
-                        {{ res.uploaded_file.filename }}
-                    </a>
-                    - <span class="status-{{ res.status }}"><strong>{{ res.status }}</strong></span>
-                    - <small>{{ res.created_at|date:"d/m/Y H:i" }}</small>
-                </li>
-            {% endfor %}
-            </ul>
-        {% else %}
-            <p>Bạn chưa có bản trích xuất nào. Hãy thử upload ngay!</p>
-        {% endif %}
-    {% else %}
-        <p>
-            <a href="{% url 'login' %}"><strong>Đăng nhập</strong></a>
-            để lưu trữ và xem lại lịch sử trích xuất của bạn.
-        </p>
-    {% endif %}
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-    
     <script src="{% static 'js/image_handler.js' %}"></script>
-
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            const fileInput = document.getElementById('id_file');
-            if (fileInput) {
-                // Sự kiện: Khi người dùng chọn ảnh xong
-                fileInput.addEventListener('change', function() {
-                    if (this.files && this.files.length > 0) {
-                        initEditor(this); // Gọi hàm từ image_handler.js
-                    }
-                });
-            }
-        });
-
-        {% if messages %}
-            {% for message in messages %}
-                Swal.fire({
-                    icon: "{% if message.tags == 'error' %}error{% else %}success{% endif %}",
-                    title: "Thông báo",
-                    text: "{{ message }}"
-                });
-            {% endfor %}
-        {% endif %}
-    </script>
-    
     <script src="{% static 'js/home.js' %}"></script>
 </body>
 </html>
