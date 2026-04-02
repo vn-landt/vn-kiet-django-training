@@ -381,7 +381,7 @@ def export(request, result_id):
 
     preview_data = [row[:10] for row in draft_table_data[:5]]
 
-    return render(request, 'export_ui.html', {
+    return render(request, 'includes/export_ui.html', {
         'result': result,
         'preview_data': preview_data,
         'total_rows': len(draft_table_data),

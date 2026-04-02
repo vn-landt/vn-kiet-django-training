@@ -1,0 +1,61 @@
+<div id="export-modal">
+    <div class="expmdl-content">
+        <span class="expmdl-close" onclick="closeExportModal()">&times;</span>
+
+        <div class="expmdl-sidebar">
+            <h3>Xuất dữ liệu</h3>
+            <div id="final-time-display" style="margin-bottom: 15px; padding: 10px; background: #e9ecef; border-radius: 4px; font-size: 13px;">
+                <strong>Thời gian lưu bản chính:</strong> <br>
+                <span id="final-save-time-text">{{ last_final_time }}</span>
+            </div>
+            <form id="form-export" method="POST" action="{% url 'export' result.id %}" target="_blank">
+                {% csrf_token %}
+
+                <div style="margin-bottom: 20px;">
+                    <label style="display: block; margin-bottom: 5px; font-weight: bold;">Định dạng:</label>
+                    <label><input type="radio" name="export_type" value="xlsx" checked onchange="handleTypeChange('xlsx')"> Excel (.csv)</label><br>
+                    <label><input type="radio" name="export_type" value="png" onchange="handleTypeChange('png')"> Hình ảnh (.png)</label>
+                </div>
+
+                <div id="png-settings" style="display: none; border-top: 1px solid #ddd; padding-top: 15px;">
+                    <label style="font-weight: bold; font-size: 13px;">Vùng dữ liệu PNG:</label>
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; margin-bottom: 15px;">
+                        <div>
+                            <small>Ô bắt đầu:</small>
+                            <input type="text" name="start_cell" id="png-start" value="A1" class="form-control" oninput="updatePngPreview()">
+                        </div>
+                        <div></div>
+                        <div>
+                            <small>Số hàng:</small>
+                            <input type="number" name="num_rows" id="png-rows" value="5" max="30" class="form-control" oninput="updatePngPreview()">
+                        </div>
+                        <div>
+                            <small>Số cột:</small>
+                            <input type="number" name="num_cols" id="png-cols" value="5" max="30" class="form-control" oninput="updatePngPreview()">
+                        </div>
+                    </div>
+
+                    <label style="font-weight: bold; font-size: 13px;">Màu nền PNG:</label>
+                    <select name="bg_color" id="bg-color-select" class="form-control" onchange="updatePngPreview()">
+                        <option value="white">Trắng</option>
+                        <option value="black">Đen</option>
+                        <option value="transparent">Trong suốt</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+
+        <div class="expmdl-main">
+            <h4 id="preview-title">Xem trước: Excel</h4>
+            <div id="expmdl-preview-container">
+                </div>
+
+            <div class="expmdl-footer" style="margin-top: auto; text-align: right; padding-top: 15px;">
+                <button type="button" class="btn-secondary" onclick="closeExportModal()" style="margin-right: 10px;">Hủy</button>
+                <button type="submit" form="form-export" class="btn-primary" style="background: #28a745; color: white; padding: 10px 25px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
+                    Download
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
