@@ -16,4 +16,6 @@ urlpatterns = [
     url(r'^api/generate-ai-content/$', views.ai_generate_view, name='ai_generate_view'),
     url(r'^extract-only-api/$', views.extract_only_api, name='extract_only_api'),
     url(r'^tasks/cleanup/$', views.cleanup_old_data, name='cleanup_old_data'),
+    url(r'^profile/$', views.profile_view, name='profile'),
+    url(r'^settings/$', views.settings_view, name='settings'),
 ]

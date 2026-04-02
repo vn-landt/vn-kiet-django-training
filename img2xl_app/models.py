@@ -35,6 +35,9 @@ class ExtractedResult(models.Model):
     raw_response = models.TextField(blank=True, null=True)
     table_data_compressed = BlobField(blank=True, null=True)
 
+    # TRƯỜNG MỚI: Lưu bản nháp (Auto-save)
+    table_data_draft = BlobField(blank=True, null=True)
+
     error_message = models.TextField(blank=True, null=True)
     processed_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
@@ -44,7 +47,7 @@ class ExtractedResult(models.Model):
         filename = self.uploaded_file.filename if self.uploaded_file else "Unknown"
         return u"%s - %s" % (filename, self.status)
 
-    def get_table(self):
+    def get_table(self, for_export=False):
         """Sử dụng OOP Handler để lấy dữ liệu"""
         if not self.id:
             return []
@@ -52,7 +55,7 @@ class ExtractedResult(models.Model):
         # Gọi file handler nằm trong thư mục services
         from .services.table_handler import TableFileHandler
         handler = TableFileHandler(self)  # Chuyền cả object vào thay vì self.id
-        return handler.load_data()
+        return handler.load_data(for_export=for_export)
 
 class UsageLog(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='usage_logs')

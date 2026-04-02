@@ -1,0 +1,39 @@
+<div id="editorModal" class="ice-modal">
+    <div class="ice-modal-content">
+        <div class="ice-modal-header">
+            <h3 class="ice-title">Chỉnh sửa ảnh</h3>
+            <span class="ice-close" onclick="closeEditor()">&times;</span>
+        </div>
+        
+        <div class="ice-modal-body">
+            <div class="ice-img-container">
+                <img id="imageToEdit">
+            </div>
+        </div>
+
+        <div id="languageSection" class="config-section">
+            <label class="section-label"><strong>Ngôn ngữ:</strong></label>
+            <div class="lang-grid">
+                <label class="lang-item">
+                    <input type="checkbox" name="langs" value="vie"> 
+                    <span class="lang-chip">Tiếng Việt</span>
+                </label>
+                <label class="lang-item">
+                    <input type="checkbox" name="langs" value="eng"> 
+                    <span class="lang-chip">Tiếng Anh</span>
+                </label>
+                <label class="lang-item">
+                    <input type="checkbox" name="langs" value="all" checked> 
+                    <span class="lang-chip">Tự nhận diện</span>
+                </label>
+            </div>
+        </div>
+
+        <div class="ice-modal-footer">
+            <button type="button" class="ice-btn-secondary" onclick="closeEditor()">Hủy</button>
+            <button type="button" class="ice-btn-primary" id="btnConfirmExtract" onclick="processAndExtract()">
+                Xác nhận & Xử lý
+            </button>
+        </div>
+    </div>
+</div>

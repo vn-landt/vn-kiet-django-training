@@ -1,0 +1,42 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark fixed-top main-header shadow-sm">
+    <div class="container-fluid">
+        <a class="navbar-brand footer-brand" href="{% url 'home' %}">
+            <span class="text-primary font-weight-bold">Extractor</span> AI
+        </a>
+
+        <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#headerNavbar">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+
+        <div class="collapse navbar-collapse" id="headerNavbar">
+            <ul class="navbar-nav ml-auto align-items-center">
+                {% if user.is_authenticated %}
+                    <li class="nav-item dropdown">
+                        <a class="nav-link dropdown-toggle text-light" href="#" id="userDropdown" role="button" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
+                             <i class="fas fa-user-circle mr-1"></i> {{ user.username }}
+                        </a>
+                        <div class="dropdown-menu dropdown-menu-right shadow border-0" aria-labelledby="userDropdown">
+                            <a class="dropdown-item py-2" href="{% url 'profile' %}">
+                                <i class="fas fa-id-card mr-2 text-muted"></i> Hồ sơ của tôi
+                            </a>
+                            <a class="dropdown-item py-2" href="{% url 'settings' %}">
+                                <i class="fas fa-user-cog mr-2 text-muted"></i> Cài đặt
+                            </a>
+                            <div class="dropdown-divider"></div>
+                            <a class="dropdown-item py-2 text-danger" href="{% url 'logout' %}">
+                                <i class="fas fa-sign-out-alt mr-2"></i> Đăng xuất
+                            </a>
+                        </div>
+                    </li>
+                {% else %}
+                    <li class="nav-item">
+                        <a href="{% url 'login' %}" class="btn btn-link text-light text-decoration-none mr-2">Đăng nhập</a>
+                    </li>
+                    <li class="nav-item">
+                        <a href="{% url 'register' %}" class="btn btn-primary btn-sm px-3">Đăng ký</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </div>
+    </div>
+</nav>

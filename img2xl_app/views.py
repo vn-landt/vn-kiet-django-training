@@ -33,8 +33,10 @@ import json
 import re
 # Cần import thêm thư viện xử lý ảnh (hãy đảm bảo bạn đã cài 'Pillow' trong requirements.txt)
 from PIL import Image, ImageDraw, ImageFont
+from django.utils import timezone
+from django.contrib.auth.decorators import login_required
 
-def _perform_extraction_logic(uploaded_file):
+def _perform_extraction_logic(uploaded_file, languages='all'):
     """
     Hàm trợ giúp tái sử dụng: Nhận file -> Trả về (table_data, image_url, error)
     Logic này được tách ra từ bridge.py và home để dùng chung.
@@ -63,7 +65,7 @@ def _perform_extraction_logic(uploaded_file):
             return None, None, u"Lỗi kết nối máy chủ ảnh. Vui lòng thử lại."
 
         # 4. Gọi Gemini trích xuất & Kiểm tra nội dung (Mặt người/Hoá đơn)
-        result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type)
+        result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type, languages)
 
         if result_text == "INVALID_DOCUMENT":
             return None, image_url, u"Tài liệu không hợp lệ hoặc không đủ độ rõ nét. Vui lòng chọn ảnh hóa đơn, chứng từ khác."
@@ -97,90 +99,58 @@ def _perform_extraction_logic(uploaded_file):
     except Exception as e:
         return None, None, str(e)
 
+
+# views.py
+
 def home(request):
+    """
+    Chỉ làm nhiệm vụ hiển thị trang chủ và danh sách lịch sử.
+    Mọi hoạt động trích xuất đã chuyển sang extract_only_api.
+    """
     user = request.user
     recent_results = []
+
     if user.is_authenticated():
+        # Lấy 10 kết quả gần nhất của user
         recent_results = ExtractedResult.objects.filter(
             user=user
         ).order_by('-created_at')[:10]
 
-    if request.method == 'POST':
-        form = UploadFileForm(request.POST, request.FILES)
-        if form.is_valid():
-            # 1. Kiểm tra Quota cho User đã đăng nhập [#35]
-            if user.is_authenticated():
-                today = timezone.now().date()
-                usage, created = UsageLog.objects.get_or_create(user=user, usage_date=today)
-
-                if usage.upload_count >= 10:
-                    messages.error(request, "Bạn đã hết lượt upload trong ngày (Tối đa 10 ảnh).")
-                    return render(request, 'home.html', {'recent_results': recent_results})
-            uploaded_file = request.FILES['file']
-
-            # --- NẾU VƯỢT QUA, TIẾP TỤC TRÍCH XUẤT ---
-            table_data, image_url, error = _perform_extraction_logic(uploaded_file)
-
-            if error:
-                # Đưa lỗi vào hệ thống Messages của Django
-                messages.error(request, error)
-                # Render lại home để script SweetAlert bắt được tin nhắn
-                return render(request, 'home.html', {
-                    'form': form,
-                    'recent_results': recent_results
-                })
-
-            # --- LƯU VÀO DATABASE (Chỉ làm ở Home) ---
-            uf = UploadedFile.objects.create(
-                user=user if user.is_authenticated() else None,
-                filename=uploaded_file.name,
-                mime_type=uploaded_file.content_type,
-                image_url=image_url,
-                file_size=uploaded_file.size
-            )
-
-            # Tạo bản ghi kết quả và lưu table_data qua Handler
-            res_obj = ExtractedResult.objects.create(
-                user=user if user.is_authenticated() else None,
-                uploaded_file=uf,
-                status='success',
-                raw_response=u"Initial Extraction",
-                processed_at=timezone.now()
-            )
-            handler = TableFileHandler(res_obj)  #
-            handler.save_data(table_data)
-
-            if user.is_authenticated():
-                # Cập nhật số lượng dùng trong ngày
-                usage.upload_count += 1  # hoặc +1 tùy logic của bạn
-                usage.save()
-
-                # [#35] Giới hạn 10 lịch sử (Xóa file thứ 11 trở đi)
-                old_files = UploadedFile.objects.filter(user=user).order_by('-uploaded_at')[10:]
-                for old_f in old_files:
-                    old_f.delete()  # Datastore sẽ xóa các bản ghi liên quan nếu có CASCADE
-            return render(request, 'result_detail.html', {
-                'result': res_obj,
-                'table': table_data,
-                'table_json': json.dumps(table_data),
-                'recent_results': recent_results
-            })
-    else:
-        form = UploadFileForm()
-
-    return render(request, 'home.html', {'form': form, 'recent_results': recent_results})
-
+    # Không còn xử lý request.method == 'POST' ở đây nữa
+    return render(request, 'home.html', {
+        'form': UploadFileForm(),
+        'recent_results': recent_results
+    })
 
 def result_detail(request, result_id):
-    result = get_object_or_404(ExtractedResult, id=result_id)
-    table = result.get_table()
+    result = get_object_or_404(ExtractedResult, pk=result_id)
+
+    # 1. Lấy dữ liệu từ handler (dạng list của Python)
+    raw_table_data = result.get_table(for_export=False)
+    raw_final_data = result.get_table(for_export=True)
+
+    # 2. CHUYỂN THÀNH CHUỖI JSON (Sẽ mất ký tự 'u' và biến None thành null)
+    # ensure_ascii=False giúp giữ nguyên tiếng Việt
+    table_json_str = json.dumps(raw_table_data, ensure_ascii=False)
+    final_table_json_str = json.dumps(raw_final_data, ensure_ascii=False)
+
+    # Sử dụng timezone.localtime để chuyển từ UTC sang Asia/Ho_Chi_Minh
+    local_draft_time = timezone.localtime(result.updated_at)
+    last_draft_time = local_draft_time.strftime('%d/%m/%Y %H:%M:%S')
+
+    # Thời gian bản chính (Modal)
+    last_final_time = "Chưa lưu"
+    if result.processed_at:
+        last_final_time = timezone.localtime(result.processed_at).strftime('%d/%m/%Y %H:%M:%S')
 
     recent_results = ExtractedResult.objects.order_by('-created_at')
     return render(request, 'result_detail.html', {
         'result': result,
-        'table': table,
-        'table_json': json.dumps(table),
-        'recent_results': recent_results
+        'table_json': table_json_str,
+        'final_table_json': final_table_json_str,
+        'recent_results': recent_results,
+        'last_draft_time': last_draft_time,
+        'last_final_time': last_final_time,
     })
 
 def export_to_sheets(request, result_id):
@@ -223,29 +193,28 @@ def delete_result(request, result_id):
 
 @require_POST
 def update_table_data(request, result_id):
-    print "DEBUG: Received POST for ID: %s" % result_id
-    try:
-        result = get_object_or_404(ExtractedResult, id=result_id)
+    if request.method == 'POST':
+        result = ExtractedResult.objects.get(pk=result_id, user=request.user)
+        data = json.loads(request.body)
 
-        # Đảm bảo đọc body an toàn
-        raw_body = request.body.decode('utf-8')
-        body_data = json.loads(raw_body)
-        new_table_data = body_data.get('table_data')
+        # Lấy flag từ frontend: if is_draft=True -> lưu nháp, if False -> lưu final
+        is_draft_request = data.get('is_draft', True)
 
         handler = TableFileHandler(result)
-        if handler.save_data(new_table_data):
-            return JsonResponse({'status': 'success', 'message': 'OK'})
-        else:
-            return JsonResponse({'status': 'error', 'message': 'Save failed'}, status=500)
+        # Nếu is_draft_request là False nghĩa là người dùng bấm nút Save Changes (is_final=True)
+        success = handler.save_data(data.get('table_data'), is_final=not is_draft_request)
 
-    except Exception as e:
-        print "--- TRACEBACK VIEW ERROR ---"
-        traceback.print_exc()
-        return HttpResponse(
-            json.dumps({'status': 'error', 'message': str(e)}),
-            content_type='application/json',
-            status=500
-        )
+        result.refresh_from_db()  # Lấy dữ liệu mới nhất vừa lưu vào DB
+
+        # Chuyển về giờ Việt Nam và định dạng chuỗi đầy đủ
+        local_now = timezone.localtime(result.updated_at)
+        full_time_str = local_now.strftime('%d/%m/%Y %H:%M:%S')
+
+        return JsonResponse({
+            'status': 'success',
+            'updated_at':full_time_str ,  # Trả về giờ VN
+            'is_draft': result.is_draft
+        })
 
 @csrf_protect
 def ai_generate_view(request):
@@ -290,49 +259,60 @@ def ai_generate_view(request):
     return JsonResponse({'status': 'error', 'message': 'Invalid Method'})
 
 @require_POST
-@require_POST
 def extract_only_api(request):
-    """
-    API: Chỉ trích xuất dữ liệu trả về JSON.
-    Đã tích hợp: Kiểm tra Quota, Kiểm tra kỹ thuật, và Kiểm tra nội dung AI.
-    """
     user = request.user
-
-    # 1. Kiểm tra Quota (Giới hạn 10 lượt/ngày)
-    if user.is_authenticated():
-        today = timezone.now().date()
-        usage, created = UsageLog.objects.get_or_create(user=user, usage_date=today)
-
-        if usage.upload_count >= 10:
-            return JsonResponse({
-                'status': 'error',
-                'message': u'Bạn đã hết lượt trích xuất trong ngày (Tối đa 10 ảnh).'
-            })
-
-    # 2. Kiểm tra file có tồn tại trong request không
     if 'file' not in request.FILES:
-        return JsonResponse({
-            'status': 'error',
-            'message': u'Không tìm thấy tệp tin. Vui lòng thử lại.'
-        })
+        return JsonResponse({'status': 'error', 'message': u'Chưa chọn file.'})
 
-    # 3. Gọi logic xử lý chung
-    # (Hàm này đã bao gồm: Check Size, Check MIME, Nén ảnh, Check Mặt người/Hóa đơn)
-    table_data, image_url, error = _perform_extraction_logic(request.FILES['file'])
+    # Đọc tham số 'save_db' từ FormData (mặc định là false)
+    # Vì FormData gửi lên là string nên ta so sánh với 'true'
+    should_save = request.POST.get('save_db') == 'true'
+
+    # Đọc tham số 'languages' từ FormData (nếu không có thì mặc định là 'all')
+    languages = request.POST.get('languages', 'all')
+
+    # 1. Logic trích xuất AI dùng chung
+    uploaded_file = request.FILES['file']
+
+    table_data, image_url, error = _perform_extraction_logic(uploaded_file, languages)
 
     if error:
-        # Trả về lỗi để Javascript (SweetAlert2) hiển thị khung thông báo
+        return JsonResponse({'status': 'error', 'message': error})
+
+    # 2. CHỈ LƯU NẾU CÓ YÊU CẦU (Dành cho trang Home)
+    if should_save:
+        now_str = timezone.now().strftime('%Y%m%d_%H%M%S')
+        uf = UploadedFile.objects.create(
+            user=user if user.is_authenticated() else None,
+            filename="IMG_%s.jpg" % now_str,
+            mime_type='image/jpeg',
+            image_url=image_url,
+            file_size=uploaded_file.size
+        )
+
+        res_obj = ExtractedResult.objects.create(
+            user=user if user.is_authenticated() else None,
+            uploaded_file=uf,
+            status='success',
+            processed_at=timezone.now()
+        )
+
+        handler = TableFileHandler(res_obj)
+        handler.save_data(table_data)
+
+        if user.is_authenticated():
+            usage, _ = UsageLog.objects.get_or_create(user=user, usage_date=timezone.now().date())
+            usage.upload_count += 1
+            usage.save()
+
         return JsonResponse({
-            'status': 'error',
-            'message': error
+            'status': 'success',
+            'result_id': res_obj.id, # Trả về ID để chuyển trang
+            'table': table_data
         })
 
-    # 4. Nếu thành công, cập nhật số lượng dùng trong ngày
-    if user.is_authenticated():
-        usage.upload_count += 1
-        usage.save()
-
-    # 5. Trả về dữ liệu bảng để hiển thị trực tiếp vào Editor
+    # 3. NẾU KHÔNG LƯU (Dành cho trang Detail)
+    # Chỉ trả về dữ liệu bảng thô
     return JsonResponse({
         'status': 'success',
         'table': table_data
@@ -368,46 +348,45 @@ def cleanup_old_data(request):
     return HttpResponse("Đã dọn dẹp %d bản ghi cũ." % count)
 
 
+# views.py
+
 def export(request, result_id):
     result = get_object_or_404(ExtractedResult, id=result_id)
-    table_data = result.get_table()
 
     # XỬ LÝ KHI NGƯỜI DÙNG ẤN NÚT DOWNLOAD (METHOD POST)
     if request.method == 'POST':
+        # LẤY BẢN CHỐT (Final) ĐỂ XUẤT FILE
+        final_table_data = result.get_table(for_export=True)
+
         export_type = request.POST.get('export_type', 'xlsx')
 
         if export_type == 'png':
-            # 1. Lấy màu nền
             bg_color = request.POST.get('bg_color', 'white')
-
-            # 2. Lấy ô bắt đầu (Ví dụ: "A1")
             start_cell = request.POST.get('start_cell', 'A1')
-
-            # 3. Lấy số hàng và số cột, ép kiểu về int để tính toán
             try:
                 num_rows = int(request.POST.get('num_rows', 5))
                 num_cols = int(request.POST.get('num_cols', 5))
             except ValueError:
-                # Nếu có lỗi nhập liệu không phải số, đặt mặc định
-                num_rows = 5
-                num_cols = 5
+                num_rows, num_cols = 5, 5
 
-            # 4. Truyền đầy đủ 6 tham số vào hàm xử lý PNG
-            return _export_png(result, table_data, bg_color, start_cell, num_rows, num_cols)
+            # Truyền final_table_data vào
+            return _export_png(result, final_table_data, bg_color, start_cell, num_rows, num_cols)
 
         else:
-            # Đối với Excel/CSV (Bạn có thể thêm logic cắt phạm vi ở đây nếu muốn)
-            return _export_excel(result, table_data)
+            # Truyền final_table_data vào
+            return _export_excel(result, final_table_data)
 
-    # XỬ LÝ KHI TRUY CẬP URL (METHOD GET)
-    # Preview mặc định 10 cột, 5 hàng đầu
-    preview_data = [row[:10] for row in table_data[:5]]
+    # XỬ LÝ KHI TRUY CẬP URL (METHOD GET - Xem Preview)
+    # LẤY BẢN NHÁP (Draft) ĐỂ HIỂN THỊ XEM TRƯỚC
+    draft_table_data = result.get_table(for_export=False)
 
-    return render(request, 'export_ui.html', {
+    preview_data = [row[:10] for row in draft_table_data[:5]]
+
+    return render(request, 'includes/export_ui.html', {
         'result': result,
         'preview_data': preview_data,
-        'total_rows': len(table_data),
-        'total_cols': max(len(r) for r in table_data) if table_data else 0
+        'total_rows': len(draft_table_data),
+        'total_cols': max(len(r) for r in draft_table_data) if draft_table_data else 0
     })
 
 def _export_excel(result, table_data, start_coords=None, end_coords=None):
@@ -421,7 +400,7 @@ def _export_excel(result, table_data, start_coords=None, end_coords=None):
     response['Content-Disposition'] = 'attachment; filename="%s.csv"' % base_name
 
     writer = csv.writer(response)
-    for row in result.get_table():
+    for row in table_data:
         clean_row = []
         for cell in row:
             if cell is None:
@@ -519,3 +498,13 @@ def _export_png(result, table_data, bg_color, start_cell, num_rows, num_cols):
     response = HttpResponse(buf.read(), content_type='image/png')
     response['Content-Disposition'] = 'attachment; filename="%s.png"' % base_name
     return response
+
+@login_required
+def profile_view(request):
+    # Tạm thời để trống như yêu cầu
+    return render(request, 'profile.html')
+
+@login_required
+def settings_view(request):
+    # Trả về trang settings, dữ liệu user đã có sẵn trong request.user
+    return render(request, 'settings.html')

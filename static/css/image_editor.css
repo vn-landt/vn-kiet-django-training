@@ -1,0 +1,182 @@
+/* Giao diện chính của Modal */
+.ice-modal {
+    display: none; /* Sửa từ block thành none */
+    position: fixed;
+    z-index: 9999;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0,0,0,0.8);
+    /* Để căn giữa modal khi hiện lên */
+    align-items: center;
+    justify-content: center;
+}
+
+.ice-modal-content {
+    background-color: #fff;
+    margin: 2% auto;
+    padding: 0; /* Bỏ padding ở đây để các phần con tự kiểm soát */
+    width: 90%;
+    max-width: 900px;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.ice-modal-header, .ice-modal-body, .ice-modal-footer {
+    padding: 15px 25px;
+}
+
+@keyframes slideUp {
+    from { transform: translateY(20px); opacity: 0; }
+    to { transform: translateY(0); opacity: 1; }
+}
+
+/* Header */
+.ice-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 24px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.ice-title {
+    margin: 0;
+    font-size: 1.25rem;
+    color: #1a1a1a;
+    font-weight: 700;
+}
+
+.ice-close {
+    font-size: 24px;
+    color: #999;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+.ice-close:hover { color: #ff4d4f; }
+
+/* Image Container */
+.ice-modal-body {
+    padding: 24px;
+}
+
+.ice-img-container {
+    max-height: 55vh;
+    width: 100%;
+    overflow: auto;
+    background-color: #222;
+    border-radius: 8px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Section Ngôn ngữ - Biến thành Chip Tags */
+.config-section {
+    margin-top: 20px;
+    padding: 15px;
+    background: #f0f7ff; /* Màu nền nhẹ để tách biệt phần cấu hình */
+    border-radius: 10px;
+}
+
+.section-label {
+    display: block;
+    margin-bottom: 10px;
+    font-weight: 600;
+    color: #444;
+    font-size: 14px;
+}
+
+.lang-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+/* Ẩn checkbox mặc định */
+.lang-item input {
+    display: none;
+}
+
+/* Tạo hình dáng Chip */
+.lang-chip {
+    display: inline-block;
+    padding: 6px 16px;
+    background: #fff;
+    border: 1px solid #d9d9d9;
+    border-radius: 20px;
+    font-size: 13px;
+    color: #555;
+    cursor: pointer;
+    transition: all 0.2s;
+    user-select: none;
+}
+
+.lang-item:hover .lang-chip {
+    border-color: #1890ff;
+    color: #1890ff;
+}
+
+/* Khi checkbox được chọn */
+.lang-item input:checked + .lang-chip {
+    background: #1890ff;
+    color: #fff;
+    border-color: #1890ff;
+    box-shadow: 0 2px 6px rgba(24, 144, 255, 0.4);
+}
+
+/* Footer Buttons */
+.ice-modal-footer {
+    padding: 16px 24px;
+    background: #f8f9fa;
+    text-align: right;
+    border-top: 1px solid #eee;
+    display: flex;
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.ice-btn-primary, .ice-btn-secondary {
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    border: none;
+    transition: 0.3s;
+}
+
+.ice-btn-primary {
+    background: #1890ff;
+    color: white;
+}
+
+.ice-btn-primary:hover {
+    background: #40a9ff;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(24, 144, 255, 0.3);
+}
+
+.ice-btn-secondary {
+    background: #fff;
+    color: #666;
+    border: 1px solid #d9d9d9;
+}
+
+.ice-btn-secondary:hover {
+    background: #f5f5f5;
+    color: #333;
+}
+
+#languageSection {
+    background: #f9f9f9;
+    border-top: 1px solid #eee;
+    padding: 15px 25px; /* Đảm bảo padding khớp với header/body */
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}

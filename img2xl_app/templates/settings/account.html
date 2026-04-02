@@ -1,0 +1,40 @@
+<div class="settings-section">
+    <h5 class="mb-4">Account settings</h5>
+    <form>
+        <div class="form-group">
+            <label>Username</label>
+            <input type="text" class="form-control" value="kiet-tran-anh" readonly>
+            <small class="text-muted">https://kiet-tran-anh.imgbb.com/</small>
+        </div>
+        <div class="form-group">
+            <label>Email address</label>
+            <input type="email" class="form-control" value="{{ user.email }}">
+        </div>
+        <div class="form-group">
+            <label>Automatically delete uploads</label>
+            <select class="form-control custom-select">
+                <option>Don't autodelete</option>
+                <option>After 5 minutes</option>
+                <option>After 15 minutes</option>
+                <option>After 1 hour</option>
+                <option>After 1 day</option>
+                <option>After 1 week</option>
+            </select>
+            <small class="form-text text-muted">This setting will apply to all your image uploads by default.</small>
+        </div>
+        <hr>
+        <div class="custom-control custom-checkbox mb-2">
+            <input type="checkbox" class="custom-control-input" id="exifData">
+            <label class="custom-control-label" for="exifData">Keep image EXIF data on upload</label>
+        </div>
+        <div class="custom-control custom-checkbox mb-2">
+            <input type="checkbox" class="custom-control-input" id="newsletter">
+            <label class="custom-control-label" for="newsletter">Send me emails with news about Extractor AI</label>
+        </div>
+        <div class="custom-control custom-checkbox mb-4">
+            <input type="checkbox" class="custom-control-input" id="unsafeContent">
+            <label class="custom-control-label" for="unsafeContent">Show unsafe content in listings (from others)</label>
+        </div>
+        <button type="submit" class="btn btn-primary px-4">Save changes</button>
+    </form>
+</div>

@@ -1,94 +1,101 @@
 {% load static %}
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Table Extractor</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Table Extractor AI</title>
+
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+
+    <link rel="stylesheet" href="{% static 'css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    <link rel="stylesheet" href="{% static 'css/image_editor.css' %}">
+
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
-    <div class="nav-bar">
-        <div class="logo">
-            <strong>Table Extractor AI</strong>
-        </div>
-        <div class="nav-links">
-            {% if user.is_authenticated %}
-                <span class="auth-status">Xin chào, <strong>{{ user.username }}</strong>!</span>
-                <a href="{% url 'logout' %}">Đăng xuất</a>
-            {% else %}
-                <a href="{% url 'login' %}">Đăng nhập</a>
-                <a href="{% url 'register' %}">Đăng ký</a>
-            {% endif %}
+
+    {% include "includes/header.html" %}
+
+    <div class="main-container container-fluid">
+        <div class="workspace">
+            <div class="control-panel">
+                <section class="card shadow-sm border-0">
+                    <h2 class="section-title"><i class="fas fa-cog mr-2"></i>Cấu hình trích xuất</h2>
+                    <form id="uploadForm">
+                        {% csrf_token %}
+                        <div style="display: none;">{{ form.file }}</div>
+                        <div class="button-group mt-3">
+                            <button type="button" id="selectBtn" class="btn-select w-100">
+                                <i class="fas fa-camera mr-2"></i> Chọn ảnh để bắt đầu
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="card history-section shadow-sm border-0">
+                    <h2 class="section-title"><i class="fas fa-history mr-2"></i>Lịch sử gần đây</h2>
+                    <div class="history-list">
+                        {% if user.is_authenticated %}
+                            {% if recent_results %}
+                                <ul class="list-unstyled">
+                                {% for res in recent_results %}
+                                    <li class="history-item">
+                                        <a href="{% url 'result_detail' res.id %}" class="text-truncate">
+                                            <i class="far fa-file-image mr-2"></i>{{ res.uploaded_file.filename|truncatechars:15 }}
+                                        </a>
+                                        <span class="status-tag {{ res.status }}">{{ res.status }}</span>
+                                    </li>
+                                {% endfor %}
+                                </ul>
+                            {% else %}
+                                <p class="text-muted text-center py-3">Chưa có dữ liệu.</p>
+                            {% endif %}
+                        {% else %}
+                            <div class="text-center py-2">
+                                <p class="small text-muted">Vui lòng đăng nhập để xem lịch sử.</p>
+                                <a href="{% url 'login' %}" class="btn btn-outline-primary btn-sm">Đăng nhập</a>
+                            </div>
+                        {% endif %}
+                    </div>
+                </section>
+            </div>
+
+            <div class="preview-panel shadow-sm">
+                <div id="previewPlaceholder" class="placeholder">
+                    <i class="fas fa-images fa-4x mb-3 opacity-25"></i>
+                    <p>Chưa có ảnh nào được chọn</p>
+                </div>
+
+                <div id="previewContainer" style="display: none; width: 100%;">
+                    <div class="file-info mb-3">
+                        <span id="fileNameDisplay"><i class="fas fa-paperclip mr-2"></i>filename.jpg</span>
+                    </div>
+                    <div class="image-wrapper shadow-sm">
+                        <img id="imagePreview" src="#" alt="Preview">
+                    </div>
+                    <div class="action-footer mt-4">
+                        <button type="button" id="extractBtn" class="btn-extract">
+                            <i class="fas fa-rocket mr-2"></i> Bắt đầu trích xuất ngay
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
-    {% if not user.is_authenticated %}
-        <div style="background: #fff3cd; padding: 10px; border: 1px solid #ffeeba; margin-bottom: 20px;">
-            <strong>Lưu ý:</strong> Bạn đang sử dụng với quyền Khách.
-            Dữ liệu sẽ <strong>không được lưu trữ</strong> sau khi bạn thoát trang.
-            Hãy đảm bảo tải kết quả về máy ngay.
-        </div>
-    {% endif %}
+    {% include "includes/footer.html" %}
 
+    {% include "includes/image_editor.html" with api_url="/extract-only-api/" %}
 
-
-    <h1>Upload Image or PDF</h1>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        {% if messages %}
-            {% for message in messages %}
-                <p style="color: red;">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-        <button type="submit" onclick="handleGenerate()">Upload and Extract</button>
-    </form>
-
-    <h2>Lịch sử gần đây (Tối đa 10)</h2>
-    {% if user.is_authenticated %}
-        {% if recent_results %}
-            <ul>
-            {% for res in recent_results %}
-                <li>
-                    <a href="{% url 'result_detail' res.id %}">
-                        {{ res.uploaded_file.filename }}
-                    </a>
-                    - <span class="status-{{ res.status }}"><strong>{{ res.status }}</strong></span>
-                    - <small>{{ res.created_at|date:"d/m/Y H:i" }}</small>
-                </li>
-            {% endfor %}
-            </ul>
-        {% else %}
-            <p>Bạn chưa có bản trích xuất nào. Hãy thử upload ngay!</p>
-        {% endif %}
-    {% else %}
-        <p>
-            <a href="{% url 'login' %}"><strong>Đăng nhập</strong></a>
-            để lưu trữ và xem lại lịch sử trích xuất của bạn.
-        </p>
-    {% endif %}
-
-    <script>
-        {% if not user.is_authenticated %}
-        // Cảnh báo khi khách thoát trang
-        window.addEventListener('beforeunload', function (e) {
-            var confirmationMessage = 'Dữ liệu của bạn sẽ bị mất nếu chưa tải về. Bạn có chắc muốn thoát?';
-            (e || window.event).returnValue = confirmationMessage;
-            return confirmationMessage;
-        });
-        {% endif %}
-        {% if messages %}
-            {% for message in messages %}
-                Swal.fire({
-                    icon: "{% if message.tags == 'error' %}error{% else %}success{% endif %}",
-                    title: "Thông báo",
-                    text: "{{ message }}",
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'Đóng'
-                });
-            {% endfor %}
-        {% endif %}
-    </script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    <script src="{% static 'js/image_handler.js' %}"></script>
     <script src="{% static 'js/home.js' %}"></script>
 </body>
 </html>

@@ -1,0 +1,33 @@
+/* Cấu trúc Header cố định ở trên cùng */
+.main-header {
+    height: 60px;
+    z-index: 1050;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.footer-brand {
+    font-size: 1.3rem;
+    letter-spacing: -0.5px;
+}
+
+/* Tinh chỉnh Dropdown cho hiện đại */
+.main-header .dropdown-menu {
+    margin-top: 10px;
+    border-radius: 8px;
+    min-width: 200px;
+}
+
+/* Quan trọng: Đẩy nội dung trang xuống để không bị Header che mất */
+body {
+    padding-top: 75px; /* Cao hơn chiều cao header một chút */
+    margin-bottom: 0; /* Bỏ margin bottom của footer cũ nếu có */
+}
+
+/* Hiệu ứng hover cho link trong dropdown */
+.dropdown-item {
+    transition: all 0.2s;
+}
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    padding-left: 1.5rem;
+}

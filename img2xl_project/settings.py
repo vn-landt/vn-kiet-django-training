@@ -68,3 +68,6 @@ STATICFILES_DIRS = [
 
 LOGIN_REDIRECT_URL = 'home'
 LOGOUT_REDIRECT_URL = 'login'
+
+TIME_ZONE = 'Asia/Ho_Chi_Minh'
+USE_TZ = True  #
