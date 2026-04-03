@@ -1,0 +1,174 @@
+body {
+    padding-top: 80px;
+    background-color: #f4f7f6;
+}
+
+/* Container chính */
+.pad-content-listing {
+    width: 100%;
+    min-height: 1400px;
+}
+
+/* Wrapper cho ảnh để quản lý overlay */
+.image-wrapper {
+    position: relative;
+    background: #eee;
+    border-radius: 4px;
+    overflow: hidden;
+    aspect-ratio: 1 / 1; /* Giữ ảnh vuông hoặc tỉ lệ nhất định */
+}
+
+.img-main {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
+
+/* Tools chung */
+.list-item-image-tools {
+    position: absolute;
+    top: 0;
+    right: 0;
+    display: flex;
+    background: rgba(0, 0, 0, 0.5);
+    padding: 5px;
+    opacity: 0;
+    transition: opacity 0.2s ease-in-out;
+}
+
+/* Hiện tools khi hover */
+.list-item:hover .list-item-image-tools {
+    opacity: 1;
+}
+
+/* Tool ở dưới */
+.list-item-image-tools.--bottom {
+    top: auto;
+    bottom: 0;
+}
+
+.btn-icon {
+    color: white;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.btn-icon:hover {
+    color: #3498db;
+}
+
+/* Mô tả dưới ảnh */
+.list-item-desc {
+    padding: 8px 2px;
+}
+
+.list-item-desc-title-link {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+    text-decoration: none;
+}
+
+.font-size-small {
+    font-size: 11px;
+    color: #777;
+}
+
+/* Responsive Grid 6 cột */
+@media (min-width: 1200px) {
+    .col-xl-2 {
+        flex: 0 0 16.666667%;
+        max-width: 16.666667%;
+    }
+}
+
+/* Custom cho nút Like đã nhấn */
+.btn-liked {
+    color: #e74c3c;
+}
+
+/* Style cho cụm thông tin ngày tháng */
+.info-date-group {
+    margin-top: 4px;
+    line-height: 1.4;
+    border-top: 1px solid #eee;
+    padding-top: 4px;
+}
+
+.info-date-group .font-size-small {
+    font-size: 10px; /* Nhỏ hơn một chút để không chiếm diện tích */
+    display: flex;
+    align-items: center;
+}
+
+.info-date-group .font-size-small i {
+    margin-right: 4px;
+    width: 12px;
+}
+
+/* Giữ chiều cao thẻ ảnh đồng nhất */
+.list-item-desc {
+    padding: 10px 5px;
+    background: #fff;
+    min-height: 90px; /* Đảm bảo các thẻ đều nhau khi có thêm dòng ngày tháng */
+}
+
+/* Hiệu ứng hover cho thẻ ảnh */
+.list-item {
+    transition: transform 0.2s;
+    border: 1px solid transparent;
+}
+
+.list-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+}
+
+/* Trạng thái được chọn */
+.list-item.is-selected {
+    border: 2px solid #007bff;
+    background: #e7f1ff;
+}
+
+.list-item.is-selected .icon-check {
+    color: #007bff;
+    font-weight: 900; /* fas fa-check-square */
+}
+
+/* Overlay Tools cải tiến */
+.list-item-image-tools {
+    position: absolute;
+    display: flex;
+    gap: 8px;
+    padding: 6px;
+    background: rgba(0,0,0,0.4);
+    opacity: 0;
+    transition: opacity 0.2s;
+    z-index: 5;
+}
+
+.top-right { top: 0; right: 0; border-bottom-left-radius: 10px; }
+.--bottom.--right { bottom: 0; right: 0; border-top-left-radius: 10px; }
+
+/* Đảm bảo bar chọn hàng loạt luôn nổi */
+#bulk-actions-bar {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+}
+
+.list-item-spreadsheet {
+    border-top: 1px dashed #ddd;
+    margin-top: 8px !important;
+    padding-top: 5px;
+    transition: all 0.2s;
+}
+
+.list-item-spreadsheet a {
+    text-decoration: none;
+    color: #555;
+}
+
+.list-item-spreadsheet:hover a {
+    color: #28a745; /* Đổi sang màu xanh lá khi hover */
+}

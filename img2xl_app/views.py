@@ -500,11 +500,85 @@ def _export_png(result, table_data, bg_color, start_cell, num_rows, num_cols):
     return response
 
 @login_required
-def profile_view(request):
+def documents_view(request):
     # Tạm thời để trống như yêu cầu
-    return render(request, 'profile.html')
+    return render(request, 'documents.html')
 
 @login_required
 def settings_view(request):
     # Trả về trang settings, dữ liệu user đã có sẵn trong request.user
     return render(request, 'settings.html')
+
+#documents.html
+@login_required
+def documents_view(request):
+    sort = request.GET.get('sort', 'recent')
+    user = request.user
+
+    # Lấy danh sách kết quả của user
+    results_query = ExtractedResult.objects.filter(user=user)
+
+    # Đếm tổng số documents
+    extracted_count = results_query.count()
+
+    # Logic sắp xếp
+    if sort == 'oldest':
+        results = results_query.order_by('processed_at')
+    else:
+        results = results_query.order_by('-updated_at')
+
+    return render(request, 'documents.html', {
+        'results': results,
+        'extractedResult': extracted_count,
+        'current_sort': sort
+    })
+
+@login_required
+@require_POST
+def create_blank_document(request):
+    """Tạo một ExtractedResult với dữ liệu trống"""
+    name = request.POST.get('name', 'Untitled Spreadsheet')
+    user = request.user
+
+    # 1. Tạo UploadedFile giả lập
+    uf = UploadedFile.objects.create(
+        user=user,
+        filename=name + ".xlsx",
+        image_url="https://via.placeholder.com/800x600.png?text=Blank+Document",  # Ảnh tạm
+        file_size=0
+    )
+
+    # 2. Tạo ExtractedResult
+    res_obj = ExtractedResult.objects.create(
+        user=user,
+        uploaded_file=uf,
+        status='success',
+        is_draft=True
+    )
+
+    # 3. Khởi tạo bảng trống (VD: 5 hàng x 5 cột)
+    empty_data = [["" for _ in range(5)] for _ in range(5)]
+    handler = TableFileHandler(res_obj)
+    handler.save_data(empty_data)
+
+    return JsonResponse({'status': 'success', 'redirect_url': reverse('result_detail', args=[res_obj.id])})
+
+
+@login_required
+@require_POST
+def bulk_delete_api(request):
+    """Xóa hàng loạt IDs"""
+    ids = json.loads(request.body).get('ids', [])
+    results = ExtractedResult.objects.filter(id__in=ids, user=request.user)
+
+    count = 0
+    for res in results:
+        # Xóa file vật lý qua handler
+        handler = TableFileHandler(res)
+        handler.delete_file()
+        # Xóa DB
+        res.uploaded_file.delete()
+        res.delete()
+        count += 1
+
+    return JsonResponse({'status': 'success', 'deleted_count': count})
