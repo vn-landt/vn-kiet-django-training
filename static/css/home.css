@@ -79,11 +79,15 @@ body {
 
 /* --- History List --- */
 .history-item {
-    display: flex;
-    justify-content: space-between;
-    padding: 10px 0;
-    border-bottom: 1px solid #f7f7f7;
+    transition: background 0.2s;
+    padding: 8px 10px;
+    border-radius: 6px;
 }
+
+.history-item:hover {
+    background-color: #f8f9fa;
+}
+
 .history-item a { color: #4a5568; text-decoration: none; font-size: 0.9rem; }
 .status-tag {
     font-size: 0.7rem;
@@ -93,6 +97,20 @@ body {
 }
 .status-tag.success { background: #c6f6d5; color: #2f855a; }
 .status-tag.failed { background: #fed7d7; color: #9b2c2c; }
+
+.delete-history-btn {
+    opacity: 0.5;
+    transition: opacity 0.2s, transform 0.2s;
+}
+
+.history-item:hover .delete-history-btn {
+    opacity: 1;
+}
+
+.delete-history-btn:hover {
+    transform: scale(1.2);
+    color: #dc3545 !important;
+}
 
 /* --- Image Preview --- */
 .image-wrapper {

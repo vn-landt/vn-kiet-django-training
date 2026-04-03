@@ -43,14 +43,24 @@
                         {% if user.is_authenticated %}
                             {% if recent_results %}
                                 <ul class="list-unstyled">
-                                {% for res in recent_results %}
-                                    <li class="history-item">
-                                        <a href="{% url 'result_detail' res.id %}" class="text-truncate">
-                                            <i class="far fa-file-image mr-2"></i>{{ res.uploaded_file.filename|truncatechars:15 }}
-                                        </a>
-                                        <span class="status-tag {{ res.status }}">{{ res.status }}</span>
-                                    </li>
-                                {% endfor %}
+                                    {% for res in recent_results %}
+                                        <li class="history-item d-flex justify-content-between align-items-center" id="item-{{ res.id }}">
+                                            <a href="{% url 'result_detail' res.id %}" class="text-truncate flex-grow-1">
+                                                <i class="far fa-file-image mr-2"></i>{{ res.uploaded_file.filename|truncatechars:15 }}
+                                            </a>
+                                            
+                                            <div class="d-flex align-items-center">
+                                                <span class="status-tag {{ res.status }} mr-2">{{ res.status }}</span>
+                                                
+                                                <button type="button" 
+                                                        class="btn btn-link text-danger p-0 delete-history-btn" 
+                                                        data-id="{{ res.id }}" 
+                                                        title="Xóa bản ghi">
+                                                    <i class="fas fa-trash-alt"></i>
+                                                </button>
+                                            </div>
+                                        </li>
+                                    {% endfor %}
                                 </ul>
                             {% else %}
                                 <p class="text-muted text-center py-3">Chưa có dữ liệu.</p>
