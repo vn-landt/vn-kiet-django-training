@@ -29,6 +29,17 @@ indexes:
   - name: created_at
     direction: desc
 
+- kind: img2xl_app_extractedresult
+  properties:
+  - name: user_id
+  - name: processed_at
+
+- kind: img2xl_app_extractedresult
+  properties:
+  - name: user_id
+  - name: updated_at
+    direction: desc
+
 - kind: img2xl_app_uploadedfile
   properties:
   - name: user_id
