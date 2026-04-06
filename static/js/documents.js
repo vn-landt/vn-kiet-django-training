@@ -1,4 +1,4 @@
-// Hàm lấy CSRF Token từ Cookie (Dùng cho Django)
+// Hàm lấy CSRF Token từ Cookie
 function getCookie(name) {
     var cookieValue = null;
     if (document.cookie && document.cookie !== '') {
@@ -15,7 +15,6 @@ function getCookie(name) {
 }
 var csrftoken = getCookie('csrftoken');
 
-// Cấu hình Ajax luôn gửi kèm CSRF Token
 $.ajaxSetup({
     beforeSend: function(xhr, settings) {
         if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
@@ -26,35 +25,106 @@ $.ajaxSetup({
 
 $(document).ready(function() {
 
-    // 2. Xử lý nút Like (Toggle)
-    $('.list-item-like').on('click', function() {
-        var icon = $(this).find('span');
-        if (icon.hasClass('far')) {
-            icon.removeClass('far fa-heart').addClass('fas fa-heart btn-liked');
+    // === LOGIC LỌC HÌNH ẢNH (MỚI) ===
+    $('.spreadsheet-filter-item, .spreadsheet-filter').on('click', function(e) {
+        // Nếu click vào thẻ <a> hoặc nút action thì không kích hoạt lọc ảnh ở đây
+        if ($(e.target).closest('.spreadsheet-title-link, .spreadsheet-actions').length) {
+            return;
+        }
+
+        const id = $(this).data('id');
+        $('.spreadsheet-filter-item, .spreadsheet-filter').removeClass('active');
+        $(this).addClass('active');
+
+        if (id === 'all') {
+            $('#gallery-header').text('Tất cả hình ảnh');
+            $('.gallery-card').fadeIn(200);
         } else {
-            icon.removeClass('fas fa-heart btn-liked').addClass('far fa-heart');
+            const title = $(this).find('.title-text').text();
+            $('#gallery-header').text('Ảnh từ: ' + title);
+            $('.gallery-card').hide();
+            $(`.gallery-card[data-spreadsheet-id="${id}"]`).fadeIn(200);
         }
     });
 
-    // 3. Thanh tìm kiếm nhanh (Client-side)
-    $("#imageSearch").on("keyup", function() {
-        var value = $(this).val().toLowerCase();
-        $(".pad-content-listing .col-xl-2").filter(function() {
-            $(this).toggle($(this).text().toLowerCase().indexOf(value) > -1)
+    // --- 2. SẮP XẾP SIDEBAR (Bảng tính) ---
+    $('.btn-sort-sidebar').on('click', function() {
+        const type = $(this).data('sort'); // 'updated', 'created', hoặc 'old'
+        const $list = $('#sidebar-list');
+        const items = $list.children('.spreadsheet-filter-item').get();
+
+        items.sort(function(a, b) {
+            let valA, valB;
+
+            if (type === 'updated') {
+                // Sắp xếp theo ngày cập nhật (Giảm dần)
+                valA = parseInt($(a).attr('data-updated')) || 0;
+                valB = parseInt($(b).attr('data-updated')) || 0;
+                return valB - valA;
+            } else if (type === 'created') {
+                // Sắp xếp theo ngày tạo (Giảm dần)
+                valA = parseInt($(a).attr('data-created')) || 0;
+                valB = parseInt($(b).attr('data-created')) || 0;
+                return valB - valA;
+            } else {
+                // Cũ nhất: Sắp xếp theo ngày tạo (Tăng dần)
+                valA = parseInt($(a).attr('data-created')) || 0;
+                valB = parseInt($(b).attr('data-created')) || 0;
+                return valA - valB;
+            }
+        });
+
+        // Cập nhật lại giao diện
+        $.each(items, function(i, li) {
+            $list.append(li);
+        });
+
+        // Đổi màu nút trạng thái Active
+        $('.btn-sort-sidebar').removeClass('btn-secondary text-white').addClass('btn-outline-secondary');
+        $(this).removeClass('btn-outline-secondary').addClass('btn-secondary text-white');
+    });
+
+    // --- 3. SẮP XẾP GALLERY (Ảnh 80%) ---
+    $('.btn-sort-gallery').on('click', function() {
+        const type = $(this).data('sort');
+        const $gallery = $('#image-gallery');
+        const items = $gallery.children('.gallery-card').get();
+
+        items.sort(function(a, b) {
+            const tsA = parseInt($(a).data('timestamp'));
+            const tsB = parseInt($(b).data('timestamp'));
+            return type === 'new' ? tsB - tsA : tsA - tsB;
+        });
+
+        $.each(items, function(i, card) { $gallery.append(card); });
+        $('.btn-sort-gallery').removeClass('btn-primary').addClass('btn-outline-primary');
+        $(this).removeClass('btn-outline-primary').addClass('btn-primary');
+    });
+
+    // --- 4. CHỈNH SỬA TIÊU ĐỀ (Edit Title) ---
+    $('.btn-edit-title').on('click', function(e) {
+        e.stopPropagation();
+        const id = $(this).data('id');
+        const oldTitle = $(this).data('title');
+
+        Swal.fire({
+            title: 'Đổi tên bảng tính',
+            input: 'text',
+            inputValue: oldTitle,
+            showCancelButton: true,
+            confirmButtonText: 'Lưu thay đổi',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                // Gọi AJAX cập nhật title ở đây
+                $.post(`/api/update-title/${id}/`, { title: result.value }, function(res) {
+                    location.reload(); // Hoặc cập nhật DOM tại chỗ
+                });
+            }
         });
     });
 
-    // 4. Các nút Edit/Share/Codes (Để trống URL như yêu cầu)
-    $('.tool-edit, .list-item-share, .tool-codes').on('click', function(e) {
-        // e.preventDefault(); // Uncomment nếu không muốn chuyển trang khi URL trống
-        console.log("Action triggered for ID:", $(this).closest('.list-item').data('id'));
-    });
-});
-
-$(document).ready(function() {
-    let selectedIds = [];
-
-    // 1. TRÌNH XEM ẢNH: ZOOM + SCROLL + CLICK OUTSIDE
+    // === TRÌNH XEM ẢNH ZOMM ===
     let scale = 1;
     const overlay = $(`
         <div id="pv-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.9); z-index:9999; cursor:zoom-out; align-items:center; justify-content:center;">
@@ -76,148 +146,210 @@ $(document).ready(function() {
         overlay.css('display', 'flex').hide().fadeIn(200);
     });
 
-    // Đóng khi ấn ra ngoài (vùng overlay)
     overlay.on('click', function(e) {
         if (e.target.id === 'pv-overlay' || e.target.id === 'pv-container') {
             overlay.fadeOut(200);
         }
     });
 
-    // Phóng to/thu nhỏ bằng con lăn chuột
     overlay.on('wheel', function(e) {
         e.preventDefault();
         const delta = e.originalEvent.deltaY;
         if (delta > 0) {
-            if (scale > 0.5) scale -= 0.1; // Thu nhỏ
+            if (scale > 0.5) scale -= 0.1;
         } else {
-            if (scale < 5) scale += 0.1; // Phóng to
+            if (scale < 5) scale += 0.1;
         }
         $('#pv-container').css('transform', `scale(${scale})`);
     });
 
-    // Ngăn chặn sự kiện click vào ảnh gây đóng overlay
-    $('#pv-img').on('click', function(e) {
+    $('#pv-img').on('click', function(e) { e.stopPropagation(); });
+
+
+    // --- 1. XEM CHI TIẾT ẢNH ---
+    $('.tool-img-info').on('click', function(e) {
         e.stopPropagation();
+        const container = $(this).closest('.gallery-card');
+        const d = container.data();
+        // Chuyển đổi size sang KB/MB cho dễ đọc
+        const sizeFormatted = d.size > 1024 * 1024
+            ? (d.size / (1024 * 1024)).toFixed(2) + ' MB'
+            : (d.size / 1024).toFixed(2) + ' KB';
+
+        Swal.fire({
+            title: '<i class="fas fa-image text-primary"></i> Chi tiết hình ảnh',
+            html: `
+                <div class="text-left border-top pt-3" style="font-size: 14px;">
+                    <p class="mb-2"><strong>Tên file:</strong> ${d.filename}</p>
+                    <p class="mb-2"><strong>Định dạng:</strong> ${d.mimeType || 'Không xác định'}</p>
+                    <p class="mb-2"><strong>Dung lượng:</strong> ${sizeFormatted}</p>
+                    <p class="mb-2"><strong>Ngày tải lên:</strong> ${d.uploaded}</p>
+                    <p class="mb-3 text-truncate"><strong>URL:</strong> <a href="${d.url}" target="_blank">${d.url}</a></p>
+                    <div class="text-center">
+                        <img src="${d.url}" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #ddd;">
+                    </div>
+                </div>
+            `,
+            showCancelButton: false,
+            confirmButtonText: 'Đóng',
+            confirmButtonColor: '#6c757d'
+        });
     });
 
-    // 2. Chọn hàng loạt (Toggle Selection)
-    $('.tool-select').on('click', function(e) {
+    let selectedImageIds = new Set();
+
+    // --- 2. CHỌN ẢNH (SINGLE & BULK) ---
+    // --- 2. CHỌN ẢNH (ĐÃ FIX LOGIC) ---
+    $('.tool-img-select').on('click', function(e) {
         e.stopPropagation();
-        const item = $(this).closest('.list-item');
-        const id = item.data('id');
-        const icon = $(this).find('span');
 
-        item.toggleClass('is-selected');
+        // SỬA: Lấy từ gallery-card để có ID chuẩn
+        const card = $(this).closest('.gallery-card');
+        const imgId = card.data('img-id');
+        const icon = $(this).find('.icon-check-img');
 
-        if (item.hasClass('is-selected')) {
-            selectedIds.push(id);
-            icon.removeClass('fa-square').addClass('fa-check-square');
-        } else {
-            selectedIds = selectedIds.filter(i => i !== id);
-            icon.removeClass('fa-check-square').addClass('fa-square');
+        // KIỂM TRA LOGIC: Nếu imgId bị undefined, báo lỗi ngay để debug
+        if (imgId === undefined) {
+            console.error("Lỗi: Không tìm thấy data-img-id trên .gallery-card");
+            return;
         }
-        updateBulkBar();
+
+        if (selectedImageIds.has(imgId)) {
+            selectedImageIds.delete(imgId);
+            card.removeClass('is-selected');
+            icon.removeClass('fa-check-square text-primary').addClass('fa-square');
+        } else {
+            selectedImageIds.add(imgId);
+            card.addClass('is-selected');
+            icon.removeClass('fa-square').addClass('fa-check-square text-primary');
+        }
+
+        updateImageBulkBar();
     });
 
-    function updateBulkBar() {
-        if (selectedIds.length > 0) {
-            $('#bulk-actions-bar').removeClass('d-none');
-            $('#selected-count').text(selectedIds.length);
+    function updateImageBulkBar() {
+        const count = selectedImageIds.size;
+        const $bar = $('#bulk-actions-bar');
+
+        if (count > 0) {
+            $('#selected-count').text(count);
+            $bar.addClass('show'); // Dùng class show thay vì d-none
         } else {
-            $('#bulk-actions-bar').addClass('d-none');
+            $bar.removeClass('show');
         }
     }
 
-    // 3. Xóa đơn lẻ với SweetAlert2
-    $('.tool-delete').on('click', function() {
-        const item = $(this).closest('.list-item');
-        const id = item.data('id');
+    // Hủy chọn
+    $('#btn-cancel-select').on('click', function() {
+        selectedImageIds.clear();
+        $('.gallery-card').removeClass('is-selected');
+        $('.icon-check-img').removeClass('fa-check-square text-primary').addClass('fa-square');
+        updateImageBulkBar();
+    });
+
+    // --- 3. XÓA ẢNH (ĐƠN LẺ) ---
+    $('.tool-img-delete').on('click', function(e) {
+        e.stopPropagation();
+        const card = $(this).closest('.gallery-card');
+        const imgId = card.data('img-id');
 
         Swal.fire({
-            title: 'Bạn có chắc chắn?',
-            text: "Dữ liệu này sẽ không thể khôi phục!",
+            title: 'Xóa ảnh này?',
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#d33',
-            cancelButtonColor: '#3085d6',
-            confirmButtonText: 'Vâng, xóa nó!'
+            confirmButtonText: 'Xóa'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Giả lập gọi API xóa (Bạn thay bằng AJAX tới view bulk_delete_api)
-                $.post('/api/bulk-delete/', JSON.stringify({ids: [id]}), function() {
-                    item.fadeOut();
-                    Swal.fire('Đã xóa!', 'Tài liệu đã được gỡ bỏ.', 'success');
+                $.post(`/api/delete-image/${imgId}/`, function() {
+                    card.fadeOut(300, function() { $(this).remove(); });
+                    selectedImageIds.delete(imgId);
+                    updateImageBulkBar();
                 });
             }
         });
     });
 
-    // Xóa hàng loạt
+    // --- 4. XÓA ẢNH HÀNG LOẠT ---
     $('#btn-bulk-delete').on('click', function() {
+        const idsArray = Array.from(selectedImageIds);
+
         Swal.fire({
-            title: `Xóa ${selectedIds.length} mục?`,
+            title: `Xóa ${idsArray.length} ảnh đã chọn?`,
+            text: "Hành động này không thể hoàn tác!",
             icon: 'danger',
             showCancelButton: true,
+            confirmButtonColor: '#d33',
             confirmButtonText: 'Xóa tất cả'
         }).then((result) => {
             if (result.isConfirmed) {
-                // Ajax call tới view bulk_delete_api
-                console.log("Xóa list:", selectedIds);
-                location.reload(); // Reload để cập nhật UI
+                $.ajax({
+                    url: '/api/bulk-delete-images/', // Cập nhật URL API của bạn
+                    type: 'POST',
+                    data: JSON.stringify({ ids: idsArray }),
+                    contentType: 'application/json',
+                    success: function() {
+                        location.reload();
+                    },
+                    error: function() {
+                        Swal.fire('Lỗi!', 'Có lỗi xảy ra khi xóa hàng loạt.', 'error');
+                    }
+                });
             }
         });
     });
 
-    // 4. Copy Link (Share)
-    $('.list-item-share').on('click', function() {
-        const url = $(this).closest('.list-item').data('url');
-        navigator.clipboard.writeText(url).then(() => {
-            Swal.fire({
-                toast: true,
-                position: 'top-end',
-                icon: 'success',
-                title: 'Đã copy link ảnh!',
-                showConfirmButton: false,
-                timer: 1500
-            });
+    // --- 5. XÓA BẢNG TÍNH ---
+    $('.btn-delete-res').on('click', function(e) {
+        e.stopPropagation();
+        const id = $(this).data('id');
+
+        Swal.fire({
+            title: 'Xóa bảng tính này?',
+            text: "Dữ liệu bảng và liên kết ảnh sẽ mất, nhưng ảnh gốc vẫn còn trong kho.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Xóa ngay'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Gọi AJAX xóa
+                $.post(`/api/delete-result/${id}/`, function() {
+                    $(`.spreadsheet-filter-item[data-id="${id}"]`).remove();
+                    $(`.gallery-card[data-spreadsheet-id="${id}"]`).remove();
+                    Swal.fire('Đã xóa!', '', 'success');
+                });
+            }
         });
     });
 
-    // 5. Tool Edit (Hiển thị Form nhỏ)
+    // === XEM THÔNG TIN LẺ ===
     $('.tool-edit').on('click', function(e) {
         e.stopPropagation();
-        const item = $(this).closest('.list-item');
-        const d = item.data(); // Lấy toàn bộ data attributes
+        const d = $(this).closest('.list-item').data();
 
         Swal.fire({
             title: '<i class="fas fa-file-alt"></i> Chi tiết tài liệu',
             html: `
                 <div class="text-left border-top pt-3">
-                    <p class="mb-2"><strong><i class="fas fa-tag"></i> Tên:</strong> ${d.filename}</p>
-                    <p class="mb-2"><strong><i class="fas fa-fingerprint"></i> ID:</strong> #${d.id}</p>
+                    <p class="mb-2"><strong><i class="fas fa-tag"></i> Tên ảnh/Bảng:</strong> ${d.filename}</p>
+                    <p class="mb-2"><strong><i class="fas fa-fingerprint"></i> ID Bảng:</strong> #${d.id}</p>
                     <p class="mb-2"><strong><i class="far fa-calendar-plus"></i> Ngày tạo:</strong> ${d.created}</p>
                     <p class="mb-3"><strong><i class="fas fa-history"></i> Cập nhật:</strong> ${d.updated}</p>
                     
                     <div class="d-flex flex-column gap-2 mt-3">
-                        <a href="${d.url}" target="_blank" class="btn btn-outline-info btn-block mb-2">
-                            <i class="fas fa-external-link-alt"></i> Go to image online
-                        </a>
                         <a href="${d.spreadsheetUrl}" class="btn btn-outline-success btn-block mb-2">
-                            <i class="fas fa-table"></i> Go to spreadsheet
+                            <i class="fas fa-table"></i> Đi tới trang bảng tính
                         </a>
                     </div>
                 </div>
             `,
             showCancelButton: true,
             cancelButtonText: 'Đóng',
-            confirmButtonColor: '#007bff',
-            focusConfirm: false
-        }).then((result) => {
-
+            showConfirmButton: false
         });
     });
 
-    // 6. Tạo bảng tính trống (Bản hoàn chỉnh)
+    // === TẠO BẢNG TRỐNG ===
     $('#btn-create-blank').on('click', function() {
         Swal.fire({
             title: 'Đặt tên bảng tính',
@@ -227,58 +359,33 @@ $(document).ready(function() {
             confirmButtonText: 'Tạo ngay',
             cancelButtonText: 'Hủy',
             inputValidator: (value) => {
-                if (!value) {
-                    return 'Bạn cần nhập tên bảng tính!';
-                }
+                if (!value) return 'Bạn cần nhập tên bảng tính!';
             }
         }).then((result) => {
             if (result.isConfirmed && result.value) {
-                const fileName = result.value;
-
-                // Hiển thị loading trong khi chờ Server xử lý
                 Swal.fire({
                     title: 'Đang khởi tạo...',
                     allowOutsideClick: false,
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
+                    didOpen: () => { Swal.showLoading(); }
                 });
 
-                // Gửi AJAX tới Django
                 $.ajax({
-                    url: '/documents/create-blank/', // Đảm bảo URL này khớp với urls.py
+                    url: '/documents/create-blank/',
                     type: 'POST',
-                    data: {
-                        'name': fileName,
-                        'csrfmiddlewaretoken': '{{ csrf_token }}' // Lưu ý xem phần ghi chú bên dưới
-                    },
+                    data: { 'name': result.value },
                     success: function(response) {
                         if (response.status === 'success') {
-                            Swal.fire({
-                                icon: 'success',
-                                title: 'Thành công!',
-                                text: 'Đang chuyển hướng tới bảng tính...',
-                                timer: 1500,
-                                showConfirmButton: false
-                            }).then(() => {
-                                // Chuyển hướng tới trang detail của bản ghi vừa tạo
-                                window.location.href = response.redirect_url;
-                            });
+                            window.location.href = response.redirect_url;
                         } else {
                             Swal.fire('Lỗi!', response.message || 'Không thể tạo bảng tính.', 'error');
                         }
                     },
-                    error: function() {
-                        Swal.fire('Lỗi kết nối!', 'Vui lòng kiểm tra lại đường truyền.', 'error');
+                    error: function(xhr) {
+                        Swal.fire('Lỗi kết nối!', 'Vui lòng kiểm tra lại.', 'error');
                     }
                 });
             }
         });
     });
 
-    $('#btn-cancel-select').on('click', function() {
-        $('.list-item').removeClass('is-selected');
-        selectedIds = [];
-        updateBulkBar();
-    });
 });

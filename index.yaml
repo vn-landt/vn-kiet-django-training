@@ -42,6 +42,13 @@ indexes:
 
 - kind: img2xl_app_uploadedfile
   properties:
+  - name: is_deleted
+  - name: user_id
+  - name: uploaded_at
+    direction: desc
+
+- kind: img2xl_app_uploadedfile
+  properties:
   - name: user_id
   - name: uploaded_at
     direction: desc

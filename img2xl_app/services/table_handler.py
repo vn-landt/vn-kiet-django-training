@@ -12,6 +12,19 @@ class TableFileHandler(object):
     def __init__(self, result_instance):
         self.result = result_instance
 
+    def get_source_urls(self):
+        """Lấy danh sách URL của các ảnh liên quan để hiển thị trên UI"""
+        from ..models import UploadedFile
+        if not self.result.source_file_ids:
+            return []
+
+        # Lấy các file chưa bị xóa
+        files = UploadedFile.objects.filter(
+            id__in=self.result.source_file_ids,
+            is_deleted=False
+        )
+        return [f.image_url for f in files]
+
     def save_data(self, table_data, is_final=False):
         """
         is_final = False: Lưu vào bản Nháp (Auto-save)

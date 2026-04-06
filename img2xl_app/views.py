@@ -178,18 +178,39 @@ def export_to_sheets(request, result_id):
 
 def delete_result(request, result_id):
     if request.method == 'POST':
-        result = get_object_or_404(ExtractedResult, id=result_id)
+        # Thêm filter user=request.user để đảm bảo tính bảo mật
+        result = get_object_or_404(ExtractedResult, id=result_id, user=request.user)
 
-        # Khởi tạo Handler và dọn dẹp file vật lý trước
-        handler = TableFileHandler(result.id)
-        handler.delete_file()
+        # 1. Khởi tạo Handler để dọn dẹp file vật lý (file .xlsx hoặc .csv lưu trên storage)
+        # Theo models.py của bạn, TableFileHandler nhận vào nguyên object 'result'
+        try:
+            handler = TableFileHandler(result)
+            handler.delete_file()
+        except Exception as e:
+            # Nếu không tìm thấy file vật lý để xóa thì vẫn tiếp tục xóa DB
+            pass
 
-        # Sau đó mới xóa Database
-        result.uploaded_file.delete()
+        # 2. XÓA DÒNG NÀY: result.uploaded_file.delete()
+        # Vì ExtractedResult không còn thuộc tính uploaded_file nữa.
+
+        # 3. Xóa bản ghi bảng tính trong Database
+        # Các ảnh liên quan (UploadedFile) sẽ KHÔNG bị ảnh hưởng vì chúng là các record độc lập
         result.delete()
 
     return redirect('home')
 
+
+def is_storage_full(user):
+    """
+    Hàm helper kiểm tra xem user đã đạt giới hạn 50 ảnh chưa.
+    Trả về True nếu đã đầy, False nếu còn chỗ.
+    """
+    if not user.is_authenticated():
+        return False  # Hoặc xử lý riêng cho khách (Guest)
+
+    # Đếm số file đang hoạt động (chưa bị xóa) của user
+    current_count = UploadedFile.objects.filter(user=user, is_deleted=False).count()
+    return current_count >= 50
 
 @require_POST
 def update_table_data(request, result_id):
@@ -258,64 +279,90 @@ def ai_generate_view(request):
 
     return JsonResponse({'status': 'error', 'message': 'Invalid Method'})
 
+
+# views.py
+
 @require_POST
 def extract_only_api(request):
     user = request.user
-    if 'file' not in request.FILES:
-        return JsonResponse({'status': 'error', 'message': u'Chưa chọn file.'})
+    if not user.is_authenticated():
+        return JsonResponse({'status': 'error', 'message': u'Vui lòng đăng nhập.'}, status=401)
 
-    # Đọc tham số 'save_db' từ FormData (mặc định là false)
-    # Vì FormData gửi lên là string nên ta so sánh với 'true'
-    should_save = request.POST.get('save_db') == 'true'
+    # 1. KIỂM TRA HẠN MỨC 50 ẢNH (Luôn kiểm tra vì bước nào cũng lưu vết ảnh)
+    if is_storage_full(user):
+        return JsonResponse({
+            'status': 'limit_exceeded',
+            'message': u'Kho lưu trữ ảnh đã đầy (50/50). Hãy xóa bớt ảnh cũ.',
+            'redirect_url': reverse('documents_view')
+        }, status=403)
 
-    # Đọc tham số 'languages' từ FormData (nếu không có thì mặc định là 'all')
+    # 2. ĐỌC THAM SỐ TỪ FRONTEND
+    # save_db=true: Tạo bảng mới (Home) | save_db=false: Cập nhật bảng hiện tại (Detail)
+    is_create_new = request.POST.get('save_db') == 'true'
+    current_result_id = request.POST.get('result_id')  # ID bảng đang mở (nếu có)
     languages = request.POST.get('languages', 'all')
+    mime_type = request.POST.get('mime_type', 'image/jpeg')
 
-    # 1. Logic trích xuất AI dùng chung
+    if 'file' not in request.FILES:
+        return JsonResponse({'status': 'error', 'message': u'Chưa có file.'})
+
     uploaded_file = request.FILES['file']
 
-    table_data, image_url, error = _perform_extraction_logic(uploaded_file, languages)
+    imgname = request.POST.get('original_filename', uploaded_file.name)
 
+    # 3. THỰC HIỆN OCR
+    table_data, image_url, error = _perform_extraction_logic(uploaded_file, languages)
     if error:
         return JsonResponse({'status': 'error', 'message': error})
 
-    # 2. CHỈ LƯU NẾU CÓ YÊU CẦU (Dành cho trang Home)
-    if should_save:
-        now_str = timezone.now().strftime('%Y%m%d_%H%M%S')
-        uf = UploadedFile.objects.create(
-            user=user if user.is_authenticated() else None,
-            filename="IMG_%s.jpg" % now_str,
-            mime_type='image/jpeg',
-            image_url=image_url,
-            file_size=uploaded_file.size
-        )
+    # 4. LUÔN LƯU VẾT ẢNH (UPLOADEDFILE) - Bất kể tạo mới hay cập nhật
+    uf = UploadedFile.objects.create(
+        user=user,
+        filename=imgname,
+        mime_type=mime_type,
+        image_url=image_url,
+        file_size=uploaded_file.size
+    )
 
+    # Cập nhật UsageLog
+    usage, _ = UsageLog.objects.get_or_create(user=user, usage_date=timezone.now().date())
+    usage.upload_count += 1
+    usage.save()
+
+    # 5. XỬ LÝ EXTRACTEDRESULT (BẢNG DỮ LIỆU)
+    res_obj = None
+
+    if is_create_new:
+        # FLOW 1: TỪ TRANG CHỦ -> TẠO BẢNG MỚI
         res_obj = ExtractedResult.objects.create(
-            user=user if user.is_authenticated() else None,
-            uploaded_file=uf,
+            user=user,
+            title=u"Bảng tạo từ " + uf.filename,
+            source_file_ids=[uf.id],
             status='success',
-            processed_at=timezone.now()
+            processed_at=timezone.now()  # Đánh dấu đã có bản Final đầu tiên
         )
-
+        # Lưu vào cả Draft và Final
         handler = TableFileHandler(res_obj)
-        handler.save_data(table_data)
+        handler.save_data(table_data, is_final=True)
 
-        if user.is_authenticated():
-            usage, _ = UsageLog.objects.get_or_create(user=user, usage_date=timezone.now().date())
-            usage.upload_count += 1
-            usage.save()
+    elif current_result_id:
+        # FLOW 2: TRONG BẢNG CHI TIẾT -> CHỈ CẬP NHẬT DRAFT
+        res_obj = get_object_or_404(ExtractedResult, id=current_result_id, user=user)
 
-        return JsonResponse({
-            'status': 'success',
-            'result_id': res_obj.id, # Trả về ID để chuyển trang
-            'table': table_data
-        })
+        # Thêm ID ảnh mới vào danh sách lưu vết của bảng
+        if uf.id not in res_obj.source_file_ids:
+            res_obj.source_file_ids.append(uf.id)
+            res_obj.save()
 
-    # 3. NẾU KHÔNG LƯU (Dành cho trang Detail)
-    # Chỉ trả về dữ liệu bảng thô
+        # CHỈ cập nhật bản Nháp (Draft), không đè lên bản Chính (Final)
+        # Người dùng có thể xóa data này đi, nhưng ID ảnh trong source_file_ids vẫn còn
+        handler = TableFileHandler(res_obj)
+        handler.save_data(table_data, is_final=False)
+
     return JsonResponse({
         'status': 'success',
-        'table': table_data
+        'result_id': res_obj.id if res_obj else None,
+        'table': table_data  # Trả về để JS hiển thị lên bảng
     })
 
 def register(request):
@@ -500,11 +547,6 @@ def _export_png(result, table_data, bg_color, start_cell, num_rows, num_cols):
     return response
 
 @login_required
-def documents_view(request):
-    # Tạm thời để trống như yêu cầu
-    return render(request, 'documents.html')
-
-@login_required
 def settings_view(request):
     # Trả về trang settings, dữ liệu user đã có sẵn trong request.user
     return render(request, 'settings.html')
@@ -515,48 +557,44 @@ def documents_view(request):
     sort = request.GET.get('sort', 'recent')
     user = request.user
 
-    # Lấy danh sách kết quả của user
+    # 1. Lấy danh sách bảng tính (dùng cho Sidebar 20%)
     results_query = ExtractedResult.objects.filter(user=user)
 
-    # Đếm tổng số documents
-    extracted_count = results_query.count()
+    # 2. Lấy TOÀN BỘ ảnh của user (dùng cho Gallery 80%)
+    # Điều này đảm bảo ảnh vẫn hiện dù bảng tính bị xóa
+    all_images_query = UploadedFile.objects.filter(user=user, is_deleted=False)
 
-    # Logic sắp xếp
+    # Logic sắp xếp cho bảng tính
     if sort == 'oldest':
-        results = results_query.order_by('processed_at')
+        results = results_query.order_by('created_at')
+        all_images = all_images_query.order_by('uploaded_at')
     else:
         results = results_query.order_by('-updated_at')
+        all_images = all_images_query.order_by('-uploaded_at')
 
     return render(request, 'documents.html', {
-        'results': results,
-        'extractedResult': extracted_count,
+        'results': results,  # Dùng cho sidebar
+        'all_images': all_images,  # Dùng cho gallery ảnh
+        'extractedResult': all_images.count(),  # Đếm ảnh thay vì đếm bảng
         'current_sort': sort
     })
 
 @login_required
 @require_POST
 def create_blank_document(request):
-    """Tạo một ExtractedResult với dữ liệu trống"""
+    """Tạo bảng trống - KHÔNG cần tạo UploadedFile giả nữa"""
     name = request.POST.get('name', 'Untitled Spreadsheet')
     user = request.user
 
-    # 1. Tạo UploadedFile giả lập
-    uf = UploadedFile.objects.create(
-        user=user,
-        filename=name + ".xlsx",
-        image_url="https://via.placeholder.com/800x600.png?text=Blank+Document",  # Ảnh tạm
-        file_size=0
-    )
-
-    # 2. Tạo ExtractedResult
+    # Tạo thẳng ExtractedResult với source_file_ids rỗng
     res_obj = ExtractedResult.objects.create(
         user=user,
-        uploaded_file=uf,
+        title=name,
+        source_file_ids=[], # Bảng trống
         status='success',
         is_draft=True
     )
 
-    # 3. Khởi tạo bảng trống (VD: 5 hàng x 5 cột)
     empty_data = [["" for _ in range(5)] for _ in range(5)]
     handler = TableFileHandler(res_obj)
     handler.save_data(empty_data)
@@ -566,19 +604,77 @@ def create_blank_document(request):
 
 @login_required
 @require_POST
-def bulk_delete_api(request):
-    """Xóa hàng loạt IDs"""
-    ids = json.loads(request.body).get('ids', [])
-    results = ExtractedResult.objects.filter(id__in=ids, user=request.user)
+def update_title_api(request, result_id):
+    """API: Đổi tên bảng tính"""
+    result = get_object_or_404(ExtractedResult, id=result_id, user=request.user)
+    new_title = request.POST.get('title')
 
-    count = 0
-    for res in results:
-        # Xóa file vật lý qua handler
-        handler = TableFileHandler(res)
+    if new_title:
+        result.title = new_title
+        result.save()
+        return JsonResponse({'status': 'success'})
+
+    return JsonResponse({'status': 'error', 'message': 'Thiếu tiêu đề'}, status=400)
+
+
+@login_required
+@require_POST
+def delete_result_api(request, result_id):
+    """API: Xóa bảng tính nhưng GIỮ LẠI hình ảnh"""
+    result = get_object_or_404(ExtractedResult, id=result_id, user=request.user)
+
+    # Dọn dẹp file vật lý trước
+    try:
+        # Dựa theo get_table trong model, Handler nhận object (result) chứ không phải result.id
+        handler = TableFileHandler(result)
         handler.delete_file()
-        # Xóa DB
-        res.uploaded_file.delete()
-        res.delete()
-        count += 1
+    except Exception as e:
+        # Nếu không có file hoặc có lỗi vật lý, vẫn tiếp tục xóa trong database
+        pass
 
-    return JsonResponse({'status': 'success', 'deleted_count': count})
+    # Xóa record trong Database
+    # Vì source_file_ids chỉ là ListField chứa ID (số nguyên) chứ không phải ForeignKey,
+    # việc gọi result.delete() hoàn toàn KHÔNG tự động xóa ảnh trong UploadedFile.
+    result.delete()
+
+    return JsonResponse({'status': 'success'})
+
+
+@login_required
+@require_POST
+def delete_image_api(request, img_id):
+    """API: Xóa 1 ảnh (UploadedFile)"""
+    image = get_object_or_404(UploadedFile, id=img_id, user=request.user)
+
+    # Xóa ảnh vật lý (nếu bạn có lưu file trên Storage) - Thêm code của bạn ở đây nếu cần
+    # ...
+
+    # Xóa trong database.
+    # Như bạn yêu cầu, hành động này không ảnh hưởng đến ListField `source_file_ids`
+    # của bảng ExtractedResult. ID cũ vẫn sẽ nằm đó để bạn chạy script cleanup sau.
+    image.delete()
+
+    return JsonResponse({'status': 'success'})
+
+
+@login_required
+@require_POST
+def bulk_delete_images_api(request):
+    """API: Xóa nhiều ảnh cùng lúc"""
+    try:
+        # Lấy dữ liệu JSON từ request.body (do JS gửi bằng JSON.stringify)
+        data = json.loads(request.body)
+        ids = data.get('ids', [])
+
+        if ids:
+            # Xóa trên Storage (nếu có) trước khi xóa DB
+            # images_to_delete = UploadedFile.objects.filter(id__in=ids, user=request.user)
+            # for img in images_to_delete:
+            #     # Thực hiện xóa file vật lý
+
+            # Xóa hàng loạt trong Database (rất nhanh và tối ưu)
+            UploadedFile.objects.filter(id__in=ids, user=request.user).delete()
+
+        return JsonResponse({'status': 'success'})
+    except ValueError:  # Bắt lỗi parse JSON
+        return JsonResponse({'status': 'error', 'message': 'Dữ liệu không hợp lệ'}, status=400)

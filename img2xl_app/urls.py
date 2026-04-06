@@ -12,7 +12,7 @@ urlpatterns = [
     url(r'^result/(?P<result_id>\d+)/$', views.result_detail, name='result_detail'),
     url(r'^delete/(?P<result_id>\d+)/$', views.delete_result, name='delete_result'),
     url(r'^export/(?P<result_id>\d+)/$', views.export, name='export'),
-    url(r'^export/(?P<result_id>\d+)/$', views.export_to_sheets, name='export_to_sheets'),
+    url(r'^export_to_sheets/(?P<result_id>\d+)/$', views.export_to_sheets, name='export_to_sheets'),
     url(r'^result/(?P<result_id>\d+)/update/$', views.update_table_data, name='update_table_data'),
     url(r'^api/generate-ai-content/$', views.ai_generate_view, name='ai_generate_view'),
     url(r'^extract-only-api/$', views.extract_only_api, name='extract_only_api'),
@@ -20,4 +20,12 @@ urlpatterns = [
     url(r'^documents/$', views.documents_view, name='documents'),
     url(r'^settings/$', views.settings_view, name='settings'),
     url(r'^documents/create-blank/$', views.create_blank_document, name='create_blank_document'),
+
+    # 1. API cho Bảng tính từ documents.js (ExtractedResult)
+    url(r'^api/update-title/(?P<result_id>\d+)/$', views.update_title_api, name='update_title_api'),
+    url(r'^api/delete-result/(?P<result_id>\d+)/$', views.delete_result_api, name='delete_result_api'),
+
+    # 2. API cho Hình ảnh từ documents.js (UploadedFile)
+    url(r'^api/delete-image/(?P<img_id>\d+)/$', views.delete_image_api, name='delete_image_api'),
+    url(r'^api/bulk-delete-images/$', views.bulk_delete_images_api, name='bulk_delete_images_api'),
 ]
