@@ -120,7 +120,7 @@ document.addEventListener('click', function(e) {
  * Hàm gọi khi hoàn tất Crop ảnh từ Trang chủ (Tạo bảng mới)
  * Đã cập nhật logic kiểm tra hạn mức 50 ảnh.
  */
-function onImageCropped(blob, languagesStr, originalFileName) {
+function onImageCropped(blob, languagesStr, originalFileName, deleteDuration) {
     const formData = new FormData();
     formData.append('file', blob, "processed_image.jpg");
 
@@ -131,6 +131,8 @@ function onImageCropped(blob, languagesStr, originalFileName) {
     formData.append('mime_type', blob.type);
     // Gắn chuỗi ngôn ngữ vào form data
     formData.append('languages', languagesStr || 'all');
+
+    formData.append('deleteDuration', deleteDuration);
 
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 

@@ -180,3 +180,19 @@
     align-items: center;
     gap: 20px;
 }
+
+.ice-img-container {
+    background: #f8f9fa;
+    border-radius: 8px;
+    max-height: 400px;
+    overflow: hidden;
+    border: 2px dashed #ddd;
+}
+
+input[name="langs"]:checked + .lang-chip {
+    background: #007bff;
+    color: #fff;
+    border-color: #007bff;
+}
+
+input[name="langs"] { display: none; }
