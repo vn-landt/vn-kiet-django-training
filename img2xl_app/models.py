@@ -69,8 +69,12 @@ class UploadedFile(models.Model):
     # Dùng để đánh dấu khi ảnh bị 'dọn dẹp' để nhường chỗ cho ảnh mới (tấm thứ 51)
     is_deleted = models.BooleanField(default=False)
 
+    # TRƯỜNG MỚI: Lưu thời điểm sẽ bị xóa.
+    # Nếu là Null/None nghĩa là "Don't autodelete"
+    delete_at = models.DateTimeField(blank=True, null=True)
+
     def __unicode__(self):
-        return u"%s (%s KB)" % (self.filename, self.file_size // 1024)
+        return u"%s (Hết hạn: %s)" % (self.filename, self.delete_at)
 
 
 class ExtractedResult(models.Model):

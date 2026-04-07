@@ -19,15 +19,17 @@ urlpatterns = [
     url(r'^tasks/auto-cleanup/$', views.auto_cleanup_task, name='cleanup_old_data'),
     url(r'^documents/$', views.documents_view, name='documents'),
     url(r'^settings/$', views.settings_view, name='settings'),
+
+    # documents.html
     url(r'^documents/create-blank/$', views.create_blank_document, name='create_blank_document'),
-
     # 1. API cho Bảng tính từ documents.js (ExtractedResult)
-    url(r'^api/update-title/(?P<result_id>\d+)/$', views.update_title_api, name='update_title_api'),
-    url(r'^api/delete-result/(?P<result_id>\d+)/$', views.delete_result_api, name='delete_result_api'),
-
+    url(r'^documents/update-title/(?P<result_id>\d+)/$', views.update_title_api, name='update_title_api'),
+    url(r'^documents/delete-result/(?P<result_id>\d+)/$', views.delete_result_api, name='delete_result_api'),
     # 2. API cho Hình ảnh từ documents.js (UploadedFile)
-    url(r'^api/delete-image/(?P<img_id>\d+)/$', views.delete_image_api, name='delete_image_api'),
-    url(r'^api/bulk-delete-images/$', views.bulk_delete_images_api, name='bulk_delete_images_api'),
+    url(r'^documents/delete-image/(?P<img_id>\d+)/$', views.delete_image_api, name='delete_image_api'),
+    url(r'^documents/bulk-delete-images/$', views.bulk_delete_images_api, name='bulk_delete_images_api'),
+    url(r'^documents/update-image-info/$', views.update_image_info, name='update_image_info'),
+    url(r'^documents/bulk-update-time/$', views.bulk_update_time, name='bulk_update_time'),
 
     # settings
     url(r'^settings/update-account/$', views.update_account_settings, name='update_account_settings'),

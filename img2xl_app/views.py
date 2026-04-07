@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import traceback  # Thêm thư viện này ở đầu file
 import io
+import logging
 import csv
 import os
 import json
@@ -72,6 +73,7 @@ def _perform_extraction_logic(uploaded_file, languages='all'):
             return None, image_url, u"Tài liệu không hợp lệ hoặc không đủ độ rõ nét. Vui lòng chọn ảnh hóa đơn, chứng từ khác."
 
         if error:
+            logging.error(u"AI Processing Error: %s", error)
             return None, image_url, u"Hệ thống AI không thể xử lý ảnh này. Vui lòng thử lại."
 
         # 4. Làm sạch và Parse CSV (Logic từ bridge.py)
@@ -304,6 +306,19 @@ def extract_only_api(request):
     languages = request.POST.get('languages', 'all')
     mime_type = request.POST.get('mime_type', 'image/jpeg')
 
+    try:
+        delete_duration_min = int(request.POST.get('deleteDuration', 0))
+    except (ValueError, TypeError):
+        # Nếu lỗi (không phải số), lấy mặc định từ profile
+        delete_duration_min = user.profile.auto_delete_duration
+
+    # TÍNH TOÁN THỜI ĐIỂM XÓA
+    expiry_date = None
+    if delete_duration_min > 0:
+        # Thời điểm xóa = Hiện tại + X phút
+        expiry_date = timezone.now() + timedelta(minutes=delete_duration_min)
+
+
     if 'file' not in request.FILES:
         return JsonResponse({'status': 'error', 'message': u'Chưa có file.'})
 
@@ -322,7 +337,8 @@ def extract_only_api(request):
         filename=imgname,
         mime_type=mime_type,
         image_url=image_url,
-        file_size=uploaded_file.size
+        file_size=uploaded_file.size,
+        delete_at=expiry_date
     )
 
     # Cập nhật UsageLog
@@ -379,39 +395,24 @@ def register(request):
 
 
 def auto_cleanup_task(request):
-    # 1. Lấy tất cả ảnh chưa bị đánh dấu xóa
-    # Lưu ý: Với GAE, nếu lượng ảnh cực lớn, bạn nên dùng iterator/batch
-    active_files = UploadedFile.objects.filter(is_deleted=False).select_related('user__profile')
-
     now = timezone.now()
-    deleted_count = 0
+    expired_files = UploadedFile.objects.filter(
+        is_deleted=False,
+        delete_at__isnull=False,
+        delete_at__lte=now
+    )
 
-    for f in active_files:
-        # Nếu user không có profile hoặc chọn "Don't autodelete" (0) thì bỏ qua
-        try:
-            duration = f.user.profile.auto_delete_duration
-        except:
-            continue
+    count = 0
+    for f in expired_files:
+        # 1. Gọi hàm xóa ảnh trên ImgBB (nếu bạn có lưu delete_url)
+        # success = delete_image_from_imgbb(f.delete_url)
 
-        if duration == 0:
-            continue
+        # 2. Đánh dấu đã xóa trong DB
+        f.is_deleted = True
+        f.save()
+        count += 1
 
-        # 2. Tính toán xem đã đến lúc xóa chưa
-        expiry_time = f.uploaded_at + timedelta(minutes=duration)
-
-        if now >= expiry_time:
-            # A. Đánh dấu xóa trong DB
-            f.is_deleted = True
-            f.save()
-
-            # B. (Tùy chọn) Gọi API ImgBB để xóa ảnh thật trên server của họ
-            # Bạn nên lưu 'delete_url' từ lúc upload để gọi vào đây
-            # delete_image_from_imgbb(f.delete_url)
-
-            deleted_count += 1
-
-    return HttpResponse(u"Đã dọn dẹp %d ảnh." % deleted_count)
-
+    return HttpResponse(u"Đã dọn dẹp %d ảnh hết hạn." % count)
 # views.py
 
 def export(request, result_id):
@@ -695,6 +696,64 @@ def bulk_delete_images_api(request):
         return JsonResponse({'status': 'success'})
     except ValueError:  # Bắt lỗi parse JSON
         return JsonResponse({'status': 'error', 'message': 'Dữ liệu không hợp lệ'}, status=400)
+
+
+def update_image_info(request):
+    if request.method == "POST":
+        img_id = request.POST.get('id')
+        new_name = request.POST.get('filename')
+        duration = request.POST.get('duration')  # 'keep', '0', '5', '60', '1440'
+
+        try:
+            from .models import UploadedFile
+            img_obj = UploadedFile.objects.get(id=img_id, user=request.user)
+
+            # 1. Cập nhật tên
+            img_obj.filename = new_name
+
+            # 2. Cập nhật thời gian xóa nếu không chọn "Giữ nguyên"
+            if duration != 'keep':
+                duration_int = int(duration)
+                if duration_int > 0:
+                    img_obj.delete_at = timezone.now() + timedelta(minutes=duration_int)
+                else:
+                    img_obj.delete_at = None  # Chuyển sang vĩnh viễn
+
+            img_obj.save()
+            return JsonResponse({'status': 'success'})
+
+        except Exception as e:
+            logging.error(u"Error updating image info: %s", str(e))
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    return JsonResponse({'status': 'error'}, status=405)
+
+def bulk_update_time(request):
+    if request.method == "POST":
+        ids = request.POST.getlist('ids[]')
+        duration_min = int(request.POST.get('duration', 0))
+        user = request.user
+
+        # 1. Tính toán thời điểm xóa mới
+        new_expiry = None
+        if duration_min > 0:
+            new_expiry = timezone.now() + timedelta(minutes=duration_min)
+
+        try:
+            from .models import UploadedFile
+            # 2. Cập nhật hàng loạt tất cả các ID thuộc về User này
+            # Lệnh .update() thực hiện 1 câu lệnh SQL duy nhất, cực kỳ tối ưu
+            UploadedFile.objects.filter(
+                id__in=ids,
+                user=user
+            ).update(delete_at=new_expiry)
+
+            return JsonResponse({'status': 'success', 'count': len(ids)})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    return JsonResponse({'status': 'error'}, status=405)
+
 
 #   settings/
 @login_required

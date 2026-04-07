@@ -1,5 +1,5 @@
 cron:
 - description: "Dọn dẹp ảnh dựa trên cấu hình User"
   url: /tasks/auto-cleanup/
-  schedule: every 10 minutes
+  schedule: every 30 minutes
   target: default  # Hoặc tên service bạn đang chạy
