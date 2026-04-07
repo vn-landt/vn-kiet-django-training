@@ -16,7 +16,7 @@ urlpatterns = [
     url(r'^result/(?P<result_id>\d+)/update/$', views.update_table_data, name='update_table_data'),
     url(r'^api/generate-ai-content/$', views.ai_generate_view, name='ai_generate_view'),
     url(r'^extract-only-api/$', views.extract_only_api, name='extract_only_api'),
-    url(r'^tasks/cleanup/$', views.cleanup_old_data, name='cleanup_old_data'),
+    url(r'^tasks/auto-cleanup/$', views.auto_cleanup_task, name='cleanup_old_data'),
     url(r'^documents/$', views.documents_view, name='documents'),
     url(r'^settings/$', views.settings_view, name='settings'),
     url(r'^documents/create-blank/$', views.create_blank_document, name='create_blank_document'),
@@ -28,4 +28,7 @@ urlpatterns = [
     # 2. API cho Hình ảnh từ documents.js (UploadedFile)
     url(r'^api/delete-image/(?P<img_id>\d+)/$', views.delete_image_api, name='delete_image_api'),
     url(r'^api/bulk-delete-images/$', views.bulk_delete_images_api, name='bulk_delete_images_api'),
+
+    # settings
+    url(r'^settings/update-account/$', views.update_account_settings, name='update_account_settings'),
 ]

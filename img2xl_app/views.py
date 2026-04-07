@@ -377,23 +377,39 @@ def register(request):
     return render(request, 'registration/register.html', {'form': form})
 
 
-def cleanup_old_data(request):
-    # Chỉ cho phép App Engine Cron gọi vào URL này
-    if request.META.get('HTTP_X_APPENGINE_CRON') != 'true':
-        return HttpResponseForbidden()
+def auto_cleanup_task(request):
+    # 1. Lấy tất cả ảnh chưa bị đánh dấu xóa
+    # Lưu ý: Với GAE, nếu lượng ảnh cực lớn, bạn nên dùng iterator/batch
+    active_files = UploadedFile.objects.filter(is_deleted=False).select_related('user__profile')
 
-    seven_days_ago = timezone.now() - timedelta(days=7)
+    now = timezone.now()
+    deleted_count = 0
 
-    # Tìm các file không có thay đổi trong 7 ngày qua
-    old_results = ExtractedResult.objects.filter(updated_at__lt=seven_days_ago)
+    for f in active_files:
+        # Nếu user không có profile hoặc chọn "Don't autodelete" (0) thì bỏ qua
+        try:
+            duration = f.user.profile.auto_delete_duration
+        except:
+            continue
 
-    count = 0
-    for res in old_results:
-        res.uploaded_file.delete()  # Xóa file gốc kéo theo kết quả trích xuất
-        count += 1
+        if duration == 0:
+            continue
 
-    return HttpResponse("Đã dọn dẹp %d bản ghi cũ." % count)
+        # 2. Tính toán xem đã đến lúc xóa chưa
+        expiry_time = f.uploaded_at + timedelta(minutes=duration)
 
+        if now >= expiry_time:
+            # A. Đánh dấu xóa trong DB
+            f.is_deleted = True
+            f.save()
+
+            # B. (Tùy chọn) Gọi API ImgBB để xóa ảnh thật trên server của họ
+            # Bạn nên lưu 'delete_url' từ lúc upload để gọi vào đây
+            # delete_image_from_imgbb(f.delete_url)
+
+            deleted_count += 1
+
+    return HttpResponse(u"Đã dọn dẹp %d ảnh." % deleted_count)
 
 # views.py
 
@@ -678,3 +694,27 @@ def bulk_delete_images_api(request):
         return JsonResponse({'status': 'success'})
     except ValueError:  # Bắt lỗi parse JSON
         return JsonResponse({'status': 'error', 'message': 'Dữ liệu không hợp lệ'}, status=400)
+
+#   settings/
+@login_required
+def update_account_settings(request):
+    if request.method == 'POST':
+        profile = request.user.profile
+
+        # 1. Cập nhật thời gian tự động xóa (ép về kiểu int)
+        auto_delete = request.POST.get('auto_delete_duration')
+        if auto_delete is not None:
+            profile.auto_delete_duration = int(auto_delete)
+
+        # 2. Cập nhật Keep EXIF
+        # Checkbox trong HTML: nếu tích sẽ gửi 'on', nếu không tích sẽ không gửi gì cả
+        # profile.keep_exif = True if request.POST.get('keep_exif') == 'on' else False
+
+        # 3. Lưu vào Database
+        profile.save()
+
+        # 4. Thông báo thành công và reload lại trang
+        messages.success(request, u"Cài đặt tài khoản của bạn đã được cập nhật thành công!")
+        return redirect('settings')  # Hoặc tên URL dẫn đến trang account của bạn
+
+    return redirect('settings')
