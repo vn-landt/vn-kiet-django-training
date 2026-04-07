@@ -35,6 +35,7 @@ import re
 from PIL import Image, ImageDraw, ImageFont
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import update_session_auth_hash
 
 def _perform_extraction_logic(uploaded_file, languages='all'):
     """
@@ -746,6 +747,44 @@ def update_profile_settings(request):
 
         profile.save()
         messages.success(request, u"Hồ sơ đã được cập nhật thành công!")
+        return redirect('settings')
+
+    return redirect('settings')
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        # 1. Lấy dữ liệu từ Form
+        old_pass = request.POST.get('old_password')
+        new_pass = request.POST.get('new_password')
+        confirm_pass = request.POST.get('confirm_password')
+        user = request.user
+
+        # 2. Kiểm tra mật khẩu cũ có đúng không
+        if not user.check_password(old_pass):
+            messages.error(request, u"Mật khẩu cũ không chính xác!")
+            return redirect('settings') # Quay lại trang settings/password
+
+        # 3. Kiểm tra 2 mật khẩu mới có khớp nhau không
+        if new_pass != confirm_pass:
+            messages.error(request, u"Hai mật khẩu mới không khớp nhau!")
+            return redirect('settings')
+
+        # 4. Kiểm tra độ dài mật khẩu (tùy chọn nhưng nên có)
+        if len(new_pass) < 6:
+            messages.error(request, u"Mật khẩu mới phải có ít nhất 6 ký tự!")
+            return redirect('settings')
+
+        # 5. Thực thi đổi mật khẩu
+        user.set_password(new_pass) # Hàm này tự động băm (hash) mật khẩu
+        user.save()
+
+        # 6. CẬP NHẬT SESSION (Rất quan trọng!)
+        # Sau khi đổi mật khẩu, Django sẽ làm mới session hash.
+        # Nếu không có dòng này, người dùng sẽ bị văng ra trang Login ngay lập tức.
+        update_session_auth_hash(request, user)
+
+        messages.success(request, u"Chúc mừng! Mật khẩu đã được thay đổi thành công.")
         return redirect('settings')
 
     return redirect('settings')
