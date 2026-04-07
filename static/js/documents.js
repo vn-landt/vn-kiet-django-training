@@ -27,12 +27,8 @@ $(document).ready(function() {
 
     // === LOGIC LỌC HÌNH ẢNH (MỚI) ===
     $('.spreadsheet-filter-item, .spreadsheet-filter').on('click', function(e) {
-        // Nếu click vào thẻ <a> hoặc nút action thì không kích hoạt lọc ảnh ở đây
-        if ($(e.target).closest('.spreadsheet-title-link, .spreadsheet-actions').length) {
-            return;
-        }
+        const id = $(this).data('id').toString(); // Chuyển về string để an toàn
 
-        const id = $(this).data('id');
         $('.spreadsheet-filter-item, .spreadsheet-filter').removeClass('active');
         $(this).addClass('active');
 
@@ -42,8 +38,12 @@ $(document).ready(function() {
         } else {
             const title = $(this).find('.title-text').text();
             $('#gallery-header').text('Ảnh từ: ' + title);
+
             $('.gallery-card').hide();
-            $(`.gallery-card[data-spreadsheet-id="${id}"]`).fadeIn(200);
+
+            // Lọc các card có chứa ID này trong danh sách IDs
+            // Selector [attr~="value"] tìm chính xác "id" trong chuỗi cách nhau bởi dấu cách
+            $(`.gallery-card[data-spreadsheet-ids~="${id}"]`).fadeIn(200);
         }
     });
 
