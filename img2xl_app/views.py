@@ -718,3 +718,34 @@ def update_account_settings(request):
         return redirect('settings')  # Hoặc tên URL dẫn đến trang account của bạn
 
     return redirect('settings')
+
+
+@login_required
+def update_profile_settings(request):
+    if request.method == 'POST':
+        profile = request.user.profile
+
+        # 1. Xử lý Upload Avatar (Nếu có file mới)
+        avatar_file = request.FILES.get('avatar')
+        if avatar_file:
+            # Đọc file sang bytes
+            image_bytes = avatar_file.read()
+            # Gọi hàm của bạn
+            new_avatar_url, error = upload_to_imgbb(image_bytes)
+
+            if new_avatar_url:
+                profile.avatar_url = new_avatar_url
+            else:
+                messages.error(request, u"Không thể upload ảnh: " + unicode(error))
+
+        # 2. Cập nhật các trường thông tin khác
+        profile.full_name = request.POST.get('full_name', '')
+        profile.website = request.POST.get('website', '')
+        profile.bio = request.POST.get('bio', '')
+        profile.is_private = True  # Luôn đóng băng theo yêu cầu
+
+        profile.save()
+        messages.success(request, u"Hồ sơ đã được cập nhật thành công!")
+        return redirect('settings')
+
+    return redirect('settings')
