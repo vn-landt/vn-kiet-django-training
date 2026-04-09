@@ -1,0 +1,279 @@
+/* --- 1. Tổng thể và Bố cục --- */
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background: linear-gradient(135deg, #8e44ad 0%, #3498db 100%);
+    min-height: 100vh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 0;
+}
+
+.register-wrapper {
+    width: 100%;
+    max-width: 420px;
+    padding: 20px;
+}
+
+.register-card {
+    background: #ffffff;
+    padding: 35px;
+    border-radius: 15px;
+    box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+}
+
+.register-header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+.register-header h2 {
+    margin: 0;
+    color: #2c3e50;
+    font-size: 24px;
+}
+
+.register-header p {
+    color: #7f8c8d;
+    font-size: 13px;
+    margin-top: 5px;
+}
+
+/* --- 2. Định dạng Form Django (.as_p) --- */
+.form-content p {
+    position: relative;
+    margin-bottom: 18px;
+}
+
+.form-content label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #34495e;
+}
+
+.form-content input {
+    width: 100%;
+    padding: 12px 15px;
+    border: 2px solid #ecf0f1;
+    border-radius: 8px;
+    box-sizing: border-box;
+    font-size: 14px;
+    transition: all 0.3s ease;
+}
+
+.form-content input:focus {
+    outline: none;
+    border-color: #3498db;
+    box-shadow: 0 0 8px rgba(52, 152, 219, 0.15);
+}
+
+/* Chú thích của Django (Tooltip khi click vào ô nhập) */
+.helptext {
+    display: block;
+    visibility: hidden;
+    opacity: 0;
+    position: absolute;
+    left: 0;
+    top: 100%;
+    background: #34495e;
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    z-index: 99;
+    width: 100%;
+    box-sizing: border-box;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+    pointer-events: none;
+}
+
+input:focus ~ .helptext {
+    visibility: visible;
+    opacity: 1;
+    top: calc(100% + 5px);
+}
+
+/* --- 3. Trạng thái Thông báo và Màu sắc --- */
+.small-msg {
+    font-size: 12px;
+    margin-top: 4px;
+    font-weight: 500;
+}
+
+.error-msg { color: #e74c3c; }
+.success-msg { color: #2ecc71; }
+
+input.is-invalid { border-color: #e74c3c !important; background-color: #fff9f9; }
+input.is-valid { border-color: #2ecc71 !important; background-color: #fafff9; }
+
+/* --- 4. Khung xác nhận OTP --- */
+.otp-container {
+    margin: 20px 0;
+    padding: 15px;
+    background: #f8f9fa;
+    border-radius: 10px;
+    border: 2px dashed #bdc3c7;
+    transition: all 0.4s ease;
+}
+
+/* Khung chuyển màu xanh khi nhập đúng mã (Logic bước 5) */
+.otp-container.verified {
+    border: 2px solid #2ecc71;
+    background: #fafff9;
+}
+
+.otp-input-group {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.otp-input-group input {
+    flex: 1;
+    text-align: center;
+    letter-spacing: 4px;
+    font-weight: bold;
+}
+
+.otp-footer {
+    margin-top: 10px;
+}
+
+#resend-text {
+    font-size: 12px;
+    color: #7f8c8d;
+}
+
+#resend-link {
+    color: #3498db;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* --- 5. Nút bấm --- */
+button {
+    width: 100%;
+    padding: 14px;
+    background: #3498db;
+    border: none;
+    border-radius: 8px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+button:hover:not(:disabled) {
+    background: #2980b9;
+    transform: translateY(-1px);
+}
+
+button:disabled {
+    background: #bdc3c7;
+    cursor: not-allowed;
+    opacity: 0.6;
+}
+
+.secondary-btn {
+    width: auto;
+    padding: 0 15px;
+    background: #2ecc71;
+    font-size: 13px;
+}
+
+/* --- 6. Tooltip cho nút Đăng ký (Logic bước 6-7) --- */
+.submit-wrapper {
+    position: relative;
+    margin-top: 25px;
+}
+
+.tooltip-box {
+    display: none;
+    position: absolute;
+    bottom: 110%;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #2c3e50;
+    color: white;
+    padding: 12px 15px;
+    border-radius: 8px;
+    width: 220px;
+    font-size: 12px;
+    z-index: 100;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+}
+
+.tooltip-box::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border: 8px solid transparent;
+    border-top-color: #2c3e50;
+}
+
+/* Hiển thị tooltip khi hover vào nút đang disabled */
+.submit-wrapper:hover #submitBtn:disabled ~ .tooltip-box {
+    display: block;
+}
+
+.tooltip-title {
+    margin: 0 0 8px 0;
+    font-weight: bold;
+    border-bottom: 1px solid #5d6d7e;
+    padding-bottom: 5px;
+}
+
+.tooltip-box ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.req-item {
+    margin-bottom: 5px;
+    display: flex;
+    align-items: center;
+}
+
+.req-item::before {
+    font-family: FontAwesome;
+    margin-right: 8px;
+    font-size: 14px;
+}
+
+/* Trạng thái lỗi trong tooltip */
+.req-item.invalid { color: #ff7675; }
+.req-item.invalid::before { content: "\f00d"; } /* FontAwesome Times */
+
+/* Trạng thái hợp lệ trong tooltip */
+.req-item.valid { color: #55efc4; }
+.req-item.valid::before { content: "\f00c"; } /* FontAwesome Check */
+
+/* Loading Spinner */
+.loader {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid rgba(255,255,255,0.3);
+    border-top-color: #fff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+
+.register-footer {
+    text-align: center;
+    margin-top: 20px;
+    font-size: 13px;
+}
+
+.register-footer a { color: #3498db; text-decoration: none; font-weight: 600; }
