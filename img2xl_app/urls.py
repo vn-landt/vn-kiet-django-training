@@ -40,4 +40,9 @@ urlpatterns = [
     url(r'^settings/update-account/$', views.update_account_settings, name='update_account_settings'),
     url(r'^settings/update-profile/$', views.update_profile_settings, name='update_profile_settings'),
     url(r'^settings/password/$', views.change_password, name='change_password'),
+
+    # Notifications
+    url(r'^notifications/mark-read/$', views.mark_as_read, name='mark_as_read'),
+    url(r'^notifications/delete/$', views.delete_notification, name='delete_notification'),
+
 ]

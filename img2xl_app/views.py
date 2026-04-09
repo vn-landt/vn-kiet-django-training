@@ -41,7 +41,7 @@ from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
-from .models import UserProfile
+from .models import UserProfile, Notification, NotificationManager
 
 def _perform_extraction_logic(uploaded_file, languages='all'):
     """
@@ -988,3 +988,23 @@ def change_password(request):
         return redirect('settings')
 
     return redirect('settings')
+
+# Notifications
+def mark_as_read(request, noti_id):
+    if request.method == "POST":
+        try:
+            noti = Notification.objects.get(id=noti_id, user=request.user)
+            noti.is_read = True
+            noti.save()
+            return JsonResponse({'success': True})
+        except:
+            return JsonResponse({'success': False}, status=400)
+
+def delete_notification(request, noti_id):
+    if request.method == "POST":
+        try:
+            noti = Notification.all_objects.get(id=noti_id, user=request.user)
+            noti.soft_delete() # Sử dụng hàm soft_delete đã tạo ở model
+            return JsonResponse({'success': True})
+        except:
+            return JsonResponse({'success': False}, status=400)

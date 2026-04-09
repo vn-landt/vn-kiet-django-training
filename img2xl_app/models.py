@@ -136,3 +136,52 @@ class UsageLog(models.Model):
 
     class Meta:
         unique_together = ('user', 'usage_date')
+
+
+class NotificationManager(models.Manager):
+    """Manager tùy chỉnh để mặc định chỉ lấy thông báo chưa bị xóa mềm"""
+
+    def get_queryset(self):
+        return super(NotificationManager, self).get_queryset().filter(is_deleted=False)
+
+
+class Notification(models.Model):
+    # Cấu hình các cấp độ thông báo
+    LEVEL_CHOICES = (
+        ('info', u'Thông tin'),
+        ('success', u'Thành công'),
+        ('warning', u'Cảnh báo'),
+        ('error', u'Lỗi'),
+    )
+
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='notifications')
+    level = models.CharField(max_length=10, choices=LEVEL_CHOICES, default='info')
+    title = models.CharField(max_length=255)
+    message = models.TextField()
+
+    # Trạng thái đọc
+    is_read = models.BooleanField(default=False)
+
+    # Trạng thái xóa mềm (Soft Delete)
+    is_deleted = models.BooleanField(default=False)
+    deleted_at = models.DateTimeField(null=True, blank=True)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    linked_to = models.CharField(max_length=500, null=True, blank=True)
+
+    # Đăng ký Manager
+    objects = NotificationManager()  # Truy vấn thông thường: Notification.objects.all()
+    all_objects = models.Manager()  # Truy vấn tất cả (kể cả đã xóa): Notification.all_objects.all()
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __unicode__(self):
+        return u"[%s] %s: %s" % (self.level, self.user.username, self.title)
+
+    def soft_delete(self):
+        """Hàm gọi nhanh để xóa mềm một thông báo"""
+        self.is_deleted = True
+        self.deleted_at = timezone.now()
+        self.save()
