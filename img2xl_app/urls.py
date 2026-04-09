@@ -11,6 +11,8 @@ urlpatterns = [
     url(r'^verify-otp-ajax/$', views.verify_otp_ajax, name='verify_otp_ajax'),
     url(r'^login/$', auth_views.LoginView.as_view(template_name='registration/login.html'), name='login'),
     url(r'^logout/$', auth_views.LogoutView.as_view(next_page='home'), name='logout'),
+    url(r'^forgot-password/$', views.forgot_password_view, name='forgot_password'),
+    url(r'^reset-password-final/$', views.reset_password_final, name='reset_password_final'),
     url(r'^$', views.home, name='home'),
     url(r'^result/(?P<result_id>\d+)/$', views.result_detail, name='result_detail'),
     url(r'^delete/(?P<result_id>\d+)/$', views.delete_result, name='delete_result'),

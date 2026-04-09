@@ -21,7 +21,7 @@ from .services.sheets_export import export_to_google_sheets
 from .services.compress_image import compress_image
 from .services.gemini_rest import upload_to_imgbb, generate_text_with_gemini, extract_image_with_gemini
 from django.views.decorators.http import require_POST
-from django.views.decorators.csrf import csrf_protect
+from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from .services.table_handler import TableFileHandler
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
@@ -500,6 +500,40 @@ def register(request):
         form = RegisterForm()
 
     return render(request, 'registration/register.html', {'form': form})
+
+def forgot_password_view(request):
+    """Hiển thị trang nhập email để lấy lại mật khẩu"""
+    return render(request, 'registration/forgot_password.html')
+
+
+@csrf_exempt  # Hoặc đảm bảo JS gửi CSRF qua Header
+def reset_password_final(request):
+    if request.method == "POST":
+        data = json.loads(request.body)
+        new_password = data.get('password')
+        email = data.get('email')
+
+        # Kiểm tra bảo mật: Session phải đã xác thực OTP thành công
+        is_verified = request.session.get('is_otp_verified', False)
+        verified_email = request.session.get('verified_email', '')
+
+        if is_verified and email.lower().strip() == verified_email.lower().strip():
+            try:
+                user = User.objects.get(email=email)
+                user.set_password(new_password)
+                user.save()
+
+                # Quan trọng: Xóa session để tránh dùng lại mã cũ
+                del request.session['is_otp_verified']
+                del request.session['otp_code']
+
+                return JsonResponse({'success': True})
+            except User.DoesNotExist:
+                return JsonResponse({'success': False, 'message': u'Tài khoản không tồn tại.'}, status=404)
+        else:
+            return JsonResponse({'success': False, 'message': u'Chưa xác thực mã OTP.'}, status=403)
+
+    return JsonResponse({'success': False}, status=405)
 
 def auto_cleanup_task(request):
     now = timezone.now()

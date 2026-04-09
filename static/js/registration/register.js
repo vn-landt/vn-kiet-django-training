@@ -35,7 +35,7 @@ document.addEventListener('DOMContentLoaded', function() {
         codeSent: false
     };
 
-    const MAX_RESEND = 10;
+    const MAX_RESEND = 3;
     let resendCount = parseInt(localStorage.getItem('otp_resend_count') || 0);
 
     // --- 3. Logic Kiểm tra Mật khẩu (Bước 2) ---
