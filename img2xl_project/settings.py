@@ -49,6 +49,7 @@ TEMPLATES = [
                 'django.contrib.messages.context_processors.messages',
                 'django.contrib.auth.context_processors.auth',
                 'img2xl_app.services.context_processors.global_user_data',
+                'img2xl_app.services.context_processors.notification_context',
             ],
         },
     },
