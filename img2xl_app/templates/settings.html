@@ -6,6 +6,31 @@
     <link rel="stylesheet" href="{% static 'css/settings/profile.css' %}">
     <link rel="stylesheet" href="{% static 'css/settings/password.css' %}">
     <link rel="stylesheet" href="{% static 'css/settings/linkedAccount.css' %}">
+        <style>
+        /* 1. Đảm bảo toàn bộ khung hình luôn chiếm 100% chiều cao */
+        html, body {
+            height: 100%;
+            margin: 0;
+        }
+
+        body {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh; /* Sử dụng vh (viewport height) để chính xác hơn */
+            padding-top: 70px; /* Chừa chỗ cho navbar fixed-top */
+        }
+
+        /* 2. ĐÂY LÀ PHẦN QUAN TRỌNG NHẤT: Thẻ main sẽ giãn ra như lò xo */
+        main {
+            flex: 1 0 auto;
+            display: block; /* Đảm bảo main hiển thị đúng block */
+        }
+
+        /* 3. Đảm bảo footer không bị co lại */
+        .site-footer {
+            flex-shrink: 0;
+        }
+    </style>
 {% endblock %}
 
 {% block content %}

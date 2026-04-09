@@ -1008,3 +1008,26 @@ def delete_notification(request, noti_id):
             return JsonResponse({'success': True})
         except:
             return JsonResponse({'success': False}, status=400)
+
+# views.py (Python 2.7)
+def mark_all_read(request):
+    if request.method == "POST":
+        Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
+        return JsonResponse({'success': True})
+
+def delete_all_notifications(request):
+    if request.method == "POST":
+        # Sử dụng Manager all_objects nếu bạn dùng Soft Delete như đã hướng dẫn trước đó
+        Notification.objects.filter(user=request.user).update(is_deleted=True, deleted_at=timezone.now())
+        return JsonResponse({'success': True})
+
+def toggle_read(request, noti_id):
+    if request.method == "POST":
+        try:
+            noti = Notification.objects.get(id=noti_id, user=request.user)
+            # Đảo trạng thái: True -> False, False -> True
+            noti.is_read = not noti.is_read
+            noti.save()
+            return JsonResponse({'success': True, 'is_read': noti.is_read})
+        except:
+            return JsonResponse({'success': False}, status=400)
