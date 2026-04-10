@@ -1,9 +1,10 @@
+{% extends "base.html" %}
 {% load static %}
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extraction Result | Dashboard</title>
+
+{% block title %}Extraction Result | Dashboard{% endblock %}
+
+
+{% block extra_css %}
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
@@ -19,12 +20,11 @@
     <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
     <script src="https://jsuites.net/v4/jsuites.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
+{% endblock %}
+
+{% block content %}
 <body>
-
-    {% include "includes/header.html" %}
-
-    <div class="dashboard-wrapper">
+<div class="dashboard-wrapper">
         <aside class="side-panel side-left">
             <div class="info-box left-side shadow-sm mb-3">
                 <h4 class="box-title">File Details</h4>
@@ -126,9 +126,10 @@
 
     {% include "includes/export_ui.html" %}
     {% include "includes/image_editor.html" with api_url="/extract-only-api/" %}
+</body>
+{% endblock %}
 
-    {% include "includes/footer.html" %}
-
+{% block extra_js %}
     <script>
         window.DJANGO_TABLE_DATA = {{ table_json|safe }};
         window.FINAL_TABLE_DATA = {{ final_table_json|safe }};
@@ -141,5 +142,5 @@
     <script src="{% static 'js/image_handler.js' %}"></script>
     <script src="{% static 'js/result_detail.js' %}"></script>
     <script src="{% static 'js/export_ui.js' %}"></script>
-</body>
-</html>
+{% endblock %}
+
