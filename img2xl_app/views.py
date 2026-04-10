@@ -42,6 +42,7 @@ from django.contrib.auth.models import User
 from django.core.mail import send_mail
 from django.conf import settings
 from .models import UserProfile, Notification, NotificationManager
+from django.db.models import Count
 
 def _perform_extraction_logic(uploaded_file, languages='all'):
     """
@@ -576,32 +577,76 @@ def reset_password_final(request):
 
     return JsonResponse({'success': False}, status=405)
 
+
 def auto_cleanup_task(request):
     now = timezone.now()
+    in_12h = now + timedelta(hours=12)
+    trash_count = 0
+    permanent_count = 0
+
+    # --- PHẦN 1: DỌN DẸP CÁC FILE ĐÃ HẾT HẠN (QUÁ KHỨ) ---
     expired_files = UploadedFile.objects.filter(
-        is_deleted=False,
         delete_at__isnull=False,
         delete_at__lte=now
     )
 
-    count = 0
     for f in expired_files:
-        # 1. Gọi hàm xóa ảnh trên ImgBB (nếu bạn có lưu delete_url)
-        # success = delete_image_from_imgbb(f.delete_url)
+        if not f.is_deleted:
+            # Chuyển vào thùng rác
+            f.is_deleted = True
+            f.delete_at = now + timedelta(days=30)
+            f.save()
+            trash_count += 1
 
-        # 2. Đánh dấu đã xóa trong DB
-        f.is_deleted = True
-        f.save()
-        count += 1
-    # Thông báo tự động xoá
+        else:
+            # Xóa vĩnh viễn
+            filename_storage = f.filename
+            user_storage = f.user
+            f.delete()  # Gọi hàm xóa vật lý nếu cần trước dòng này
+            permanent_count += 1
+
+
+    if trash_count > 0:
+        # Thông báo cho người dùng về việc chuyển vào thùng rác
+        Notification.objects.create_notification(
+            user=f.user,
+            title=u"Ảnh đã hết hạn!",
+            message=u"Ảnh '{}' đã được chuyển vào thùng rác và sẽ xóa vĩnh viễn sau 30 ngày.".format(f.filename),
+            level='warning'
+        )
+    if permanent_count > 0:
+        # Thông báo cho người dùng về việc xóa vĩnh viễn
+        Notification.objects.create_notification(
+            user=user_storage,
+            title=u"Xóa vĩnh viễn!",
+            message=u"Ảnh '{}' đã bị xóa vĩnh viễn khỏi hệ thống do hết hạn lưu trữ.".format(filename_storage),
+            level='error'
+        )
+
+    # --- PHẦN 2: TÌM VÀ CẢNH BÁO CÁC FILE SẮP HẾT HẠN (TRONG 12H TỚI) ---
+    # Lấy danh sách ảnh sắp đến hạn xóa (bao gồm cả sắp vào thùng rác và sắp xóa thật)
+    upcoming_files = UploadedFile.objects.filter(
+        delete_at__gt=now,
+        delete_at__lte=in_12h
+    ).values('user').annotate(total=Count('id'))
+
+    for entry in upcoming_files:
+        from django.contrib.auth.models import User
+        target_user = User.objects.get(id=entry['user'])
+        count = entry['total']
+
+    # Tạo một thông báo tổng hợp duy nhất cho mỗi user để tránh spam
     Notification.objects.create_notification(
-        user=request.user,
-        title=u"Tự động xoá!",
-        message=u"Đã thực hiện tự động xoá '{}' ảnh theo thiết lập!".format(count),
+        user=target_user,
+        title=u"Sắp đến hạn xóa dữ liệu!",
+        message=u"Lưu ý: Bạn có {} ảnh sẽ bị xóa hoặc chuyển vào thùng rác trong vòng 12 giờ tới.".format(count),
         level='info',
-        linked_to='/documents/'
+        linked_to='/media-library/'  # Đường dẫn đến trang quản lý ảnh của bạn
     )
-    return HttpResponse(u"Đã dọn dẹp %d ảnh hết hạn." % count)
+
+    return HttpResponse(u"Đã hoàn thành dọn dẹp và gửi cảnh báo 12h.")
+
+
 
 def export(request, result_id):
     result = get_object_or_404(ExtractedResult, id=result_id)
