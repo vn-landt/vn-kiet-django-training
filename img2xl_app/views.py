@@ -184,35 +184,33 @@ def export_to_sheets(request, result_id):
     )
 
 # Xoá bảng tính ở trang home
+@login_required
+@require_POST  # Đảm bảo chỉ chấp nhận request POST để bảo mật
 def delete_result(request, result_id):
-    if request.method == 'POST':
-        # Thêm filter user=request.user để đảm bảo tính bảo mật
-        result = get_object_or_404(ExtractedResult, id=result_id, user=request.user)
+    # 1. Tìm đối tượng bảng tính, đảm bảo đúng chủ sở hữu
+    result = get_object_or_404(ExtractedResult, id=result_id, user=request.user)
 
-        # 1. Khởi tạo Handler để dọn dẹp file vật lý (file .xlsx hoặc .csv lưu trên storage)
-        # Theo models.py của bạn, TableFileHandler nhận vào nguyên object 'result'
-        try:
-            handler = TableFileHandler(result)
-            handler.delete_file()
-        except Exception as e:
-            # Nếu không tìm thấy file vật lý để xóa thì vẫn tiếp tục xóa DB
-            pass
+    # 2. THỰC HIỆN SOFT DELETE
+    # Chúng ta KHÔNG gọi TableFileHandler(result).delete_file() ở đây nữa.
+    # File vật lý sẽ được xóa bởi script dọn dẹp sau 30 ngày.
 
-        # 2. XÓA DÒNG NÀY: result.uploaded_file.delete()
-        # Vì ExtractedResult không còn thuộc tính uploaded_file nữa.
+    result.is_deleted = True
+    # Hẹn giờ xóa vĩnh viễn sau 30 ngày (hoặc lấy từ cấu hình UserProfile nếu muốn)
+    result.delete_at = timezone.now() + timedelta(days=30)
+    result.save()
 
-        # 3. Xóa bản ghi bảng tính trong Database
-        # Các ảnh liên quan (UploadedFile) sẽ KHÔNG bị ảnh hưởng vì chúng là các record độc lập
-        # Thông báo xoá bảng tính
-        Notification.objects.create_notification(
-            user=request.user,
-            title=u"Xoá bảng tính!",
-            message=u"Hệ thống đã xóa bảng tính '{}' thành công.".format(result.title),
-            level='success',
-            linked_to=None
-        )
-        result.delete()
+    # 3. Thông báo cho người dùng
+    # Cập nhật nội dung thông báo để người dùng biết họ có 30 ngày để khôi phục
+    Notification.objects.create_notification(
+        user=request.user,
+        title=u"Đã chuyển vào thùng rác!",
+        message=u"Bảng tính '{}' đã được chuyển vào mục lưu trữ và sẽ bị xóa vĩnh viễn sau 30 ngày.".format(
+            result.title),
+        level='warning',
+        linked_to=None
+    )
 
+    # 4. Điều hướng quay lại trang chủ hoặc trang danh sách
     return redirect('home')
 
 
@@ -837,32 +835,22 @@ def update_title_api(request, result_id):
 @login_required
 @require_POST
 def delete_result_api(request, result_id):
-    """API: Xóa bảng tính nhưng GIỮ LẠI hình ảnh"""
+    """API: Xóa mềm bảng tính"""
     result = get_object_or_404(ExtractedResult, id=result_id, user=request.user)
 
-    # Dọn dẹp file vật lý trước
-    try:
-        # Dựa theo get_table trong model, Handler nhận object (result) chứ không phải result.id
-        handler = TableFileHandler(result)
-        handler.delete_file()
-    except Exception as e:
-        # Nếu không có file hoặc có lỗi vật lý, vẫn tiếp tục xóa trong database
-        pass
+    # THỰC HIỆN SOFT DELETE
+    result.is_deleted = True
+    # Hẹn giờ xóa vĩnh viễn (ví dụ 30 ngày sau)
+    result.delete_at = timezone.now() + timedelta(days=30)
+    result.save()
 
-    # Thông báo xoá bảng tính
+    # Thông báo
     Notification.objects.create_notification(
         user=request.user,
-        title=u"Xoá bảng tính!",
-        message=u"Hệ thống đã xóa bảng tính '{}' thành công.".format(result.title),
-        level='success',
-        linked_to=None
+        title=u"Đã chuyển vào thùng rác!",
+        message=u"Bảng tính '{}' đã được chuyển vào mục lưu trữ và sẽ bị xóa vĩnh viễn sau 30 ngày".format(result.title),
+        level='warning'
     )
-
-    # Xóa record trong Database
-    # Vì source_file_ids chỉ là ListField chứa ID (số nguyên) chứ không phải ForeignKey,
-    # việc gọi result.delete() hoàn toàn KHÔNG tự động xóa ảnh trong UploadedFile.
-    result.delete()
-
 
     return JsonResponse({'status': 'success'})
 
@@ -870,58 +858,74 @@ def delete_result_api(request, result_id):
 @login_required
 @require_POST
 def delete_image_api(request, img_id):
-    """API: Xóa 1 ảnh (UploadedFile)"""
+    """API: Xóa mềm 1 ảnh (Soft Delete)"""
+    # Vẫn lấy ảnh như cũ, đảm bảo đúng chủ sở hữu
     image = get_object_or_404(UploadedFile, id=img_id, user=request.user)
 
-    # Xóa ảnh vật lý (nếu bạn có lưu file trên Storage) - Thêm code của bạn ở đây nếu cần
-    # ...
+    # THỰC HIỆN SOFT DELETE
+    image.is_deleted = True
+    image.delete_at = timezone.now() # Đánh dấu thời điểm xóa ngay bây giờ
+    image.save()
 
-    # Thông báo xoá bảng tính
+    # Thông báo (Bạn có thể sửa lại nội dung cho chính xác hơn)
     Notification.objects.create_notification(
         user=request.user,
-        title=u"Xoá ảnh!",
-        message=u"Hệ thống đã xóa 1 thành công.",
-        level='success',
+        title=u"Đã chuyển vào thùng rác!",
+        message=u"Ảnh '{}' đã được xoá khỏi thư viện và sẽ bị xóa vĩnh viễn sau 30 ngày.".format(image.filename),
+        level='info',
         linked_to=None
     )
 
-    # Xóa trong database.
-    # Như bạn yêu cầu, hành động này không ảnh hưởng đến ListField `source_file_ids`
-    # của bảng ExtractedResult. ID cũ vẫn sẽ nằm đó để bạn chạy script cleanup sau.
-    image.delete()
-
-    return JsonResponse({'status': 'success'})
-
+    return JsonResponse({
+        'status': 'success',
+        'message': 'Image moved to trash'
+    })
 
 @login_required
 @require_POST
 def bulk_delete_images_api(request):
-    """API: Xóa nhiều ảnh cùng lúc"""
+    """API: Xóa mềm nhiều ảnh cùng lúc"""
     try:
-        # Lấy dữ liệu JSON từ request.body (do JS gửi bằng JSON.stringify)
+        # 1. Lấy dữ liệu JSON từ request.body
         data = json.loads(request.body)
         ids = data.get('ids', [])
 
-        if ids:
-            # Thông báo xoá hàng loạt ảnh
+        if not ids:
+            return JsonResponse({'status': 'error', 'message': u'Không có ID nào được cung cấp'}, status=400)
+
+        # 2. Tính toán thời gian xóa vĩnh viễn (ví dụ: 30 ngày sau)
+        scheduled_delete_at = timezone.now() + timedelta(days=30)
+
+        # 3. Thực hiện cập nhật hàng loạt (Bulk Update)
+        # Chỉ cập nhật những ảnh thuộc về user hiện tại
+        updated_count = UploadedFile.objects.filter(
+            id__in=ids,
+            user=request.user
+        ).update(
+            is_deleted=True,
+            delete_at=scheduled_delete_at
+        )
+
+        if updated_count > 0:
+            # 4. Thông báo cho người dùng
             Notification.objects.create_notification(
                 user=request.user,
-                title=u"Xoá ảnh!",
-                message=u"Hệ thống đã xóa '{}' thành công.".format(len(ids)),
-                level='success',
+                title=u"Đã chuyển vào thùng rác!",
+                message=u"Hệ thống đã chuyển {} ảnh vào thùng rác và sẽ xoá vĩnh viễn sau 30 ngày.".format(updated_count),
+                level='warning',
                 linked_to=None
             )
-            # Xóa trên Storage (nếu có) trước khi xóa DB
-            # images_to_delete = UploadedFile.objects.filter(id__in=ids, user=request.user)
-            # for img in images_to_delete:
-            #     # Thực hiện xóa file vật lý
 
-            # Xóa hàng loạt trong Database (rất nhanh và tối ưu)
-            UploadedFile.objects.filter(id__in=ids, user=request.user).delete()
+        return JsonResponse({
+            'status': 'success',
+            'count': updated_count,
+            'message': u'Đã chuyển các ảnh vào thùng rác'
+        })
 
-        return JsonResponse({'status': 'success'})
-    except ValueError:  # Bắt lỗi parse JSON
-        return JsonResponse({'status': 'error', 'message': 'Dữ liệu không hợp lệ'}, status=400)
+    except ValueError:
+        return JsonResponse({'status': 'error', 'message': u'Dữ liệu JSON không hợp lệ'}, status=400)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': unicode(e)}, status=500)
 
 
 def update_image_info(request):

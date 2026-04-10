@@ -110,15 +110,15 @@ class ExtractedResult(models.Model):
     # Thời gian lưu bản draft
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Bổ trợ xoá mềm
+    is_deleted = models.BooleanField(default=False)
+    delete_at = models.DateTimeField(blank=True, null=True)
+
     def __unicode__(self):
         return u"%s - %s" % (self.title, self.status)
 
     def get_related_images(self):
-        """
-        Hàm tiện ích để lấy các object ảnh gốc từ Media Library.
-        Nếu ảnh đã bị xóa (do giới hạn 50 tấm), nó sẽ không xuất hiện trong kết quả.
-        """
-        if not self.source_file_ids:
+        if not self.source_file_ids or self.is_deleted: # Nếu bảng tính đã bị xóa mềm, có thể không cần lấy ảnh
             return []
         return UploadedFile.objects.filter(id__in=self.source_file_ids, is_deleted=False)
 
