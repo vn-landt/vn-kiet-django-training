@@ -75,7 +75,7 @@ document.addEventListener('click', function(e) {
 
                 // Gửi request xóa tới server
                 // Lưu ý: URL '/delete/ID/' phải khớp với urls.py của bạn
-                fetch(`/delete/${resultId}/`, {
+                fetch(`/home/delete/${resultId}/`, {
                     method: 'POST',
                     headers: {
                         'X-CSRFToken': csrftoken,

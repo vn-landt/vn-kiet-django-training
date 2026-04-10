@@ -14,7 +14,7 @@ from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.conf import settings
 from .forms import UploadFileForm, RegisterForm
-from .models import UploadedFile, ExtractedResult, UsageLog
+from .models import UploadedFile, ExtractedResult, UsageLog, Notification, NotificationManager
 from .services.bridge import process_and_save_extraction
 from django.urls import reverse
 from .services.sheets_export import export_to_google_sheets
@@ -183,7 +183,7 @@ def export_to_sheets(request, result_id):
         )
     )
 
-
+# Xoá bảng tính ở trang home
 def delete_result(request, result_id):
     if request.method == 'POST':
         # Thêm filter user=request.user để đảm bảo tính bảo mật
@@ -203,6 +203,14 @@ def delete_result(request, result_id):
 
         # 3. Xóa bản ghi bảng tính trong Database
         # Các ảnh liên quan (UploadedFile) sẽ KHÔNG bị ảnh hưởng vì chúng là các record độc lập
+        # Thông báo xoá bảng tính
+        Notification.objects.create_notification(
+            user=request.user,
+            title=u"Xoá bảng tính!",
+            message=u"Hệ thống đã xóa bảng tính '{}' thành công.".format(result.title),
+            level='success',
+            linked_to=None
+        )
         result.delete()
 
     return redirect('home')
@@ -218,6 +226,15 @@ def is_storage_full(user):
 
     # Đếm số file đang hoạt động (chưa bị xóa) của user
     current_count = UploadedFile.objects.filter(user=user, is_deleted=False).count()
+    if current_count >=50:
+        # Thông báo vượt quá hạn mức lưu ảnh
+        Notification.objects.create_notification(
+            user=user,
+            title=u"Cần hành động!",
+            message=u"Vui lòng truy cập và kiểm soát dưới '{}' ảnh.".format(current_count),
+            level='warning',
+            linked_to='/documents/'
+        )
     return current_count >= 50
 
 @require_POST
@@ -246,7 +263,7 @@ def update_table_data(request, result_id):
         })
 
 @csrf_protect
-def ai_generate_view(request):
+def generate_ai_content(request):
     """
     API nhận prompt từ giao diện và trả về văn bản từ Gemini
     """
@@ -272,7 +289,6 @@ def ai_generate_view(request):
                     'status': 'error',
                     'message': error
                 })
-
             return JsonResponse({
                 'status': 'success',
                 'result': result,
@@ -366,6 +382,14 @@ def extract_only_api(request):
         # Lưu vào cả Draft và Final
         handler = TableFileHandler(res_obj)
         handler.save_data(table_data, is_final=True)
+        # Thông báo tạo bảng mời từ ảnh
+        Notification.objects.create_notification(
+            user=user,
+            title=u"Tạo bảng mới!",
+            message=u"Tạo bảng mới '{}'.".format(res_obj.title),
+            level='success',
+            linked_to=reverse('result_detail', kwargs={'result_id': res_obj.id})
+        )
 
     elif current_result_id:
         # FLOW 2: TRONG BẢNG CHI TIẾT -> CHỈ CẬP NHẬT DRAFT
@@ -487,6 +511,16 @@ def register(request):
                 # Tạo UserProfile đi kèm (Yêu cầu của bạn)
                 UserProfile.objects.get_or_create(user=user)
 
+                # Thông báo đăng ký tài khoản thành công
+                Notification.objects.create_notification(
+                    user=user,
+                    title=u"Chào mừng thành viên mới!",
+                    # Sửa: Dùng user.username thay vì res_obj.title (vì lúc này chưa có bảng tính nào)
+                    message=u"Chào mừng '{}' đã gia nhập Extractor AI.".format(user.username),
+                    level='success',  # Sửa lỗi chính tả 'succes' -> 'success'
+                    linked_to=None
+                )
+
                 # Xóa các dấu vết xác thực trong session sau khi thành công
                 keys_to_delete = ['otp_code', 'otp_target_email', 'is_otp_verified', 'verified_email']
                 for key in keys_to_delete:
@@ -527,6 +561,15 @@ def reset_password_final(request):
                 del request.session['is_otp_verified']
                 del request.session['otp_code']
 
+                # Thông báo đặt lại mật khẩu thành công
+                Notification.objects.create_notification(
+                    user=user,
+                    title=u"Đặt lại mật khẩu!",
+                    message=u"Đặt lại mật khẩu thành công!",
+                    level='success',
+                    linked_to=None
+                )
+
                 return JsonResponse({'success': True})
             except User.DoesNotExist:
                 return JsonResponse({'success': False, 'message': u'Tài khoản không tồn tại.'}, status=404)
@@ -552,9 +595,15 @@ def auto_cleanup_task(request):
         f.is_deleted = True
         f.save()
         count += 1
-
+    # Thông báo tự động xoá
+    Notification.objects.create_notification(
+        user=request.user,
+        title=u"Tự động xoá!",
+        message=u"Đã thực hiện tự động xoá '{}' ảnh theo thiết lập!".format(count),
+        level='info',
+        linked_to='/documents/'
+    )
     return HttpResponse(u"Đã dọn dẹp %d ảnh hết hạn." % count)
-# views.py
 
 def export(request, result_id):
     result = get_object_or_404(ExtractedResult, id=result_id)
@@ -758,6 +807,15 @@ def create_blank_document(request):
     handler = TableFileHandler(res_obj)
     handler.save_data(empty_data)
 
+    # Thông báo tạo bảng tính trống thành công
+    Notification.objects.create_notification(
+        user=request.user,
+        title=u"Tạo bảng trống!",
+        message=u"Đã tạo bảng tính trống!",
+        level='success',
+        linked_to=reverse('result_detail', kwargs={'result_id': res_obj.id})
+    )
+
     return JsonResponse({'status': 'success', 'redirect_url': reverse('result_detail', args=[res_obj.id])})
 
 
@@ -775,7 +833,7 @@ def update_title_api(request, result_id):
 
     return JsonResponse({'status': 'error', 'message': 'Thiếu tiêu đề'}, status=400)
 
-
+# Xoá bảng tính ở documents/
 @login_required
 @require_POST
 def delete_result_api(request, result_id):
@@ -791,10 +849,20 @@ def delete_result_api(request, result_id):
         # Nếu không có file hoặc có lỗi vật lý, vẫn tiếp tục xóa trong database
         pass
 
+    # Thông báo xoá bảng tính
+    Notification.objects.create_notification(
+        user=request.user,
+        title=u"Xoá bảng tính!",
+        message=u"Hệ thống đã xóa bảng tính '{}' thành công.".format(result.title),
+        level='success',
+        linked_to=None
+    )
+
     # Xóa record trong Database
     # Vì source_file_ids chỉ là ListField chứa ID (số nguyên) chứ không phải ForeignKey,
     # việc gọi result.delete() hoàn toàn KHÔNG tự động xóa ảnh trong UploadedFile.
     result.delete()
+
 
     return JsonResponse({'status': 'success'})
 
@@ -807,6 +875,15 @@ def delete_image_api(request, img_id):
 
     # Xóa ảnh vật lý (nếu bạn có lưu file trên Storage) - Thêm code của bạn ở đây nếu cần
     # ...
+
+    # Thông báo xoá bảng tính
+    Notification.objects.create_notification(
+        user=request.user,
+        title=u"Xoá ảnh!",
+        message=u"Hệ thống đã xóa 1 thành công.",
+        level='success',
+        linked_to=None
+    )
 
     # Xóa trong database.
     # Như bạn yêu cầu, hành động này không ảnh hưởng đến ListField `source_file_ids`
@@ -826,6 +903,14 @@ def bulk_delete_images_api(request):
         ids = data.get('ids', [])
 
         if ids:
+            # Thông báo xoá hàng loạt ảnh
+            Notification.objects.create_notification(
+                user=request.user,
+                title=u"Xoá ảnh!",
+                message=u"Hệ thống đã xóa '{}' thành công.".format(len(ids)),
+                level='success',
+                linked_to=None
+            )
             # Xóa trên Storage (nếu có) trước khi xóa DB
             # images_to_delete = UploadedFile.objects.filter(id__in=ids, user=request.user)
             # for img in images_to_delete:
@@ -859,6 +944,14 @@ def update_image_info(request):
                     img_obj.delete_at = timezone.now() + timedelta(minutes=duration_int)
                 else:
                     img_obj.delete_at = None  # Chuyển sang vĩnh viễn
+                # Thông báo xoá hàng loạt ảnh
+                Notification.objects.create_notification(
+                    user=request.user,
+                    title=u"Tự động xoá ảnh!",
+                    message=u"Một số ảnh đã được chỉnh thời gian tự động xoá!.",
+                    level='info',
+                    linked_to='/documents/'
+                )
 
             img_obj.save()
             return JsonResponse({'status': 'success'})
@@ -888,6 +981,15 @@ def bulk_update_time(request):
                 id__in=ids,
                 user=user
             ).update(delete_at=new_expiry)
+
+            # Thông báo xoá hàng loạt ảnh
+            Notification.objects.create_notification(
+                user=request.user,
+                title=u"Tự động xoá ảnh!",
+                message=u"Một số ảnh đã được chỉnh thời gian tự động xoá!.",
+                level='info',
+                linked_to='/documents/'
+            )
 
             return JsonResponse({'status': 'success', 'count': len(ids)})
         except Exception as e:
@@ -979,6 +1081,15 @@ def change_password(request):
         user.set_password(new_pass) # Hàm này tự động băm (hash) mật khẩu
         user.save()
 
+        # Thông báo đặt lại mật khẩu thành công
+        Notification.objects.create_notification(
+            user=user,
+            title=u"Đặt lại mật khẩu!",
+            message=u"Đặt lại mật khẩu thành công!",
+            level='success',
+            linked_to=None
+        )
+
         # 6. CẬP NHẬT SESSION (Rất quan trọng!)
         # Sau khi đổi mật khẩu, Django sẽ làm mới session hash.
         # Nếu không có dòng này, người dùng sẽ bị văng ra trang Login ngay lập tức.
@@ -990,6 +1101,7 @@ def change_password(request):
     return redirect('settings')
 
 # Notifications
+# 1. Đánh dấu một thông báo là đã đọc
 def mark_as_read(request, noti_id):
     if request.method == "POST":
         try:
@@ -1000,32 +1112,34 @@ def mark_as_read(request, noti_id):
         except:
             return JsonResponse({'success': False}, status=400)
 
+# 2. XÓA VĨNH VIỄN một thông báo
 def delete_notification(request, noti_id):
     if request.method == "POST":
         try:
-            noti = Notification.all_objects.get(id=noti_id, user=request.user)
-            noti.soft_delete() # Sử dụng hàm soft_delete đã tạo ở model
+            noti = Notification.objects.get(id=noti_id, user=request.user)
+            noti.delete()
             return JsonResponse({'success': True})
         except:
             return JsonResponse({'success': False}, status=400)
 
-# views.py (Python 2.7)
+# 3. Đánh dấu tất cả là đã đọc
 def mark_all_read(request):
     if request.method == "POST":
         Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
         return JsonResponse({'success': True})
 
+# 4. XÓA SẠCH tất cả thông báo
 def delete_all_notifications(request):
     if request.method == "POST":
-        # Sử dụng Manager all_objects nếu bạn dùng Soft Delete như đã hướng dẫn trước đó
-        Notification.objects.filter(user=request.user).update(is_deleted=True, deleted_at=timezone.now())
+        # Thay vì .update(is_deleted=True), ta dùng .delete() để xóa sạch khỏi DB
+        Notification.objects.filter(user=request.user).delete()
         return JsonResponse({'success': True})
 
+# 5. Đảo trạng thái Đọc/Chưa đọc
 def toggle_read(request, noti_id):
     if request.method == "POST":
         try:
             noti = Notification.objects.get(id=noti_id, user=request.user)
-            # Đảo trạng thái: True -> False, False -> True
             noti.is_read = not noti.is_read
             noti.save()
             return JsonResponse({'success': True, 'is_read': noti.is_read})
