@@ -1,4 +1,12 @@
 window.originalFileName = "";
+const csrftoken = $('meta[name="csrf-token"]').attr('content');
+$.ajaxSetup({
+    beforeSend: function(xhr, settings) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
+            xhr.setRequestHeader("X-CSRFToken", csrftoken);
+        }
+    }
+});
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('id_file');
     const selectBtn = document.getElementById('selectBtn'); // Nút chọn/đổi ảnh
@@ -187,3 +195,46 @@ function onImageCropped(blob, languagesStr, originalFileName, deleteDuration) {
         Swal.fire('Lỗi kết nối', 'Không thể kết nối máy chủ. Vui lòng thử lại.', 'error');
     });
 }
+
+$(document).ready(function() {
+    // === TẠO BẢNG TRỐNG ===
+    $('#btn-create-blank').on('click', function () {
+        Swal.fire({
+            title: 'Đặt tên bảng tính',
+            input: 'text',
+            inputPlaceholder: 'Ví dụ: Báo cáo tháng 4',
+            showCancelButton: true,
+            confirmButtonText: 'Tạo ngay',
+            cancelButtonText: 'Hủy',
+            inputValidator: (value) => {
+                if (!value) return 'Bạn cần nhập tên bảng tính!';
+            }
+        }).then((result) => {
+            if (result.isConfirmed && result.value) {
+                Swal.fire({
+                    title: 'Đang khởi tạo...',
+                    allowOutsideClick: false,
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
+                });
+
+                $.ajax({
+                    url: '/create-spreadsheet-blank/',
+                    type: 'POST',
+                    data: {'name': result.value},
+                    success: function (response) {
+                        if (response.status === 'success') {
+                            window.location.href = response.redirect_url;
+                        } else {
+                            Swal.fire('Lỗi!', response.message || 'Không thể tạo bảng tính.', 'error');
+                        }
+                    },
+                    error: function (xhr) {
+                        Swal.fire('Lỗi kết nối!', 'Vui lòng kiểm tra lại.', 'error');
+                    }
+                });
+            }
+        });
+    });
+});

@@ -25,8 +25,10 @@ urlpatterns = [
     url(r'^documents/$', views.documents_view, name='documents'),
     url(r'^settings/$', views.settings_view, name='settings'),
 
+    # documents and home
+    url(r'^create-spreadsheet-blank/$', views.create_spreadsheet_blank, name='create_spreadsheet_blank'),
+
     # documents.html
-    url(r'^documents/create-blank/$', views.create_blank_document, name='create_blank_document'),
     # 1. API cho Bảng tính từ documents.js (ExtractedResult)
     url(r'^documents/update-title/(?P<result_id>\d+)/$', views.update_title_api, name='update_title_api'),
     url(r'^documents/delete-result/(?P<result_id>\d+)/$', views.delete_result_api, name='delete_result_api'),

@@ -789,7 +789,7 @@ def documents_view(request):
 
 @login_required
 @require_POST
-def create_blank_document(request):
+def create_spreadsheet_blank(request):
     """Tạo bảng trống - KHÔNG cần tạo UploadedFile giả nữa"""
     name = request.POST.get('name', 'Untitled Spreadsheet')
     user = request.user
