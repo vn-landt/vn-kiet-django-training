@@ -1363,6 +1363,15 @@ def batch_extract_api(request):
         processed_at=timezone.now()
     )
 
+    # Thông báo tạo bảng mới từ nhiều ảnh
+    Notification.objects.create_notification(
+        user=user,
+        title=u"Tạo bảng mới!",
+        message=u"Tạo bảng mới '{}' từ nhiều ảnh.".format(res_obj.title),
+        level='success',
+        linked_to=reverse('result_detail', kwargs={'result_id': res_obj.id})
+    )
+
     handler = TableFileHandler(res_obj)
     handler.save_data(table_data, is_final=True)
 
