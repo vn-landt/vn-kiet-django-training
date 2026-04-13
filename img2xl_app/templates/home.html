@@ -13,17 +13,44 @@
     <div class="main-container container-fluid">
         <div class="workspace">
             <div class="control-panel">
-                <section class="card shadow-sm border-0">
+                <section class="card shadow-sm border-0 p-3">
                     <h2 class="section-title"><i class="fas fa-cog mr-2"></i>Cấu hình trích xuất</h2>
-                    <form id="uploadForm">
-                        {% csrf_token %}
-                        <div style="display: none;">{{ form.file }}</div>
-                        <div class="button-group mt-3">
-                            <button type="button" id="selectBtn" class="btn-select w-100">
-                                <i class="fas fa-camera mr-2"></i> Chọn ảnh để bắt đầu
-                            </button>
+
+                    <div class="mb-3 mt-3 text-center">
+                        <div class="custom-control custom-radio custom-control-inline">
+                            <input type="radio" id="modeSingle" name="extractMode" class="custom-control-input" value="single" checked onchange="toggleMode()">
+                            <label class="custom-control-label" for="modeSingle">Trích xuất 1 ảnh</label>
                         </div>
-                    </form>
+                        <div class="custom-control custom-radio custom-control-inline">
+                            <input type="radio" id="modeBatch" name="extractMode" class="custom-control-input" value="batch" onchange="toggleMode()">
+                            <label class="custom-control-label" for="modeBatch">Trích xuất nhiều ảnh</label>
+                        </div>
+                    </div>
+
+                    <button type="button" id="selectBtn" class="btn btn-primary w-100 mb-3">
+                        <i class="fas fa-camera mr-2"></i> Chọn ảnh để bắt đầu
+                    </button>
+                    <input type="file" id="id_file" name="file" accept="image/*" style="display: none;">
+
+                    <div id="globalConfigSection">
+                        <hr>
+                        <div id="languageSection" class="config-section mb-3">
+                            <label class="section-label text-primary"><strong>Ngôn ngữ trích xuất:</strong></label>
+                            <div class="lang-grid mt-2">
+                                <label class="lang-item"><input type="checkbox" name="langs" value="vie"> <span class="lang-chip">Tiếng Việt</span></label>
+                                <label class="lang-item"><input type="checkbox" name="langs" value="eng"> <span class="lang-chip">Tiếng Anh</span></label>
+                                <label class="lang-item"><input type="checkbox" name="langs" value="all" checked> <span class="lang-chip">Tự nhận diện</span></label>
+                            </div>
+                        </div>
+                        <div id="deleteSection" class="config-section">
+                            <label class="section-label text-danger"><strong>Tự động xóa ảnh:</strong></label>
+                            <select name="delete_duration" id="deleteDuration" class="form-control">
+                                <option value="0">Không tự động xóa</option>
+                                <option value="30">Sau 30 phút</option>
+                                <option value="1440">Sau 1 ngày</option>
+                            </select>
+                        </div>
+                    </div>
                 </section>
             
                 <button class="btn btn-success btn-sm ml-3" id="btn-create-blank"><i class="fas fa-plus"></i> Tạo bảng trống</button>
@@ -61,24 +88,34 @@
                 </section>
             </div>
 
-            <div class="preview-panel shadow-sm">
-                <div id="previewPlaceholder" class="placeholder">
-                    <i class="fas fa-images fa-4x mb-3 opacity-25"></i>
-                    <p>Chưa có ảnh nào được chọn</p>
+            <div class="preview-panel shadow-sm mt-3 p-3 bg-white rounded">
+                <div id="previewPlaceholder" class="text-center py-4">
+                    <p class="text-muted">Chưa có ảnh nào được chọn</p>
                 </div>
 
-                <div id="previewContainer" style="display: none; width: 100%;">
-                    <div class="file-info mb-3">
-                        <span id="fileNameDisplay"><i class="fas fa-paperclip mr-2"></i>filename.jpg</span>
+                <div id="singlePreviewArea" style="display: none;">
+                    <img id="imagePreview" src="" class="img-fluid rounded mb-3 border">
+                    <p id="fileNameDisplay" class="small text-muted text-center"></p>
+                    <button type="button" id="extractBtn" class="btn btn-success w-100">
+                        <i class="fas fa-rocket mr-2"></i> Bắt đầu trích xuất
+                    </button>
+                </div>
+
+                <div id="batchPreviewArea" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="font-weight-bold mb-0">
+                            <i class="fas fa-list-ul mr-2"></i>Danh sách trích xuất (<span id="fileCount">0</span>/10)
+                        </h5>
+                        <a href="javascript:void(0)" class="text-danger font-weight-bold" onclick="clearAllFiles()" style="text-decoration: none;">
+                            <i class="fas fa-trash-alt mr-1"></i>Xóa hết
+                        </a>
                     </div>
-                    <div class="image-wrapper shadow-sm">
-                        <img id="imagePreview" src="#" alt="Preview">
-                    </div>
-                    <div class="action-footer mt-4">
-                        <button type="button" id="extractBtn" class="btn-extract">
-                            <i class="fas fa-rocket mr-2"></i> Bắt đầu trích xuất ngay
-                        </button>
-                    </div>
+                    
+                    <div id="batchList" class="border rounded p-3 bg-light mb-4 shadow-sm" style="max-height: 450px; overflow-y: auto;"></div>
+                    
+                    <button type="button" id="batchExtractBtn" class="btn btn-success btn-lg w-100 py-3 shadow" style="font-size: 1.2rem; font-weight: bold;">
+                        <i class="fas fa-rocket mr-2"></i> BẮT ĐẦU TRÍCH XUẤT HÀNG LOẠT
+                    </button>
                 </div>
             </div>
         </div>

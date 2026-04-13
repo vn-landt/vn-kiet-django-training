@@ -20,7 +20,11 @@ urlpatterns = [
     url(r'^export_to_sheets/(?P<result_id>\d+)/$', views.export_to_sheets, name='export_to_sheets'),
     url(r'^result/(?P<result_id>\d+)/update/$', views.update_table_data, name='update_table_data'),
     url(r'^api/generate-ai-content/$', views.generate_ai_content, name='generate_ai_content'),
+
+    # Trích xuất ảnh với gemini
     url(r'^extract-only-api/$', views.extract_only_api, name='extract_only_api'),
+    url(r'^batch-extract-api/$', views.batch_extract_api, name='batch_extract_api'),
+
     url(r'^tasks/auto-cleanup/$', views.auto_cleanup_task, name='cleanup_old_data'),
     url(r'^documents/$', views.documents_view, name='documents'),
     url(r'^settings/$', views.settings_view, name='settings'),
