@@ -353,62 +353,46 @@ window.cropBatchItem = function(index) {
  * Logic gửi hàng loạt về server
  */
 async function startBatchProcessing() {
-    if (window.batchFiles.length === 0) {
-        return Swal.fire('Thông báo', 'Vui lòng chọn ít nhất 1 ảnh!', 'info');
-    }
+    if (window.batchFiles.length === 0) return;
 
     const languagesStr = Array.from(document.querySelectorAll('input[name="langs"]:checked')).map(cb => cb.value).join(',');
     const deleteDuration = document.getElementById('deleteDuration').value;
-    const csrftoken = $('meta[name="csrf-token"]').attr('content')
-                   || (document.querySelector('[name=csrfmiddlewaretoken]') ? document.querySelector('[name=csrfmiddlewaretoken]').value : "");
+    const csrftoken = $('meta[name="csrf-token"]').attr('content');
+
+    const formData = new FormData();
+
+    // Đưa tất cả file vào cùng một key đặt tên là 'files'
+    window.batchFiles.forEach((item) => {
+        formData.append('files', item.file); // Lưu ý: cùng 1 key 'files'
+    });
+
+    formData.append('languages', languagesStr);
+    formData.append('deleteDuration', deleteDuration);
 
     Swal.fire({
-        title: 'Đang xử lý hàng loạt...',
-        html: `Tiến độ: <b>0</b> / ${window.batchFiles.length} ảnh`,
+        title: 'Đang xử lý...',
+        html: `Đang tải ${window.batchFiles.length} ảnh và phân tích dữ liệu. Vui lòng đợi...`,
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
-    let firstResultId = null;
+    try {
+        const response = await fetch('/batch-extract-api/', {
+            method: 'POST',
+            body: formData,
+            headers: { 'X-CSRFToken': csrftoken }
+        });
+        const result = await response.json();
 
-    for (let i = 0; i < window.batchFiles.length; i++) {
-        const item = window.batchFiles[i];
-        Swal.getHtmlContainer().querySelector('b').innerText = (i + 1);
-
-        const formData = new FormData();
-        formData.append('file', item.file, "processed_image.jpg");
-        formData.append('original_filename', item.originalName);
-        formData.append('languages', languagesStr || 'all');
-        formData.append('deleteDuration', deleteDuration);
-
-        if (i === 0) {
-            formData.append('save_db', 'true'); // Ảnh đầu tiên tạo record mới
+        Swal.close();
+        if (result.status === 'success') {
+            window.location.href = "/result/" + result.result_id + "/";
         } else {
-            formData.append('save_db', 'false'); // Các ảnh sau đính kèm vào record cũ
-            formData.append('result_id', firstResultId);
+            Swal.fire('Lỗi', result.message, 'error');
         }
-
-        try {
-            const response = await fetch('/extract-only-api/', {
-                method: 'POST',
-                body: formData,
-                headers: { 'X-CSRFToken': csrftoken }
-            });
-            const data = await response.json();
-
-            if (data.status === 'success') {
-                if (i === 0) firstResultId = data.result_id;
-            } else {
-                console.error("Lỗi ảnh " + (i+1) + ": " + data.message);
-            }
-        } catch (err) {
-            console.error("Lỗi kết nối ảnh " + (i+1));
-        }
-    }
-
-    Swal.close();
-    if (firstResultId) {
-        window.location.href = "/result/" + firstResultId + "/";
+    } catch (err) {
+        Swal.close();
+        Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
     }
 }
 
