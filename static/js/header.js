@@ -1,3 +1,12 @@
+// Biến cờ để kiểm soát việc đóng dropdown
+let isProcessingSwal = false;
+
+// Ngăn Dropdown đóng khi đang hiển thị SweetAlert2
+$(document).on('hide.bs.dropdown', '.dropdown', function (e) {
+    if (isProcessingSwal) {
+        e.preventDefault(); // Chặn sự kiện ẩn dropdown
+    }
+});
 // --- 1. Tiện ích ---
 function getCSRFToken() {
     const meta = document.querySelector('meta[name="csrf-token"]');
@@ -55,6 +64,7 @@ function handleNotiToggle(event, notiId) {
 
 function deleteNoti(event, notiId) {
     event.stopPropagation(); // Không đóng menu khi hiện Swal
+    isProcessingSwal = true; // Bật cờ chặn đóng menu
 
     Swal.fire({
         title: 'Xóa thông báo?',
@@ -129,6 +139,7 @@ function markAllRead(event) {
 
 function deleteAllNotis(event) {
     if(event) event.stopPropagation();
+    isProcessingSwal = true; // Bật cờ chặn đóng menu
     Swal.fire({
         title: 'Xóa sạch thông báo?',
         icon: 'warning',

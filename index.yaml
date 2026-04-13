@@ -13,6 +13,33 @@ indexes:
 
 - kind: img2xl_app_extractedresult
   properties:
+  - name: is_deleted
+  - name: created_at
+    direction: desc
+
+- kind: img2xl_app_extractedresult
+  properties:
+  - name: is_deleted
+  - name: user_id
+  - name: created_at
+    direction: desc
+
+- kind: img2xl_app_extractedresult
+  properties:
+  - name: is_deleted
+  - name: user_id
+  - name: delete_at
+    direction: desc
+
+- kind: img2xl_app_extractedresult
+  properties:
+  - name: is_deleted
+  - name: user_id
+  - name: updated_at
+    direction: desc
+
+- kind: img2xl_app_extractedresult
+  properties:
   - name: uploaded_file_id
   - name: created_at
     direction: desc
@@ -57,8 +84,22 @@ indexes:
 
 - kind: img2xl_app_notification
   properties:
+  - name: is_read
   - name: user_id
   - name: created_at
+    direction: desc
+
+- kind: img2xl_app_notification
+  properties:
+  - name: user_id
+  - name: created_at
+    direction: desc
+
+- kind: img2xl_app_uploadedfile
+  properties:
+  - name: is_deleted
+  - name: user_id
+  - name: delete_at
     direction: desc
 
 - kind: img2xl_app_uploadedfile

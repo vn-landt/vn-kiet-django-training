@@ -49,4 +49,8 @@ urlpatterns = [
     url(r'^notifications/mark-all-read/$', views.mark_all_read, name='mark_all_read'),
     url(r'^notifications/delete-all/$', views.delete_all_notifications, name='delete_all_notifications'),
     url(r'^notifications/toggle-read/(?P<noti_id>\d+)/$', views.toggle_read, name='toggle_read'),
+
+    # Trash/Bin
+    url(r'^trash-bin/$', views.trash_bin_view, name='trash_bin'),
+    url(r'^trash-bin/api/restore/$', views.restore_item_api, name='restore_item_api'),
 ]
