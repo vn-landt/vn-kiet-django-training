@@ -179,3 +179,114 @@ body {
     font-size: 0.9rem;
     color: #495057;
 }
+
+.history-list {
+    /* Thiết lập chiều cao tối đa (thường 1 item khoảng 45-50px) */
+    /* 250px là con số vừa đủ cho khoảng 5 items */
+    max-height: 150px;
+
+    /* Hiện thanh trượt dọc nếu vượt quá chiều cao */
+    overflow-y: auto;
+
+    /* Ẩn thanh trượt ngang nếu không cần thiết */
+    overflow-x: hidden;
+
+    /* Thêm một chút padding để thanh cuộn không đè lên nút xóa */
+    padding-right: 5px;
+}
+
+/* Tùy chỉnh thanh cuộn cho đẹp và gọn hơn (dành cho Chrome, Safari, Edge) */
+.history-list::-webkit-scrollbar {
+    width: 6px;
+}
+
+.history-list::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 10px;
+}
+
+.history-list::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 10px;
+}
+
+.history-list::-webkit-scrollbar-thumb:hover {
+    background: #b3b3b3;
+}
+
+.history-item {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        min-height: 30px; /* Đảm bảo chiều cao tối thiểu cho mỗi dòng */
+}
+
+.history-item:last-child {
+    border-bottom: none;
+}
+
+    /* Trạng thái đóng băng */
+.config-frozen {
+    opacity: 0.5; /* Làm mờ */
+    pointer-events: none; /* Ngăn click, chọn, thay đổi */
+    user-select: none; /* Ngăn bôi đen văn bản */
+    filter: grayscale(0.8); /* (Tùy chọn) Làm bạc màu để trông giống bị disable */
+}
+
+/* Container của mỗi item ảnh */
+.batch-item-wrapper {
+    position: relative;
+    width: 100%;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #eee;
+    background: #fff;
+    transition: all 0.3s ease;
+}
+
+.batch-item-wrapper:hover {
+    border-color: #007bff;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+/* Ảnh preview to hơn */
+.batch-img-large {
+    width: 100%;
+    height: 180px; /* Tăng chiều cao ảnh lên */
+    object-fit: contain; /* Đảm bảo thấy hết nội dung ảnh */
+    background: #fdfdfd;
+}
+
+/* Overlay chứa các nút bấm nằm trên ảnh */
+.batch-actions-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.2); /* Làm tối nhẹ ảnh để nổi nút */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    opacity: 0; /* Mặc định ẩn nút */
+    transition: opacity 0.3s ease;
+}
+
+/* Hiện nút khi di chuột vào ảnh */
+.batch-item-wrapper:hover .batch-actions-overlay {
+    opacity: 1;
+}
+
+/* Tên file nằm dưới đáy ảnh */
+.batch-file-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: bold;
+    text-align: center;
+}

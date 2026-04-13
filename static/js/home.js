@@ -249,7 +249,8 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 
-    document.getElementById('batchExtractBtn').addEventListener('click', startBatchProcessing);
+    document.getElementById('batchExtractBtn').addEventListener('click', startBatchProcessing)
+    toggleMode();
 });
 
 /**
@@ -260,17 +261,25 @@ window.toggleMode = function() {
     const mode = document.querySelector('input[name="extractMode"]:checked').value;
     window.extractMode = mode;
 
-    const config = document.getElementById('globalConfigSection');
+    const configSection = document.getElementById('globalConfigSection');
+    const allInputs = configSection.querySelectorAll('input, select');
     const fileInput = document.getElementById('id_file');
 
     if (mode === 'batch') {
-        config.style.display = 'block'; // Hiện ngôn ngữ/thời gian ngay lập tức
+        // MỞ KHÓA khi trích xuất nhiều ảnh
+        configSection.classList.remove('config-frozen');
+        allInputs.forEach(input => input.disabled = false);
+
         fileInput.setAttribute('multiple', 'multiple');
     } else {
-        config.style.display = 'none'; // Ẩn khi về chế độ 1 ảnh
+        // ĐÓNG BĂNG khi trích xuất 1 ảnh
+        configSection.classList.add('config-frozen');
+        allInputs.forEach(input => input.disabled = true);
+
         fileInput.removeAttribute('multiple');
     }
-    // Reset giao diện khi chuyển tab
+
+    // Reset giao diện xem trước như cũ
     document.getElementById('singlePreviewArea').style.display = 'none';
     document.getElementById('batchPreviewArea').style.display = 'none';
     document.getElementById('previewPlaceholder').style.display = 'block';
@@ -284,31 +293,40 @@ window.renderBatchList = function() {
     const countDisplay = document.getElementById('fileCount');
     if (!container) return;
 
-    container.innerHTML = '';
+    container.innerHTML = ''; // Xóa sạch để vẽ lại
     countDisplay.innerText = window.batchFiles.length;
+
+    // Sử dụng row của Bootstrap để chứa các col
+    const rowHtml = document.createElement('div');
+    rowHtml.className = 'row p-2';
+    container.appendChild(rowHtml);
 
     window.batchFiles.forEach((item, index) => {
         const imageUrl = URL.createObjectURL(item.file);
         const html = `
-            <div class="col-12 mb-2 p-2 border rounded d-flex align-items-center justify-content-between bg-white shadow-sm">
-                <div class="d-flex align-items-center flex-grow-1" style="min-width: 0;">
-                    <img src="${imageUrl}" class="rounded mr-3" style="width: 60px; height: 60px; object-fit: cover; border: 1px solid #eee;">
-                    <div style="min-width: 0;">
-                        <div class="text-truncate font-weight-bold" title="${item.originalName}">${item.originalName}</div>
-                        ${item.isCropped ? '<small class="badge badge-success">Đã cắt chỉnh</small>' : '<small class="text-muted">Ảnh gốc</small>'}
+            <div class="col-6 col-md-4 mb-3"> <div class="batch-item-wrapper">
+                    <img src="${imageUrl}" class="batch-img-large">
+                    
+                    <div class="batch-actions-overlay">
+                        <button type="button" class="btn btn-primary btn-sm rounded-circle shadow" 
+                                onclick="cropBatchItem(${index})" title="Cắt chỉnh">
+                            <i class="fas fa-crop fa-lg"></i>
+                        </button>
+                        <button type="button" class="btn btn-danger btn-sm rounded-circle shadow" 
+                                onclick="deleteBatchItem(${index})" title="Xóa">
+                            <i class="fas fa-times fa-lg"></i>
+                        </button>
                     </div>
-                </div>
-                <div class="ml-2 d-flex">
-                    <button type="button" class="btn btn-sm btn-outline-primary mr-1" onclick="cropBatchItem(${index})" title="Cắt ảnh">
-                        <i class="fas fa-crop"></i>
-                    </button>
-                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="deleteBatchItem(${index})" title="Xóa">
-                        <i class="fas fa-times"></i>
-                    </button>
+
+                    ${item.isCropped ? '<span class="badge badge-success" style="position:absolute; top:5px; left:5px;">Đã cắt</span>' : ''}
+
+                    <div class="batch-file-name text-truncate">
+                        ${item.originalName}
+                    </div>
                 </div>
             </div>
         `;
-        container.insertAdjacentHTML('beforeend', html);
+        rowHtml.insertAdjacentHTML('beforeend', html);
     });
 };
 
