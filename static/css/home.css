@@ -135,3 +135,47 @@ body {
     .workspace { flex-direction: column; }
     .control-panel, .preview-panel { width: 100%; }
 }
+
+/* Khu vực cuộn danh sách ảnh */
+.batch-scroll-area {
+    max-height: 350px;
+    overflow-y: auto;
+    padding-right: 5px;
+}
+
+/* Tùy chỉnh thanh cuộn (scrollbar) cho hiện đại */
+.batch-scroll-area::-webkit-scrollbar {
+    width: 6px;
+}
+.batch-scroll-area::-webkit-scrollbar-thumb {
+    background-color: #dee2e6;
+    border-radius: 10px;
+}
+
+/* Style cho các chip ngôn ngữ (nếu bạn chưa có) */
+.lang-grid {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.lang-item input { display: none; }
+.lang-chip {
+    padding: 6px 15px;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8f9fa;
+}
+.lang-item input:checked + .lang-chip {
+    background: #007bff;
+    color: white;
+    border-color: #007bff;
+}
+
+/* Section label */
+.section-label {
+    display: block;
+    font-size: 0.9rem;
+    color: #495057;
+}
