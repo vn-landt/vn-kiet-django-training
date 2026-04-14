@@ -85,6 +85,9 @@ function processAndExtract() {
     // Gộp thành chuỗi cách nhau bằng dấu phẩy (vd: "vie,eng" hoặc "all")
     const languagesStr = selectedLangs.join(',');
 
+    // 2. Lấy giá trị thời gian tự động xóa (MỚI)
+    const deleteDuration = document.getElementById('deleteDuration').value;
+
     // Lấy canvas đã cắt
     const canvas = cropper.getCroppedCanvas({
         maxWidth: 2048, // Tối ưu cho AI
@@ -97,7 +100,7 @@ function processAndExtract() {
 
         // GỌI HÀM CALLBACK: Hàm này phải được định nghĩa trong home.js hoặc result_detail.js
         if (typeof onImageCropped === 'function') {
-            onImageCropped(blob, languagesStr, window.originalFileName || "unknown_part.jpg");        } else {
+            onImageCropped(blob, languagesStr, window.originalFileName || "unknown_part.jpg", deleteDuration);        } else {
             console.error("Lỗi: Hàm onImageCropped(blob) chưa được định nghĩa!");
         }
 

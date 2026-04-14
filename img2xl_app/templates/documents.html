@@ -2,6 +2,7 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <meta charset="UTF-8">
     <title>Quản lý tài liệu - Kiệt Trần Anh</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
@@ -34,13 +35,18 @@
 
         <hr>
 
-        <div id="bulk-actions-bar" class="">
-            <div class="d-flex justify-content-between align-items-center w-100">
-                <span class="mb-0">Đã chọn <strong id="selected-count">0</strong> ảnh</span>
+        <div id="bulk-actions-bar" class="d-none light py-3 px-4 bg-dark text-black fixed-bottom">
+            <div class="container-fluid d-flex justify-content-between align-items-center">
+                <span class="mb-0">Đã chọn <strong id="selected-count" class="text-primary">0</strong> ảnh</span>
                 <div class="d-flex align-items-center">
-                    <button class="btn btn-danger btn-sm rounded-pill px-3 mr-2" id="btn-bulk-delete">
-                        <i class="fas fa-trash mr-1"></i> Xóa các mục đã chọn
+                    <button class="btn btn-warning btn-sm rounded-pill px-3 mr-2 font-weight-bold" id="btn-bulk-edit-time">
+                        <i class="fas fa-clock mr-1"></i> Đặt lại thời gian xóa
                     </button>
+                    
+                    <button class="btn btn-danger btn-sm rounded-pill px-3 mr-2" id="btn-bulk-delete">
+                        <i class="fas fa-trash mr-1"></i> Xóa đã chọn
+                    </button>
+                    
                     <button class="btn btn-light btn-sm rounded-pill px-3" id="btn-cancel-select">
                         Hủy
                     </button>
@@ -121,10 +127,7 @@
                     {% for img in all_images %}
                         <div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-4 px-2 gallery-card"
                              data-timestamp="{{ img.uploaded_at|date:'U' }}"
-                             {% if results %}
-                                {# Tìm xem ảnh này thuộc bảng nào trong danh sách kết quả #}
-                                data-spreadsheet-id="{% for res in results %}{% if img.id in res.source_file_ids %}{{ res.id }} {% endif %}{% endfor %}"
-                             {% endif %}
+                             data-spreadsheet-ids="{% for res in results %}{% if img.id in res.source_file_ids %}{{ res.id }} {% endif %}{% endfor %}"
                              data-img-id="{{ img.id }}"
                              data-filename="{{ img.filename }}"
                              data-mime="{{ img.mime_type }}"
@@ -155,10 +158,10 @@
                                         </a>
                                     </div>
                                     <div class="font-size-small text-muted">
-                                        <i class="far fa-clock"></i> {{ img.uploaded_at|date:"d/m/Y H:i" }}
+                                            <i class="far fa-clock"></i> {{ img.uploaded_at|date:"d/m/Y H:i" }}
                                     </div>
-                                    <div class="font-size-small text-primary mt-1">
-                                        <i class="fas fa-link"></i> {{ res.title }}
+                                    <div class="font-size-small text-muted">
+                                        <i class="fa-solid fa-x" style="color: rgb(255, 0, 22);"></i> Delete: {{ img.delete_at|date:"d/m/Y H:i" }}
                                     </div>
                                 </div>
                             </div>

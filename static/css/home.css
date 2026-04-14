@@ -65,6 +65,13 @@ body {
 }
 .btn-select:hover { background: #007bff; color: #fff; }
 
+.action-footer {
+    display: flex;
+    justify-content: center; /* Căn giữa theo chiều ngang */
+    align-items: center;     /* Căn giữa theo chiều dọc (nếu cần) */
+    padding: 20px 0;         /* Tạo khoảng cách trên dưới */
+}
+
 .btn-extract {
     padding: 12px 40px;
     font-size: 1.1rem;

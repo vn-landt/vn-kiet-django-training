@@ -39,3 +39,10 @@
     </div>
 </div>
 {% endblock %}
+
+{% block extra_js %}
+    <script src="{% static 'js/settings/account.js' %}"></script>
+    <script src="{% static 'js/settings/profile.js' %}"></script>
+    <script src="{% static 'js/settings/password.js' %}"></script>
+    <script src="{% static 'js/settings/linkedAccount.js' %}"></script>
+{% endblock %}

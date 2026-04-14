@@ -1,23 +1,10 @@
-// Hàm lấy CSRF Token từ Cookie
-function getCookie(name) {
-    var cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length; i++) {
-            var cookie = jQuery.trim(cookies[i]);
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
-var csrftoken = getCookie('csrftoken');
+// 1. Lấy CSRF Token từ Meta Tag (Chắc chắn hơn lấy từ Cookie)
+const csrftoken = $('meta[name="csrf-token"]').attr('content');
 
+// 2. Cấu hình tất cả AJAX tự động gửi Token này đi
 $.ajaxSetup({
     beforeSend: function(xhr, settings) {
-        if (!(/^http:.*/.test(settings.url) || /^https:.*/.test(settings.url))) {
+        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
             xhr.setRequestHeader("X-CSRFToken", csrftoken);
         }
     }
@@ -27,12 +14,8 @@ $(document).ready(function() {
 
     // === LOGIC LỌC HÌNH ẢNH (MỚI) ===
     $('.spreadsheet-filter-item, .spreadsheet-filter').on('click', function(e) {
-        // Nếu click vào thẻ <a> hoặc nút action thì không kích hoạt lọc ảnh ở đây
-        if ($(e.target).closest('.spreadsheet-title-link, .spreadsheet-actions').length) {
-            return;
-        }
+        const id = $(this).data('id').toString(); // Chuyển về string để an toàn
 
-        const id = $(this).data('id');
         $('.spreadsheet-filter-item, .spreadsheet-filter').removeClass('active');
         $(this).addClass('active');
 
@@ -42,8 +25,12 @@ $(document).ready(function() {
         } else {
             const title = $(this).find('.title-text').text();
             $('#gallery-header').text('Ảnh từ: ' + title);
+
             $('.gallery-card').hide();
-            $(`.gallery-card[data-spreadsheet-id="${id}"]`).fadeIn(200);
+
+            // Lọc các card có chứa ID này trong danh sách IDs
+            // Selector [attr~="value"] tìm chính xác "id" trong chuỗi cách nhau bởi dấu cách
+            $(`.gallery-card[data-spreadsheet-ids~="${id}"]`).fadeIn(200);
         }
     });
 
@@ -117,8 +104,10 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.isConfirmed && result.value) {
                 // Gọi AJAX cập nhật title ở đây
-                $.post(`/api/update-title/${id}/`, { title: result.value }, function(res) {
-                    location.reload(); // Hoặc cập nhật DOM tại chỗ
+                $.post(`/documents/update-title/${id}/`, { title: result.value }, function(res) {
+                    Swal.fire('Đổi tên thành công!', '', 'success').then(() => {
+                        location.reload();
+                    });
                 });
             }
         });
@@ -165,41 +154,89 @@ $(document).ready(function() {
 
     $('#pv-img').on('click', function(e) { e.stopPropagation(); });
 
-
-    // --- 1. XEM CHI TIẾT ẢNH ---
+    // XEM VÀ SỬA THÔNG TIN ẢNH
     $('.tool-img-info').on('click', function(e) {
         e.stopPropagation();
         const container = $(this).closest('.gallery-card');
-        const d = container.data();
-        // Chuyển đổi size sang KB/MB cho dễ đọc
+        const d = container.data(); // d.id, d.filename, d.deleteAt, d.uploaded, d.size, d.url...
+
         const sizeFormatted = d.size > 1024 * 1024
             ? (d.size / (1024 * 1024)).toFixed(2) + ' MB'
             : (d.size / 1024).toFixed(2) + ' KB';
 
+        // Tính toán hiển thị thời gian xóa hiện tại
+        let deleteText = d.deleteAt && d.deleteAt !== 'None' ? d.deleteAt : 'Không tự động xóa';
+
         Swal.fire({
-            title: '<i class="fas fa-image text-primary"></i> Chi tiết hình ảnh',
+            title: '<i class="fas fa-edit text-primary"></i> Quản lý hình ảnh',
             html: `
                 <div class="text-left border-top pt-3" style="font-size: 14px;">
-                    <p class="mb-2"><strong>Tên file:</strong> ${d.filename}</p>
-                    <p class="mb-2"><strong>Định dạng:</strong> ${d.mimeType || 'Không xác định'}</p>
-                    <p class="mb-2"><strong>Dung lượng:</strong> ${sizeFormatted}</p>
-                    <p class="mb-2"><strong>Ngày tải lên:</strong> ${d.uploaded}</p>
-                    <p class="mb-3 text-truncate"><strong>URL:</strong> <a href="${d.url}" target="_blank">${d.url}</a></p>
+                    <div class="form-group mb-2">
+                        <label class="font-weight-bold">Tên file (Có thể sửa):</label>
+                        <input type="text" id="swal-filename" class="form-control form-control-sm" value="${d.filename}">
+                    </div>
+                    
+                    <p class="mb-2"><strong>Dung lượng:</strong> ${sizeFormatted} | <strong>Ngày tải:</strong> ${d.uploaded}</p>
+                    
+                    <div class="form-group mb-3 p-2 bg-light rounded border">
+                        <label class="font-weight-bold text-danger"><i class="fas fa-clock"></i> Tự động xóa:</label>
+                        <div class="small mb-1">Hiện tại: <span class="badge badge-warning">${deleteText}</span></div>
+                        <select id="swal-duration" class="form-control form-control-sm">
+                            <option value="keep">Giữ nguyên hiện tại</option>
+                            <option value="0">Không tự động xoá</option>
+                            <option value="30">Sau 30 phút (Tính từ lúc này)</option>
+                            <option value="60">Sau 1 giờ (Tính từ lúc này)</option>
+                            <option value="1440">Sau 1 ngày (Tính từ lúc này)</option>
+                        </select>
+                    </div>
+    
                     <div class="text-center">
-                        <img src="${d.url}" style="max-width: 100%; max-height: 200px; border-radius: 8px; border: 1px solid #ddd;">
+                        <img src="${d.url}" style="max-width: 100%; max-height: 150px; border-radius: 8px; border: 1px solid #ddd;">
                     </div>
                 </div>
             `,
-            showCancelButton: false,
-            confirmButtonText: 'Đóng',
-            confirmButtonColor: '#6c757d'
+            showCancelButton: true,
+            confirmButtonText: '<i class="fas fa-save"></i> Lưu thay đổi',
+            cancelButtonText: 'Đóng',
+            confirmButtonColor: '#28a745',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true, // Đưa nút Lưu sang bên trái nút Đóng
+            focusConfirm: false,
+            preConfirm: () => {
+                const newFilename = document.getElementById('swal-filename').value;
+                const newDuration = document.getElementById('swal-duration').value;
+
+                if (!newFilename) {
+                    Swal.showValidationMessage('Tên file không được để trống');
+                    return false;
+                }
+
+                // Lấy ID chính xác từ thuộc tính data-img-id
+                const imgId = container.data('img-id');
+
+                if (!imgId) {
+                    Swal.showValidationMessage('Lỗi hệ thống: Không tìm thấy ID ảnh!');
+                    return false;
+                }
+
+                // Trả về dữ liệu để thực hiện AJAX
+                return {
+                    id: imgId,
+                    filename: newFilename,
+                    duration: newDuration
+                };
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Thực hiện gọi AJAX để update vào DB
+                updateImageMetadata(result.value);
+            }
         });
     });
 
     let selectedImageIds = new Set();
 
     // --- 2. CHỌN ẢNH (SINGLE & BULK) ---
-    // --- 2. CHỌN ẢNH (ĐÃ FIX LOGIC) ---
     $('.tool-img-select').on('click', function(e) {
         e.stopPropagation();
 
@@ -260,7 +297,7 @@ $(document).ready(function() {
             confirmButtonText: 'Xóa'
         }).then((result) => {
             if (result.isConfirmed) {
-                $.post(`/api/delete-image/${imgId}/`, function() {
+                $.post(`/documents/delete-image/${imgId}/`, function() {
                     card.fadeOut(300, function() { $(this).remove(); });
                     selectedImageIds.delete(imgId);
                     updateImageBulkBar();
@@ -283,7 +320,7 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: '/api/bulk-delete-images/', // Cập nhật URL API của bạn
+                    url: '/documents/bulk-delete-images/', // Cập nhật URL API của bạn
                     type: 'POST',
                     data: JSON.stringify({ ids: idsArray }),
                     contentType: 'application/json',
@@ -313,7 +350,7 @@ $(document).ready(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 // Gọi AJAX xóa
-                $.post(`/api/delete-result/${id}/`, function() {
+                $.post(`/documents/delete-result/${id}/`, function() {
                     $(`.spreadsheet-filter-item[data-id="${id}"]`).remove();
                     $(`.gallery-card[data-spreadsheet-id="${id}"]`).remove();
                     Swal.fire('Đã xóa!', '', 'success');
@@ -388,4 +425,77 @@ $(document).ready(function() {
         });
     });
 
+    // sửa thời gian xoá ảnh hàng loạt
+    $('#btn-bulk-edit-time').on('click', function() {
+        // 1. Lấy danh sách ID đã chọn (giả sử bạn lưu trong mảng idsArray)
+        const idsArray = Array.from(selectedImageIds);
+
+        if (idsArray.length === 0) return;
+
+        Swal.fire({
+            title: `<i class="fas fa-history text-warning"></i> Cập nhật ${idsArray.length} ảnh`,
+            html: `
+                <p class="small text-muted">Chọn thời gian tự động xóa mới cho các mục đã chọn (tính từ thời điểm này):</p>
+                <select id="bulk-duration" class="form-control custom-select">
+                    <option value="0">Không tự động xoá</option>
+                    <option value="30">Sau 30 phút</option>
+                    <option value="60">Sau 1 giờ</option>
+                    <option value="1440">Sau 1 ngày</option>
+                    <option value="10080">Sau 1 tuần</option>
+                </select>
+            `,
+            showCancelButton: true,
+            confirmButtonColor: '#ffc107',
+            confirmButtonText: 'Cập nhật ngay',
+            cancelButtonText: 'Hủy bỏ',
+            preConfirm: () => {
+                return document.getElementById('bulk-duration').value;
+            }
+        }).then((result) => {
+            if (result.isConfirmed) {
+                const newDuration = result.value;
+
+                // 2. Gọi AJAX gửi lên Server
+                $.ajax({
+                    url: '/documents/bulk-update-time/', // URL bạn sẽ tạo ở bước 3
+                    method: 'POST',
+                    data: {
+                        'ids[]': idsArray,
+                        'duration': newDuration,
+                    },
+                    success: function(response) {
+                        Swal.fire('Thành công!', `Đã cập nhật thời gian xóa cho ${idsArray.length} ảnh.`, 'success')
+                        .then(() => location.reload());
+                    },
+                    error: function() {
+                        Swal.fire('Lỗi!', 'Không thể cập nhật hàng loạt.', 'error');
+                    }
+                });
+            }
+        });
+    });
 });
+
+// Hàm gọi API cập nhật
+function updateImageMetadata(data) {
+    $.ajax({
+        url: '/documents/update-image-info/',
+        method: 'POST',
+        // Lưu ý: Đã có ajaxSetup ở trên nên không cần headers ở đây nữa
+        data: {
+            'id': data.id,
+            'filename': data.filename,
+            'duration': data.duration
+            // TUYỆT ĐỐI KHÔNG để 'csrfmiddlewaretoken': '{{ csrf_token }}' ở đây
+        },
+        success: function(response) {
+            Swal.fire('Thành công!', 'Thông tin ảnh đã được cập nhật.', 'success').then(() => {
+                location.reload();
+            });
+        },
+        error: function(xhr) {
+            console.error("Lỗi cập nhật thông tin ảnh:", xhr.responseText);
+            Swal.fire('Lỗi!', 'Không thể cập nhật thông tin (403 Forbidden).', 'error');
+        }
+    });
+}
