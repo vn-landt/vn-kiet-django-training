@@ -407,7 +407,7 @@ $(document).ready(function() {
                 });
 
                 $.ajax({
-                    url: '/documents/create-blank/',
+                    url: '/create-spreadsheet-blank/',
                     type: 'POST',
                     data: { 'name': result.value },
                     success: function(response) {
