@@ -1,2 +1,1 @@
-
-# go BRANCH img2xl_app
+# vn-kiet-django-training
