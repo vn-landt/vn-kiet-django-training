@@ -19,3 +19,7 @@ venv.bak/
 service-account.json
 app.yaml
 lib
+*.pyc
+__pycache__/
+*.pyo
+*.pyd
