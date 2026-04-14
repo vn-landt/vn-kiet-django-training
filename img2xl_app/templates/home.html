@@ -4,13 +4,13 @@
     <meta charset="UTF-8">
     <title>Table Extractor</title>
     <link rel="stylesheet" href="{% static 'css/home.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <link rel="stylesheet" href="{% static 'css/image_editor.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body>
     <div class="nav-bar">
-        <div class="logo">
-            <strong>Table Extractor AI</strong>
-        </div>
+        <div class="logo"><strong>Table Extractor AI</strong></div>
         <div class="nav-links">
             {% if user.is_authenticated %}
                 <span class="auth-status">Xin chào, <strong>{{ user.username }}</strong>!</span>
@@ -24,27 +24,31 @@
 
     {% if not user.is_authenticated %}
         <div style="background: #fff3cd; padding: 10px; border: 1px solid #ffeeba; margin-bottom: 20px;">
-            <strong>Lưu ý:</strong> Bạn đang sử dụng với quyền Khách.
-            Dữ liệu sẽ <strong>không được lưu trữ</strong> sau khi bạn thoát trang.
-            Hãy đảm bảo tải kết quả về máy ngay.
+            <strong>Lưu ý:</strong> Bạn đang dùng quyền Khách. Dữ liệu sẽ không được lưu lại.
         </div>
     {% endif %}
 
+    <h1>Upload & Extract Table</h1>
 
+    <div class="upload-section">
+        <form id="uploadForm">
+            {% csrf_token %}
+            <div style="display: none;">
+                {{ form.file }}
+            </div>
 
-    <h1>Upload Image or PDF</h1>
-    <form method="post" enctype="multipart/form-data">
-        {% csrf_token %}
-        {{ form.as_p }}
-        {% if messages %}
-            {% for message in messages %}
-                <p style="color: red;">{{ message }}</p>
-            {% endfor %}
-        {% endif %}
-        <button type="submit" onclick="handleGenerate()">Upload and Extract</button>
-    </form>
+            <div class="button-group">
+                <button type="button" class="btn-main" onclick="document.getElementById('id_file').click()"
+                        style="padding: 15px 30px; font-size: 18px; background-color: #007bff; color: white; border: none; border-radius: 8px; cursor: pointer;">
+                    Chọn ảnh để bắt đầu
+                </button>
+            </div>
+        </form>
+    </div>
 
-    <h2>Lịch sử gần đây (Tối đa 10)</h2>
+    {% include "includes/image_editor.html" with api_url="/extract-only-api/" %}
+
+    <h2>Lịch sử gần đây</h2>
     {% if user.is_authenticated %}
         {% if recent_results %}
             <ul>
@@ -67,28 +71,34 @@
             để lưu trữ và xem lại lịch sử trích xuất của bạn.
         </p>
     {% endif %}
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+    
+    <script src="{% static 'js/image_handler.js' %}"></script>
 
     <script>
-        {% if not user.is_authenticated %}
-        // Cảnh báo khi khách thoát trang
-        window.addEventListener('beforeunload', function (e) {
-            var confirmationMessage = 'Dữ liệu của bạn sẽ bị mất nếu chưa tải về. Bạn có chắc muốn thoát?';
-            (e || window.event).returnValue = confirmationMessage;
-            return confirmationMessage;
+        document.addEventListener('DOMContentLoaded', function() {
+            const fileInput = document.getElementById('id_file');
+            if (fileInput) {
+                // Sự kiện: Khi người dùng chọn ảnh xong
+                fileInput.addEventListener('change', function() {
+                    if (this.files && this.files.length > 0) {
+                        initEditor(this); // Gọi hàm từ image_handler.js
+                    }
+                });
+            }
         });
-        {% endif %}
+
         {% if messages %}
             {% for message in messages %}
                 Swal.fire({
                     icon: "{% if message.tags == 'error' %}error{% else %}success{% endif %}",
                     title: "Thông báo",
-                    text: "{{ message }}",
-                    confirmButtonColor: '#3085d6',
-                    confirmButtonText: 'Đóng'
+                    text: "{{ message }}"
                 });
             {% endfor %}
         {% endif %}
     </script>
+    
     <script src="{% static 'js/home.js' %}"></script>
 </body>
 </html>
