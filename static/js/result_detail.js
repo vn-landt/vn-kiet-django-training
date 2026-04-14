@@ -79,14 +79,56 @@ function parseCoords(cellStr) {
 
 
 
-function handlePicGenerate() {
+async function handlePicGenerate() {
     const fileInput = document.getElementById('pic-upload');
-    if (fileInput.files.length === 0) return alert("Vui lòng chọn ảnh!");
-    const targetCoords = TableCoordinateHelper.ask("Chọn ô bắt đầu:");
+
+    // 1. Thông báo nếu chưa chọn file
+    if (fileInput.files.length === 0) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Thông báo',
+            text: 'Vui lòng chọn ảnh trước khi thực hiện!',
+            confirmButtonColor: '#3085d6'
+        });
+        return;
+    }
+
+    // Hỏi tọa độ bằng SweetAlert2 (Thay thế TableCoordinateHelper.ask)
+    const { value: targetCoords } = await Swal.fire({
+        title: 'Chọn ô bắt đầu',
+        input: 'text',
+        inputLabel: 'Ví dụ: A1, B5, C10...',
+        inputValue: 'A1', // Giá trị mặc định
+        showCancelButton: true,
+        confirmButtonText: 'Tiếp tục',
+        cancelButtonText: 'Hủy',
+        inputValidator: (value) => {
+            if (!value) {
+                return 'Bạn cần nhập tọa độ ô!';
+            }
+            // Regex kiểm tra định dạng ô Excel (VD: A1, AB10)
+            const regex = /^[A-Z]+\d+$/i;
+            if (!regex.test(value)) {
+                return 'Tọa độ không hợp lệ (Ví dụ đúng: A1, B10)';
+            }
+        }
+    });
     if (!targetCoords) return;
 
+    // 2. Hiển thị trạng thái Loading chuyên nghiệp
+    Swal.fire({
+        title: 'Đang xử lý...',
+        text: 'Vui lòng chờ Gemini phân tích dữ liệu',
+        allowOutsideClick: false,
+        didOpen: () => {
+            Swal.showLoading(); // Hiển thị vòng xoay
+        }
+    });
+
     const btn = document.querySelector('.btn-purple');
-    btn.innerText = "..."; btn.disabled = true;
+    const originalText = btn.innerText;
+    btn.innerText = "...";
+    btn.disabled = true;
 
     const formData = new FormData();
     formData.append('file', fileInput.files[0]);
@@ -98,10 +140,47 @@ function handlePicGenerate() {
     })
     .then(res => res.json())
     .then(data => {
-        if (data.status === 'success') updateTableDisplay(data.table, targetCoords);
-        else alert("Lỗi: " + data.message);
+        // Đóng loading khi có phản hồi
+        Swal.close();
+
+        if (data.status === 'success') {
+            updateTableDisplay(data.table, targetCoords);
+
+            // Thông báo thành công nhẹ nhàng (Toast)
+            const Toast = Swal.mixin({
+                toast: true,
+                position: 'top-end',
+                showConfirmButton: false,
+                timer: 3000,
+                timerProgressBar: true
+            });
+            Toast.fire({
+                icon: 'success',
+                title: 'Trích xuất thành công!'
+            });
+
+        } else {
+            // 3. Hiển thị lỗi từ Backend (Lỗi size, định dạng, mặt người...)
+            Swal.fire({
+                icon: 'error',
+                title: 'Không thể trích xuất',
+                text: data.message, // Thông báo từ _perform_extraction_logic
+                confirmButtonColor: '#d33',
+                confirmButtonText: 'Đóng'
+            });
+        }
     })
-    .finally(() => { btn.innerText = "Generate 1 pic into"; btn.disabled = false; });
+    .catch(err => {
+        Swal.fire({
+            icon: 'error',
+            title: 'Lỗi kết nối',
+            text: 'Không thể kết nối tới máy chủ. Vui lòng thử lại sau.'
+        });
+    })
+    .finally(() => {
+        btn.innerText = originalText;
+        btn.disabled = false;
+    });
 }
 
 function handleCSVUpdate() {
@@ -489,6 +568,8 @@ function autoScalePreview() {
     // Đảm bảo thu nhỏ từ tâm để bảng nằm giữa khung flex
     table.style.transformOrigin = 'center';
 }
+
+
 
 
 
