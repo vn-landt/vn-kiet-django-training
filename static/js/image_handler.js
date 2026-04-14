@@ -97,8 +97,7 @@ function processAndExtract() {
 
         // GỌI HÀM CALLBACK: Hàm này phải được định nghĩa trong home.js hoặc result_detail.js
         if (typeof onImageCropped === 'function') {
-            onImageCropped(blob, languagesStr);
-        } else {
+            onImageCropped(blob, languagesStr, window.originalFileName || "unknown_part.jpg");        } else {
             console.error("Lỗi: Hàm onImageCropped(blob) chưa được định nghĩa!");
         }
 

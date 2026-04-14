@@ -46,7 +46,7 @@
                                     {% for res in recent_results %}
                                         <li class="history-item d-flex justify-content-between align-items-center" id="item-{{ res.id }}">
                                             <a href="{% url 'result_detail' res.id %}" class="text-truncate flex-grow-1">
-                                                <i class="far fa-file-image mr-2"></i>{{ res.uploaded_file.filename|truncatechars:15 }}
+                                                <i class="far fa-file-image mr-2"></i>{{ res.title|truncatechars:15 }}
                                             </a>
                                             
                                             <div class="d-flex align-items-center">

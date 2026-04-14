@@ -92,6 +92,12 @@ body {
 #table-content-area {
     background: #fafafa;
     border: 1px solid #eee;
+    width: 100%;
+    max-height: 650px;        /* giữ nguyên */
+    height: 650px;            /* ← thêm dòng này để cố định chiều cao */
+    overflow-y: auto;         /* ← quan trọng nhất */
+    overflow-x: auto;         /* cuộn ngang nếu bảng rộng */
+    box-sizing: border-box;
 }
 
 /* Thanh công cụ trích xuất ngang */
