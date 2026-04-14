@@ -175,7 +175,7 @@ function parseCoords(cellStr) {
  * Hàm xử lý khi Generate thêm dữ liệu vào một ô cụ thể trong bảng hiện tại
  * Đã cập nhật để gửi result_id và kiểm tra giới hạn 50 ảnh
  */
-async function onImageCropped(blob, languagesStr, originalFileName) {
+async function onImageCropped(blob, languagesStr, originalFileName, deleteDuration) {
     // 1. Hỏi tọa độ (Kết quả trả về là STRING, ví dụ: "A1")
     const { value: targetCoordsStr } = await Swal.fire({
         title: 'Chọn ô bắt đầu',
@@ -217,6 +217,9 @@ async function onImageCropped(blob, languagesStr, originalFileName) {
     formData.append('result_id', window.CURRENT_RESULT_ID);
 
     formData.append('languages', languagesStr || 'all');
+
+    formData.append('deleteDuration', deleteDuration);
+
 
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 

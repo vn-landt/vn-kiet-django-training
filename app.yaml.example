@@ -11,6 +11,9 @@ handlers:
   static_dir: media
 - url: /.*
   script: main.application
+- url: /tasks/.*
+  script: your_project.wsgi.application
+  login: admin  # Chỉ Admin hoặc Cron mới vào được
 
 libraries:
 - name: django

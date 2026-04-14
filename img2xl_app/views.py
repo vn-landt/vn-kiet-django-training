@@ -3,6 +3,7 @@ from __future__ import unicode_literals
 
 import traceback  # Thêm thư viện này ở đầu file
 import io
+import logging
 import csv
 import os
 import json
@@ -35,6 +36,7 @@ import re
 from PIL import Image, ImageDraw, ImageFont
 from django.utils import timezone
 from django.contrib.auth.decorators import login_required
+from django.contrib.auth import update_session_auth_hash
 
 def _perform_extraction_logic(uploaded_file, languages='all'):
     """
@@ -71,6 +73,7 @@ def _perform_extraction_logic(uploaded_file, languages='all'):
             return None, image_url, u"Tài liệu không hợp lệ hoặc không đủ độ rõ nét. Vui lòng chọn ảnh hóa đơn, chứng từ khác."
 
         if error:
+            logging.error(u"AI Processing Error: %s", error)
             return None, image_url, u"Hệ thống AI không thể xử lý ảnh này. Vui lòng thử lại."
 
         # 4. Làm sạch và Parse CSV (Logic từ bridge.py)
@@ -303,6 +306,19 @@ def extract_only_api(request):
     languages = request.POST.get('languages', 'all')
     mime_type = request.POST.get('mime_type', 'image/jpeg')
 
+    try:
+        delete_duration_min = int(request.POST.get('deleteDuration', 0))
+    except (ValueError, TypeError):
+        # Nếu lỗi (không phải số), lấy mặc định từ profile
+        delete_duration_min = user.profile.auto_delete_duration
+
+    # TÍNH TOÁN THỜI ĐIỂM XÓA
+    expiry_date = None
+    if delete_duration_min > 0:
+        # Thời điểm xóa = Hiện tại + X phút
+        expiry_date = timezone.now() + timedelta(minutes=delete_duration_min)
+
+
     if 'file' not in request.FILES:
         return JsonResponse({'status': 'error', 'message': u'Chưa có file.'})
 
@@ -321,7 +337,8 @@ def extract_only_api(request):
         filename=imgname,
         mime_type=mime_type,
         image_url=image_url,
-        file_size=uploaded_file.size
+        file_size=uploaded_file.size,
+        delete_at=expiry_date
     )
 
     # Cập nhật UsageLog
@@ -377,24 +394,25 @@ def register(request):
     return render(request, 'registration/register.html', {'form': form})
 
 
-def cleanup_old_data(request):
-    # Chỉ cho phép App Engine Cron gọi vào URL này
-    if request.META.get('HTTP_X_APPENGINE_CRON') != 'true':
-        return HttpResponseForbidden()
-
-    seven_days_ago = timezone.now() - timedelta(days=7)
-
-    # Tìm các file không có thay đổi trong 7 ngày qua
-    old_results = ExtractedResult.objects.filter(updated_at__lt=seven_days_ago)
+def auto_cleanup_task(request):
+    now = timezone.now()
+    expired_files = UploadedFile.objects.filter(
+        is_deleted=False,
+        delete_at__isnull=False,
+        delete_at__lte=now
+    )
 
     count = 0
-    for res in old_results:
-        res.uploaded_file.delete()  # Xóa file gốc kéo theo kết quả trích xuất
+    for f in expired_files:
+        # 1. Gọi hàm xóa ảnh trên ImgBB (nếu bạn có lưu delete_url)
+        # success = delete_image_from_imgbb(f.delete_url)
+
+        # 2. Đánh dấu đã xóa trong DB
+        f.is_deleted = True
+        f.save()
         count += 1
 
-    return HttpResponse("Đã dọn dẹp %d bản ghi cũ." % count)
-
-
+    return HttpResponse(u"Đã dọn dẹp %d ảnh hết hạn." % count)
 # views.py
 
 def export(request, result_id):
@@ -678,3 +696,154 @@ def bulk_delete_images_api(request):
         return JsonResponse({'status': 'success'})
     except ValueError:  # Bắt lỗi parse JSON
         return JsonResponse({'status': 'error', 'message': 'Dữ liệu không hợp lệ'}, status=400)
+
+
+def update_image_info(request):
+    if request.method == "POST":
+        img_id = request.POST.get('id')
+        new_name = request.POST.get('filename')
+        duration = request.POST.get('duration')  # 'keep', '0', '5', '60', '1440'
+
+        try:
+            from .models import UploadedFile
+            img_obj = UploadedFile.objects.get(id=img_id, user=request.user)
+
+            # 1. Cập nhật tên
+            img_obj.filename = new_name
+
+            # 2. Cập nhật thời gian xóa nếu không chọn "Giữ nguyên"
+            if duration != 'keep':
+                duration_int = int(duration)
+                if duration_int > 0:
+                    img_obj.delete_at = timezone.now() + timedelta(minutes=duration_int)
+                else:
+                    img_obj.delete_at = None  # Chuyển sang vĩnh viễn
+
+            img_obj.save()
+            return JsonResponse({'status': 'success'})
+
+        except Exception as e:
+            logging.error(u"Error updating image info: %s", str(e))
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    return JsonResponse({'status': 'error'}, status=405)
+
+def bulk_update_time(request):
+    if request.method == "POST":
+        ids = request.POST.getlist('ids[]')
+        duration_min = int(request.POST.get('duration', 0))
+        user = request.user
+
+        # 1. Tính toán thời điểm xóa mới
+        new_expiry = None
+        if duration_min > 0:
+            new_expiry = timezone.now() + timedelta(minutes=duration_min)
+
+        try:
+            from .models import UploadedFile
+            # 2. Cập nhật hàng loạt tất cả các ID thuộc về User này
+            # Lệnh .update() thực hiện 1 câu lệnh SQL duy nhất, cực kỳ tối ưu
+            UploadedFile.objects.filter(
+                id__in=ids,
+                user=user
+            ).update(delete_at=new_expiry)
+
+            return JsonResponse({'status': 'success', 'count': len(ids)})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+    return JsonResponse({'status': 'error'}, status=405)
+
+
+#   settings/
+@login_required
+def update_account_settings(request):
+    if request.method == 'POST':
+        profile = request.user.profile
+
+        # 1. Cập nhật thời gian tự động xóa (ép về kiểu int)
+        auto_delete = request.POST.get('auto_delete_duration')
+        if auto_delete is not None:
+            profile.auto_delete_duration = int(auto_delete)
+
+        # 2. Cập nhật Keep EXIF
+        # Checkbox trong HTML: nếu tích sẽ gửi 'on', nếu không tích sẽ không gửi gì cả
+        # profile.keep_exif = True if request.POST.get('keep_exif') == 'on' else False
+
+        # 3. Lưu vào Database
+        profile.save()
+
+        # 4. Thông báo thành công và reload lại trang
+        messages.success(request, u"Cài đặt tài khoản của bạn đã được cập nhật thành công!")
+        return redirect('settings')  # Hoặc tên URL dẫn đến trang account của bạn
+
+    return redirect('settings')
+
+
+@login_required
+def update_profile_settings(request):
+    if request.method == 'POST':
+        profile = request.user.profile
+
+        # 1. Xử lý Upload Avatar (Nếu có file mới)
+        avatar_file = request.FILES.get('avatar')
+        if avatar_file:
+            # Đọc file sang bytes
+            image_bytes = avatar_file.read()
+            # Gọi hàm của bạn
+            new_avatar_url, error = upload_to_imgbb(image_bytes)
+
+            if new_avatar_url:
+                profile.avatar_url = new_avatar_url
+            else:
+                messages.error(request, u"Không thể upload ảnh: " + unicode(error))
+
+        # 2. Cập nhật các trường thông tin khác
+        profile.full_name = request.POST.get('full_name', '')
+        profile.website = request.POST.get('website', '')
+        profile.bio = request.POST.get('bio', '')
+        profile.is_private = True  # Luôn đóng băng theo yêu cầu
+
+        profile.save()
+        messages.success(request, u"Hồ sơ đã được cập nhật thành công!")
+        return redirect('settings')
+
+    return redirect('settings')
+
+@login_required
+def change_password(request):
+    if request.method == 'POST':
+        # 1. Lấy dữ liệu từ Form
+        old_pass = request.POST.get('old_password')
+        new_pass = request.POST.get('new_password')
+        confirm_pass = request.POST.get('confirm_password')
+        user = request.user
+
+        # 2. Kiểm tra mật khẩu cũ có đúng không
+        if not user.check_password(old_pass):
+            messages.error(request, u"Mật khẩu cũ không chính xác!")
+            return redirect('settings') # Quay lại trang settings/password
+
+        # 3. Kiểm tra 2 mật khẩu mới có khớp nhau không
+        if new_pass != confirm_pass:
+            messages.error(request, u"Hai mật khẩu mới không khớp nhau!")
+            return redirect('settings')
+
+        # 4. Kiểm tra độ dài mật khẩu (tùy chọn nhưng nên có)
+        if len(new_pass) < 6:
+            messages.error(request, u"Mật khẩu mới phải có ít nhất 6 ký tự!")
+            return redirect('settings')
+
+        # 5. Thực thi đổi mật khẩu
+        user.set_password(new_pass) # Hàm này tự động băm (hash) mật khẩu
+        user.save()
+
+        # 6. CẬP NHẬT SESSION (Rất quan trọng!)
+        # Sau khi đổi mật khẩu, Django sẽ làm mới session hash.
+        # Nếu không có dòng này, người dùng sẽ bị văng ra trang Login ngay lập tức.
+        update_session_auth_hash(request, user)
+
+        messages.success(request, u"Chúc mừng! Mật khẩu đã được thay đổi thành công.")
+        return redirect('settings')
+
+    return redirect('settings')
