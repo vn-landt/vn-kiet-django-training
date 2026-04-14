@@ -1,0 +1,32 @@
+<div class="settings-section">
+    <h5 class="mb-4">Profile settings</h5>
+    <div class="d-flex align-items-center mb-4">
+        <div class="avatar-wrapper mr-3">
+            <img src="https://via.placeholder.com/100" class="rounded-circle border" id="avatarPreview">
+        </div>
+        <div class="upload-btn-wrapper">
+            <button class="btn btn-outline-secondary btn-sm">Change avatar</button>
+            <input type="file" name="avatar" />
+        </div>
+    </div>
+    <form>
+        <div class="custom-control custom-checkbox mb-4">
+            <input type="checkbox" class="custom-control-input" id="privateProfile">
+            <label class="custom-control-label" for="privateProfile">Make my profile and identity totally private</label>
+        </div>
+        <div class="form-group">
+            <label>Name</label>
+            <input type="text" class="form-control" placeholder="Your real name">
+            <small class="text-muted">This is your real name, not your username.</small>
+        </div>
+        <div class="form-group">
+            <label>Website</label>
+            <input type="url" class="form-control" placeholder="http://your-website.com">
+        </div>
+        <div class="form-group">
+            <label>Bio</label>
+            <textarea class="form-control" rows="4" placeholder="Tell us about yourself..."></textarea>
+        </div>
+        <button type="submit" class="btn btn-primary px-4">Save changes</button>
+    </form>
+</div>

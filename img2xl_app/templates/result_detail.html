@@ -3,187 +3,142 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Extraction Result</title>
+    <title>Extraction Result | Dashboard</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
     <link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css" />
     <link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+
+    <link rel="stylesheet" href="{% static 'css/header.css' %}">
+    <link rel="stylesheet" href="{% static 'css/footer.css' %}">
+    <link rel="stylesheet" href="{% static 'css/result_detail.css' %}">
+    <link rel="stylesheet" href="{% static 'css/export_ui.css' %}">
+    <link rel="stylesheet" href="{% static 'css/image_editor.css' %}">
+
     <script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
     <script src="https://jsuites.net/v4/jsuites.js"></script>
-    <link rel="stylesheet" href="{% static 'css/image_editor.css' %}">
-    <link rel="stylesheet" href="{% static 'css/result_detail.css' %}">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 </head>
 <body>
 
-    <div class="top-header-row">
-        <h1>Extraction Result</h1>
-        <a href="{% url 'home' %}" class="btn-home">
-            <svg width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M15 8a.5.5 0 0 0-.5-.5H2.707l3.147-3.146a.5.5 0 1 0-.708-.708l-4 4a.5.5 0 0 0 0 .708l4 4a.5.5 0 0 0 .708-.708L2.707 8.5H14.5A.5.5 0 0 0 15 8z"/>
-            </svg>
-            Back to Home
-        </a>
-    </div>
+    {% include "includes/header.html" %}
 
-    <div class="info-split-container">
-        <div class="info-box left-side">
-            <h4 class="box-title">File Details</h4>
-            <p><strong>Filename:</strong> <a href="{{ result.uploaded_file.image_url }}" target="_blank">{{ result.uploaded_file.filename }}</a></p>
-            <p><strong>Status:</strong> <span class="status-badge">{{ result.status|title }}</span></p>
-            <p><strong>Processed:</strong> {{ result.processed_at|date:"d/m/Y H:i"|default:"--" }}</p>
-        </div>
-
-        <div class="info-box right-side">
-            <h4 class="box-title">Recent History</h4>
-            <div class="history-scroll">
-                <ul>
-                    {% for res in recent_results %}
-                        <li class="history-item {% if res.id == result.id %}active{% endif %}">
-                            <a href="{% url 'result_detail' res.id %}">{{ res.uploaded_file.filename|truncatechars:35 }}</a>
-                            <small>{{ res.status }} - {{ res.created_at|date:"d/m H:i" }}</small>
-                        </li>
-                    {% endfor %}
-                </ul>
-            </div>
-        </div>
-    </div>
-
-   <div class="table-card">
-        <div class="table-header-row">
-            <h2 class="table-title">Extracted Table</h2>
-
-            <div class="right-tools-group">
-                <div class="input-item group-purple">
-                    <label for="pic-upload">Image:</label>
-                    <input type="file" id="pic-upload" accept="image/*" style="display:none;" onchange="initEditor(this)">
-                    
-                    <button type="button" onclick="document.getElementById('pic-upload').click()" class="btn-purple">
-                        Chỉnh sửa & Chèn ảnh vào bảng
-                    </button>
-                </div>
-                
-                {% include "includes/image_editor.html" with api_url="/extract-only-api/" %}
-
-                <div class="input-item group-secondary">
-                    <label for="csv-upload">CSV:</label>
-                    <input type="file" id="csv-upload" accept=".csv">
-                    <button onclick="handleCSVUpdate()" class="btn-secondary">Update CSV</button>
-                </div>
-
-                <button onclick="saveTableData()" class="btn-save">Save Changes</button>
-            </div>
-        </div>
-
-        <div id="table-content-area">
-            <div id="spreadsheet"></div>
-        </div>
-       <div id="autosave-status" style="font-size: 12px; color: #666; margin-top: 5px; text-align: right;">
-            Đã lưu bản nháp lúc {{ last_draft_time }}
-        </div>
-
-        <div class="table-bottom-actions">
-            <button type="button" onclick="openExportModal()" class="btn-primary">Export</button>
-
-            <a href="{% url 'export_to_sheets' result.id %}" class="btn-success">Export to Google Sheets</a>
-        </div>
-
-        <div class="tools-grid">
-            <div id="range-tools" class="tool-box range-bg">
-                <h4>Công cụ Tách Dữ Liệu Hàng Loạt</h4>
-                <div class="tool-inputs">
-                    <input type="text" id="range-start" placeholder="A1">
-                    <input type="text" id="range-end" placeholder="B10">
-                    <input type="text" id="special-char" placeholder="Ký tự" class="char-input">
-                </div>
-                <div class="tool-btns">
-                    <button onclick="handleRangeAction('split-col')" class="btn-tool-blue">Chia Cột</button>
-                    <button onclick="handleRangeAction('split-row')" class="btn-tool-orange">Xuống Dòng</button>
-                    <button onclick="handleRangeAction('remove')" class="btn-tool-red">Xóa</button>
+    <div class="dashboard-wrapper">
+        <aside class="side-panel side-left">
+            <div class="info-box left-side shadow-sm mb-3">
+                <h4 class="box-title">File Details</h4>
+                <div class="small">
+                    <p class="mb-1 text-truncate" title="{{ result.uploaded_file.filename }}">
+                        <strong>Name:</strong> <a href="{{ result.uploaded_file.image_url }}" target="_blank" class="filename-link">{{ result.uploaded_file.filename }}</a>
+                    </p>
+                    <p class="mb-1"><strong>Status:</strong> <span class="badge badge-primary">{{ result.status|title }}</span></p>
+                    <p class="mb-0 text-muted">Processed: {{ result.processed_at|date:"d/m H:i" }}</p>
                 </div>
             </div>
 
-            <div id="ai-tools" class="tool-box ai-bg">
-                <h4>Gemini AI Assistant</h4>
-                <div class="ai-input-wrapper">
-                    <input type="text" id="ai-prompt" placeholder="Yêu cầu (VD: Tính tổng cột B...)">
-                    <button id="btn-ai-gen" onclick="generateAIContent()">Generate</button>
-                </div>
-                <div class="ai-result-wrapper">
-                    <label>Kết quả gợi ý: (Công thức Excel ở bảng Online sẽ là #ERROR)</label>
-                    <input type="text" id="ai-result-display" readonly placeholder="Lệnh/Công thức sẽ hiện ở đây">
+            <div class="info-box right-side shadow-sm">
+                <h4 class="box-title">Recent History</h4>
+                <div class="history-scroll">
+                    <ul class="list-unstyled mb-0">
+                        {% for res in recent_results %}
+                            <li class="history-item {% if res.id == result.id %}active{% endif %}">
+                                <a href="{% url 'result_detail' res.id %}" class="d-block text-truncate">
+                                    <i class="far fa-file-alt mr-1"></i> {{ res.uploaded_file.filename|truncatechars:20 }}
+                                </a>
+                            </li>
+                        {% endfor %}
+                    </ul>
                 </div>
             </div>
-        </div>
-    </div>
-    <div id="export-modal">
-        <div class="modal-content">
-            <span class="btn-close" onclick="closeExportModal()">&times;</span>
+        </aside>
 
-            <div class="modal-left">
-                <h3>Xuất dữ liệu</h3>
-                <div id="final-time-display" style="margin-bottom: 15px; padding: 10px; background: #e9ecef; border-radius: 4px; font-size: 13px;">
-                    <strong>Thời gian lưu bản chính:</strong> <br>
-                    <span id="final-save-time-text">{{ last_final_time }}</span>
-                </div>
-                <form id="form-export" method="POST" action="{% url 'export' result.id %}" target="_blank">
-                    {% csrf_token %}
-
-                    <div style="margin-bottom: 20px;">
-                        <label style="display: block; margin-bottom: 5px; font-weight: bold;">Định dạng:</label>
-                        <label><input type="radio" name="export_type" value="xlsx" checked onchange="handleTypeChange('xlsx')"> Excel (.csv)</label><br>
-                        <label><input type="radio" name="export_type" value="png" onchange="handleTypeChange('png')"> Hình ảnh (.png)</label>
-                    </div>
-
-                    <div id="png-settings" style="display: none; border-top: 1px solid #ddd; padding-top: 15px;">
-                        <label style="font-weight: bold; font-size: 13px;">Vùng dữ liệu PNG:</label>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; margin-bottom: 15px;">
-                            <div>
-                                <small>Ô bắt đầu:</small>
-                                <input type="text" name="start_cell" id="png-start" value="A1" class="form-control" oninput="updatePngPreview()">
-                            </div>
-                            <div></div>
-                            <div>
-                                <small>Số hàng:</small>
-                                <input type="number" name="num_rows" id="png-rows" value="5" max="30" class="form-control" oninput="updatePngPreview()">
-                            </div>
-                            <div>
-                                <small>Số cột:</small>
-                                <input type="number" name="num_cols" id="png-cols" value="5" max="30" class="form-control" oninput="updatePngPreview()">
+        <main class="main-workspace">
+            <div class="table-card shadow mt-0">
+                <div class="table-header-row mb-3">
+                    <div class="d-flex align-items-start">
+                        <a href="{% url 'home' %}" class="btn-home mr-3 py-1 px-2" style="font-size: 13px;">
+                            <i class="fas fa-arrow-left"></i> Home
+                        </a>
+                        <div>
+                            <h2 class="table-title mb-0" style="font-size: 1.2rem; line-height: 1.2;">Extracted Table</h2>
+                            <div id="autosave-status" class="small text-muted">
+                                <i class="fas fa-history"></i> Draft: {{ last_draft_time }}
                             </div>
                         </div>
-
-                        <label style="font-weight: bold; font-size: 13px;">Màu nền PNG:</label>
-                        <select name="bg_color" id="bg-color-select" class="form-control" onchange="updatePngPreview()">
-                            <option value="white">Trắng</option>
-                            <option value="black">Đen</option>
-                            <option value="transparent">Trong suốt</option>
-                        </select>
-                    </div>
-                </form>
-            </div>
-
-            <div class="modal-right">
-                <h4 id="preview-title">Xem trước: Excel</h4>
-                <div id="preview-container">
                     </div>
 
-                <div class="footer-actions" style="margin-top: auto; text-align: right; padding-top: 15px;">
-                    <button type="button" class="btn-secondary" onclick="closeExportModal()" style="margin-right: 10px;">Hủy</button>
-                    <button type="submit" form="form-export" class="btn-primary" style="background: #28a745; color: white; padding: 10px 25px; border: none; border-radius: 4px; font-weight: bold; cursor: pointer;">
-                        Download
+                    <div class="right-tools-group d-flex align-items-center">
+                        <button onclick="saveTableData()" class="btn btn-dark btn-sm font-weight-bold ml-2">Save Changes</button>
+                        <div class="input-item group-purple ml-2">
+                            <input type="file" id="pic-upload" accept="image/*" style="display:none;" onchange="initEditor(this)">
+                            <button type="button" onclick="document.getElementById('pic-upload').click()" class="btn-purple py-1 px-2" style="font-size: 14px;">Chèn ảnh</button>
+                        </div>
+                        <div class="input-item group-secondary ml-2">
+                            <input type="file" id="csv-upload" accept=".csv" style="display:none;" onchange="handleCSVUpdate()">
+                            <button onclick="document.getElementById('csv-upload').click()" class="btn-secondary py-1 px-2" style="font-size: 14px;">Update CSV</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="table-content-area" class="border rounded bg-light" style="max-height: 650px;">
+                    <div id="spreadsheet"></div>
+                </div>
+
+                <div class="table-bottom-actions mt-3 pt-3 border-top">
+                    <button type="button" onclick="openExportModal()" class="btn-primary px-4 font-weight-bold">
+                        <i class="fas fa-download mr-1"></i> Export
                     </button>
+                    <a href="{% url 'export_to_sheets' result.id %}" class="btn-success px-4 font-weight-bold ml-2 text-decoration-none">
+                        <i class="fab fa-google-drive mr-1"></i> Google Sheets
+                    </a>
                 </div>
             </div>
-        </div>
+        </main>
+
+        <aside class="side-panel side-right">
+            <div class="info-box ai-bg shadow-sm mb-3">
+                <h4 class="box-title"><i class="fas fa-robot mr-1"></i> Gemini AI</h4>
+                <div class="ai-input-wrapper">
+                    <textarea id="ai-prompt" class="form-control form-control-sm mb-2" placeholder="Yêu cầu AI..." rows="3"></textarea>
+                    <button id="btn-ai-gen" class="btn btn-success btn-sm btn-block" onclick="generateAIContent()">Generate</button>
+                </div>
+                <div class="ai-result-wrapper">
+                    <input type="text" id="ai-result-display" class="form-control form-control-sm mt-2" readonly placeholder="Kết quả gợi ý...">
+                </div>
+            </div>
+
+            <div class="info-box range-bg shadow-sm" id="range-tools-vertical">
+                <h4 class="box-title"><i class="fas fa-cut mr-1"></i> Tách Dữ Liệu</h4>
+                <div class="d-flex flex-wrap mb-2" style="gap: 5px;">
+                    <input type="text" id="range-start" placeholder="Từ" class="form-control form-control-sm" style="flex: 1; min-width: 45%;">
+                    <input type="text" id="range-end" placeholder="Đến" class="form-control form-control-sm" style="flex: 1; min-width: 45%;">
+                    <input type="text" id="special-char" placeholder="Ký tự" class="form-control form-control-sm w-100 mt-1">
+                </div>
+                <div class="tool-btns d-flex flex-column" style="gap: 5px;">
+                    <button onclick="handleRangeAction('split-col')" class="btn-tool-blue w-100 py-2">Chia Cột</button>
+                    <button onclick="handleRangeAction('split-row')" class="btn-tool-orange w-100 py-2">Xuống Dòng</button>
+                    <button onclick="handleRangeAction('remove')" class="btn-tool-red w-100 py-2">Xóa Vùng</button>
+                </div>
+            </div>
+        </aside>
     </div>
+
+    {% include "includes/export_ui.html" %}
+    {% include "includes/image_editor.html" with api_url="/extract-only-api/" %}
+
+    {% include "includes/footer.html" %}
+
     <script>
         window.DJANGO_TABLE_DATA = {{ table_json|safe }};
-        // Lưu thêm bản Final để dùng riêng cho Modal Export
         window.FINAL_TABLE_DATA = {{ final_table_json|safe }};
         window.DJANGO_SAVE_URL = "{% url 'update_table_data' result.id %}";
     </script>
+    <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script src="{% static 'js/image_handler.js' %}"></script>
     <script src="{% static 'js/result_detail.js' %}"></script>
+    <script src="{% static 'js/export_ui.js' %}"></script>
 </body>
 </html>
