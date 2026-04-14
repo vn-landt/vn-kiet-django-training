@@ -172,6 +172,118 @@ You must process the data using the following hierarchical strategy. Attempt Ste
         return None, "Unexpected: " + str(e)
 
 
+def extract_multi_images_with_gemini(image_urls, languages='all', mime_type="image/jpeg"):
+    """
+    image_urls: Có thể là 1 string URL hoặc 1 danh sách [url1, url2, ...]
+    """
+    url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY
+
+    # Chuyển đổi sang list nếu chỉ có 1 URL
+    if isinstance(image_urls, basestring):
+        image_urls = [image_urls]
+
+    # 1. Chuyển đổi mã ngôn ngữ thành câu lệnh (Prompt)
+    lang_instruction = u""
+    if languages == 'all' or not languages:
+        lang_instruction = u"Language Instruction: Please auto-detect the languages in the document and extract the text accordingly."
+    else:
+        lang_instruction = "Language Instruction: The document primarily contains text in những ngôn ngữ này: " + languages + ". Please ensure highly accurate character extraction."
+
+    # 2. Xây dựng Prompt Core
+    prompt_text = u"""
+CRITICAL INSTRUCTION:
+Before processing, check the image content:
+1. If any image contains a human face.
+2. If the images are NOT receipts, invoices, bills, or structured data tables.
+If either condition is met, your ONLY response must be: INVALID_DOCUMENT
+
+If valid, proceed with the extraction:
+---
+You are a high-precision, automated data extraction engine. Your task is to convert the tables/lists from the provided file(s) into a single, machine-parsable CSV string.
+
+**MULTI-IMAGE LOGIC:**
+- If multiple images are provided, they represent consecutive pages of the same document. 
+- Merge all data into ONE single CSV. 
+- **CRITICAL:** For every row extracted, you MUST append exactly two empty columns at the end of the row (i.e., add two commas `,,` at the end of each line).
+"""
+    prompt_text += lang_instruction
+    prompt_text += u"""
+**Your Extraction Strategy:**
+Attempt Step 1 first. Only if it fails, proceed to Step 2.
+
+**Step 1: The "Header-First" Method (Primary Strategy)**
+1. Find a Header Row in the first image.
+2. Apply Strict Structure: Use that header for the entire CSV. Identify and discard any repeated header rows found in subsequent images.
+3. Every extracted row must follow the column count of this header, then append two empty columns `,,` at the end.
+
+**Step 2: The "Flexible List" Method (Fallback)**
+- Action: Look for itemized lists. Create a 2 or 3-column CSV.
+- Structure: Merge inconsistent data into "Description". Append two empty columns `,,` at the end of every row.
+
+**Universal Formatting Rules:**
+- **IMPERATIVE Quoting Rule:** If any cell contains a comma, enclose the value in double quotes (`"`).
+- **Row Consistency:** Every row must have the exact same number of commas. 
+- **Separation Rule:** Remember to add `,,` at the end of each row to separate data as requested.
+- **Ignore Noise:** Discard page numbers, logos, and signatures.
+
+**Final Output Requirements:**
+1. Your response must ONLY be the pure CSV string.
+2. If no data: `NO_TABLE_FOUND`.
+3. NO explanations, NO markdown code blocks (```csv).
+"""
+
+    # 3. Xây dựng cấu trúc Parts cho Gemini (Prompt + Danh sách ảnh)
+    parts = [{"text": prompt_text}]
+    for img_url in image_urls:
+        parts.append({
+            "file_data": {
+                "mime_type": mime_type,
+                "file_uri": img_url
+            }
+        })
+
+    payload = {
+        "contents": [{"parts": parts}],
+        "generationConfig": {
+            "temperature": 0.1, # Giảm xuống để trích xuất chính xác hơn
+            "maxOutputTokens": 8192, # Tăng lên để chứa đủ dữ liệu nhiều ảnh
+        }
+    }
+
+    try:
+        res = urlfetch.fetch(
+            url=url,
+            payload=json.dumps(payload),
+            method=urlfetch.POST,
+            headers={"Content-Type": "application/json"},
+            deadline=90
+        )
+
+        if res.status_code != 200:
+            return None, "Gemini HTTP error {}: {}".format(res.status_code, res.content)
+
+        data = json.loads(res.content)
+        try:
+            candidates = data.get("candidates", [])
+            if not candidates:
+                return None, "No candidates in response"
+
+            content = candidates[0].get("content", {})
+            res_parts = content.get("parts", [])
+            if not res_parts:
+                return None, "No parts in content"
+
+            text = res_parts[0].get("text", "").strip()
+            return text, None
+
+        except Exception as e:
+            return None, "Parse error: " + str(e) + "\nRaw: " + res.content
+
+    except urlfetch.Error as e:
+        return None, "GAE urlfetch Request failed: " + str(e)
+    except Exception as e:
+        return None, "Unexpected: " + str(e)
+
 def generate_text_with_gemini(custom_prompt):
     """
     Hàm này nhận vào một đoạn text và trả về kết quả từ Gemini.

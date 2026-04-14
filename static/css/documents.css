@@ -66,6 +66,13 @@ body {
 .list-group-item.active .text-primary {
     color: white !important;
 }
+.list-group {
+    max-height: 700px; /* Giới hạn chiều cao */
+    overflow-y: auto;  /* Hiện thanh trượt dọc khi vượt quá 400px */
+    overflow-x: hidden; /* Chặn thanh trượt ngang */
+    border: 1px solid #dee2e6; /* Viền nhẹ để phân tách vùng cuộn */
+    border-radius: 0.25rem;    /* Bo góc cho khớp với Bootstrap */
+}
 
 /* Wrapper ảnh */
 .image-wrapper {
@@ -234,3 +241,4 @@ body {
 .list-item.is-selected .list-item-image-tools {
     opacity: 1 !important;
 }
+
