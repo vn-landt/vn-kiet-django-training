@@ -1,0 +1,60 @@
+.site-footer {
+    border-top: 4px solid #007bff; /* Đường kẻ màu xanh thương hiệu ở trên cùng */
+    color: #ced4da;
+}
+
+/* Link điều hướng */
+.footer-links li {
+    margin-bottom: 8px;
+}
+
+.footer-links a {
+    color: #adb5bd;
+    text-decoration: none;
+    transition: 0.3s;
+    font-size: 0.9rem;
+}
+
+.footer-links a:hover {
+    color: #007bff;
+    padding-left: 5px;
+}
+
+/* Icon mạng xã hội */
+.social-icons a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: #343a40;
+    color: #fff;
+    margin-left: 10px;
+    transition: all 0.3s ease;
+    text-decoration: none;
+}
+
+.social-icons a:hover {
+    transform: translateY(-5px);
+    color: white;
+}
+
+/* Màu riêng cho từng icon khi hover */
+.social-icons a.fb-icon:hover { background-color: #3b5998; }
+.social-icons a.ins-icon:hover { background-color: #e4405f; }
+.social-icons a.git-icon:hover { background-color: #333; }
+
+/* Responsive chỉnh lại căn lề trên mobile */
+@media (max-width: 768px) {
+    .text-md-right, .text-md-center {
+        text-align: left !important;
+    }
+    .social-icons {
+        margin-top: 15px;
+    }
+    .social-icons a {
+        margin-left: 0;
+        margin-right: 15px;
+    }
+}

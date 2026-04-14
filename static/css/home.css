@@ -1,189 +1,112 @@
-/* Thiết lập font chữ và màu nền tổng thể */
+/* --- Thiết lập chung cho nội dung --- */
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #f4f7f6;
-    color: #333;
-    margin: 0;
-    padding: 40px 20px;
-    line-height: 1.6;
+    background-color: #f0f2f5;
+    color: #1c1e21;
+    /* Lưu ý: padding-top được quản lý trong header.css để tránh đè Navbar */
 }
 
-/* Khung chứa nội dung căn giữa */
-.container {
-    max-width: 1000px;
-    margin: 0 auto;
-    background-color: #ffffff;
-    padding: 30px 40px;
-    border-radius: 8px;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+.main-container {
+    max-width: 1400px;
+    margin: 20px auto 40px auto;
+    padding: 0 20px;
 }
 
-/* Phần Tiêu đề */
-.header-section {
-    text-align: center;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
-    border-bottom: 1px solid #eaeaea;
-}
-
-h1 {
-    margin: 0 0 10px 0;
-    color: #2c3e50;
-}
-
-.filename {
-    font-size: 1.1em;
-    color: #555;
-    font-weight: 500;
-    margin-bottom: 15px;
-}
-
-.date-text {
-    font-size: 0.9em;
-    color: #888;
-}
-
-/* Badge trạng thái */
-.status-badge {
-    display: inline-block;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-size: 0.85em;
-    font-weight: bold;
-    color: #fff;
-    margin-bottom: 10px;
-}
-.status-success { background-color: #28a745; }
-.status-failed { background-color: #dc3545; }
-.status-processing { background-color: #ffc107; color: #333; }
-.status-pending { background-color: #17a2b8; }
-
-.section-title h2 {
-    color: #2c3e50;
-    font-size: 1.4em;
-    margin-top: 30px;
-    margin-bottom: 15px;
-    border-left: 4px solid #3498db;
-    padding-left: 10px;
-}
-
-/* Kiểu dáng cho Bảng (Table) */
-.table-responsive {
-    overflow-x: auto;
-    border-radius: 6px;
-    box-shadow: 0 0 0 1px #eaeaea; /* Viền mỏng bọc ngoài bảng */
-}
-
-table {
-    width: 100%;
-    border-collapse: collapse;
-    background-color: #fff;
-}
-
-th, td {
-    padding: 12px 15px;
-    text-align: left;
-    border-bottom: 1px solid #eaeaea;
-}
-
-th {
-    background-color: #f8f9fa;
-    font-weight: 600;
-    color: #495057;
-    white-space: nowrap; /* Giữ tiêu đề không bị xuống dòng */
-}
-
-/* Hiệu ứng hover khi di chuột qua dòng */
-tbody tr:hover {
-    background-color: #f1f7ff;
-    transition: background-color 0.2s ease;
-}
-
-/* Dòng cuối cùng không cần viền dưới */
-tbody tr:last-child td {
-    border-bottom: none;
-}
-
-.empty-state {
-    text-align: center;
-    padding: 30px;
-    color: #6c757d;
-    background-color: #f8f9fa;
-    border-radius: 6px;
-}
-
-/* Khung hiển thị Raw Response */
-.raw-response pre {
-    background-color: #272822;
-    color: #f8f8f2;
-    padding: 15px;
-    border-radius: 6px;
-    overflow-x: auto;
-    font-family: 'Courier New', Courier, monospace;
-    font-size: 0.95em;
-    line-height: 1.5;
-}
-
-/* Kiểu dáng cho các Nút bấm (Buttons) */
-.action-buttons {
-    margin-top: 35px;
+.workspace {
     display: flex;
-    gap: 15px;
+    gap: 25px;
+    align-items: flex-start;
+}
+
+.control-panel {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    min-width: 320px;
+}
+
+.preview-panel {
+    flex: 2;
+    background: #ffffff;
+    border-radius: 15px;
+    padding: 25px;
+    min-height: 650px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     justify-content: center;
-    flex-wrap: wrap;
+    border: 1px solid #e0e0e0;
 }
 
-.btn {
-    display: inline-block;
-    padding: 10px 20px;
-    border-radius: 5px;
-    text-decoration: none;
-    font-weight: 500;
-    font-size: 0.95em;
-    transition: all 0.2s ease;
-    border: 1px solid transparent;
+/* --- Card & Typography --- */
+.card {
+    padding: 20px;
+    border-radius: 15px;
+    background: #fff;
+}
+.section-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: #4a5568;
+    margin-bottom: 15px;
+    border-bottom: 2px solid #f8f9fa;
+    padding-bottom: 8px;
 }
 
-.btn-primary {
-    background-color: #3498db;
-    color: #fff;
+/* --- Buttons --- */
+.btn-select {
+    padding: 12px;
+    font-weight: 700;
+    border: 2px dashed #007bff;
+    border-radius: 10px;
+    background: #f0f7ff;
+    color: #007bff;
+    transition: 0.2s;
 }
-.btn-primary:hover {
-    background-color: #2980b9;
+.btn-select:hover { background: #007bff; color: #fff; }
+
+.btn-extract {
+    padding: 12px 40px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: white;
+    background: linear-gradient(135deg, #28a745, #218838);
+    border: none;
+    border-radius: 50px;
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+    cursor: pointer;
 }
 
-.btn-success {
-    background-color: #28a745;
-    color: #fff;
-}
-.btn-success:hover {
-    background-color: #218838;
-}
-
-.btn-secondary {
-    background-color: #e9ecef;
-    color: #495057;
-    border-color: #ced4da;
-}
-.btn-secondary:hover {
-    background-color: #dde2e6;
-}
-
-/* Style cho thanh điều hướng */
-.nav-bar {
+/* --- History List --- */
+.history-item {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px;
-    background-color: #f4f4f4;
-    border-bottom: 1px solid #ddd;
-    margin-bottom: 20px;
+    padding: 10px 0;
+    border-bottom: 1px solid #f7f7f7;
 }
-.nav-links a {
-    margin-left: 15px;
-    text-decoration: none;
-    color: #333;
+.history-item a { color: #4a5568; text-decoration: none; font-size: 0.9rem; }
+.status-tag {
+    font-size: 0.7rem;
+    padding: 2px 8px;
+    border-radius: 12px;
     font-weight: bold;
 }
-.nav-links a:hover { color: #007bff; }
-.auth-status { font-style: italic; }
+.status-tag.success { background: #c6f6d5; color: #2f855a; }
+.status-tag.failed { background: #fed7d7; color: #9b2c2c; }
+
+/* --- Image Preview --- */
+.image-wrapper {
+    width: 100%;
+    background: #f8fafc;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    justify-content: center;
+}
+#imagePreview { max-width: 100%; max-height: 500px; }
+
+/* Responsive */
+@media (max-width: 992px) {
+    .workspace { flex-direction: column; }
+    .control-panel, .preview-panel { width: 100%; }
+}
