@@ -6,12 +6,14 @@ import io
 import csv
 import os
 import json
+from datetime import timedelta
+
 from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, JsonResponse, HttpResponseForbidden
 from django.conf import settings
 from .forms import UploadFileForm, RegisterForm
-from .models import UploadedFile, ExtractedResult
+from .models import UploadedFile, ExtractedResult, UsageLog
 from .services.bridge import process_and_save_extraction
 from django.urls import reverse
 from .services.sheets_export import export_to_google_sheets
@@ -22,6 +24,7 @@ from django.views.decorators.csrf import csrf_protect
 from .services.table_handler import TableFileHandler
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
+from django.contrib import messages
 
 def _perform_extraction_logic(uploaded_file):
     """
@@ -73,11 +76,24 @@ def _perform_extraction_logic(uploaded_file):
         return None, None, str(e)
 
 def home(request):
-    recent_results = ExtractedResult.objects.order_by('-created_at')[:10]
+    user = request.user
+    recent_results = []
+    if user.is_authenticated():
+        recent_results = ExtractedResult.objects.filter(
+            user=user
+        ).order_by('-created_at')[:10]
 
     if request.method == 'POST':
         form = UploadFileForm(request.POST, request.FILES)
         if form.is_valid():
+            # 1. Kiểm tra Quota cho User đã đăng nhập [#35]
+            if user.is_authenticated():
+                today = timezone.now().date()
+                usage, created = UsageLog.objects.get_or_create(user=user, usage_date=today)
+
+                if usage.upload_count >= 10:
+                    messages.error(request, "Bạn đã hết lượt upload trong ngày (Tối đa 10 ảnh).")
+                    return render(request, 'home.html', {'recent_results': recent_results})
             uploaded_file = request.FILES['file']
 
             # Kiểm tra định dạng/dung lượng...
@@ -90,6 +106,7 @@ def home(request):
 
             # --- LƯU VÀO DATABASE (Chỉ làm ở Home) ---
             uf = UploadedFile.objects.create(
+                user=user if user.is_authenticated() else None,
                 filename=uploaded_file.name,
                 mime_type=uploaded_file.content_type,
                 image_url=image_url,
@@ -98,6 +115,7 @@ def home(request):
 
             # Tạo bản ghi kết quả và lưu table_data qua Handler
             res_obj = ExtractedResult.objects.create(
+                user=user if user.is_authenticated() else None,
                 uploaded_file=uf,
                 status='success',
                 raw_response=u"Initial Extraction",
@@ -106,6 +124,15 @@ def home(request):
             handler = TableFileHandler(res_obj)  #
             handler.save_data(table_data)
 
+            if user.is_authenticated():
+                # Cập nhật số lượng dùng trong ngày
+                usage.upload_count += 1  # hoặc +1 tùy logic của bạn
+                usage.save()
+
+                # [#35] Giới hạn 10 lịch sử (Xóa file thứ 11 trở đi)
+                old_files = UploadedFile.objects.filter(user=user).order_by('-uploaded_at')[10:]
+                for old_f in old_files:
+                    old_f.delete()  # Datastore sẽ xóa các bản ghi liên quan nếu có CASCADE
             return render(request, 'result_detail.html', {
                 'result': res_obj,
                 'table': table_data,
@@ -301,3 +328,21 @@ def register(request):
     else:
         form = RegisterForm()
     return render(request, 'registration/register.html', {'form': form})
+
+
+def cleanup_old_data(request):
+    # Chỉ cho phép App Engine Cron gọi vào URL này
+    if request.META.get('HTTP_X_APPENGINE_CRON') != 'true':
+        return HttpResponseForbidden()
+
+    seven_days_ago = timezone.now() - timedelta(days=7)
+
+    # Tìm các file không có thay đổi trong 7 ngày qua
+    old_results = ExtractedResult.objects.filter(updated_at__lt=seven_days_ago)
+
+    count = 0
+    for res in old_results:
+        res.uploaded_file.delete()  # Xóa file gốc kéo theo kết quả trích xuất
+        count += 1
+
+    return HttpResponse("Đã dọn dẹp %d bản ghi cũ." % count)
