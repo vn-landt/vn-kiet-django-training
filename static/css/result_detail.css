@@ -1,0 +1,104 @@
+/* CSS Tổng thể */
+body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    background-color: #ffffff;
+    color: #333;
+    margin: 0;
+    padding: 20px 40px;
+    line-height: 1.6;
+}
+
+/* 1. Nút Back to Home ở góc trên trái */
+.btn-home {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border: 1px solid #333;
+    border-radius: 6px;
+    text-decoration: none;
+    color: #333;
+    font-weight: 500;
+    margin-bottom: 20px;
+    transition: background-color 0.2s;
+}
+.btn-home:hover { background-color: #f0f0f0; }
+.btn-home svg { margin-right: 6px; }
+
+/* Tiêu đề trang */
+h1 {
+    font-size: 24px;
+    margin: 0 0 10px 0;
+    color: #000;
+}
+
+.info-text {
+    margin: 5px 0;
+    font-size: 15px;
+}
+
+/* 2. Link file name */
+.filename-link {
+    color: #0056b3;
+    text-decoration: underline;
+    font-weight: 500;
+}
+
+/* Khung chứa Table */
+.table-card {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    margin-top: 25px;
+    padding: 15px 20px;
+}
+
+/* 7. Flexbox để đưa Nút bấm nằm ngang với Tiêu đề Table */
+.table-header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 15px;
+}
+
+/* Các nút Action (Download, Export) */
+.action-buttons a {
+    display: inline-block;
+    padding: 8px 15px;
+    border-radius: 4px;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 500;
+    color: #fff;
+    margin-left: 10px;
+}
+.btn-primary { background-color: #3b78d8; border: 1px solid #2a5eb5; }
+.btn-primary:hover { background-color: #2a5eb5; }
+
+.btn-success { background-color: #3a8d54; border: 1px solid #2d7342; }
+.btn-success:hover { background-color: #2d7342; }
+
+/* Nút Save Changes */
+.btn-save {
+    background-color: #ffffff;
+    border: 1px solid #333;
+    color: #333;
+    padding: 8px 15px;
+    border-radius: 6px;
+    font-size: 14px;
+    font-weight: 500;
+    margin-top: 15px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+.btn-save:hover { background-color: #f0f0f0; }
+
+/* Tùy chỉnh hiển thị Jspreadsheet cho giống Excel hơn */
+.jexcel > thead > tr > td { background-color: #eef0f3; font-weight: bold; color: #555;}
+.jexcel > tbody > tr > td.jexcel_row { background-color: #eef0f3; font-weight: bold; color: #555;}
+
+/* Nút Back to upload ở cuối trang */
+.bottom-link {
+    display: inline-block;
+    margin-top: 20px;
+    color: #333;
+    text-decoration: underline;
+}

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Image/PDF to Table Extractor</title>
+</head>
+<body>
+    <h1>Upload Image or PDF to Extract Table</h1>
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Upload and Extract</button>
+    </form>
+
+    <p><small>Supported: JPG, JPEG, PNG, PDF</small></p>
+</body>
+</html>
