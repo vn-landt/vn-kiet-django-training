@@ -10,13 +10,17 @@ except ImportError:
     from django.db.models import BinaryField as BlobField
 from django.utils import timezone
 import json
+from django.contrib.auth.models import User  # Sử dụng User mặc định của Django
+from djangae.fields import JSONField
 
 class UploadedFile(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='uploaded_files', null=True)
     filename = models.CharField(max_length=255)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
     image_url = models.TextField()  # Lưu binary trực tiếp vào Datastore
     file_size = models.PositiveIntegerField(default=0)
     uploaded_at = models.DateTimeField(default=timezone.now)
+    is_deleted = models.BooleanField(default=False) # Dùng cho auto-cleanup #35
 
     def __unicode__(self):
         return u"%s (%s KB)" % (self.filename, self.file_size // 1024)
@@ -26,12 +30,14 @@ class ExtractedResult(models.Model):
     uploaded_file = models.ForeignKey(UploadedFile, on_delete=models.CASCADE, related_name='extraction_results')
 
     status = models.CharField(max_length=20, default='pending')
+    is_draft = models.BooleanField(default=True)  # Trạng thái Draft/Final #38
     raw_response = models.TextField(blank=True, null=True)
     table_data_compressed = BlobField(blank=True, null=True)
 
     error_message = models.TextField(blank=True, null=True)
     processed_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
+    updated_at = models.DateTimeField(auto_now=True)  # Lưu mốc thời gian auto-save #38
 
     def __unicode__(self):
         return u"%s - %s" % (self.uploaded_file.filename, self.status)
@@ -45,3 +51,11 @@ class ExtractedResult(models.Model):
         from .services.table_handler import TableFileHandler
         handler = TableFileHandler(self)  # Chuyền cả object vào thay vì self.id
         return handler.load_data()
+
+class UsageLog(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='usage_logs')
+    usage_date = models.DateField(default=timezone.now)
+    upload_count = models.IntegerField(default=0) # Số ảnh đã up trong ngày #35
+
+    class Meta:
+        unique_together = ('user', 'usage_date')
