@@ -14,8 +14,9 @@ from .services.bridge import process_and_save_extraction
 from django.urls import reverse
 from .services.sheets_export import export_to_google_sheets
 from .services.compress_image import compress_image
-from .services.gemini_rest import upload_to_imgbb
+from .services.gemini_rest import upload_to_imgbb, generate_text_with_gemini
 from django.views.decorators.http import require_POST
+from django.views.decorators.csrf import csrf_protect
 
 def home(request):
     # List of recent extractions for history
@@ -187,3 +188,45 @@ def update_table_data(request, result_id):
 
     except Exception as e:
         return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
+
+@csrf_protect
+def ai_generate_view(request):
+    """
+    API nhận prompt từ giao diện và trả về văn bản từ Gemini
+    """
+    if request.method == 'POST':
+        try:
+            # Parse dữ liệu JSON từ request body
+            data = json.loads(request.body)
+            prompt_text = data.get('prompt', '')
+            target_cell = data.get('cell', '')
+
+            if not prompt_text:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': u'Nội dung yêu cầu không được để trống.'
+                })
+
+            # Gọi hàm từ services.py
+            # prompt_text có thể cần decode/encode nếu là tiếng Việt trong Py 2.7
+            result, error = generate_text_with_gemini(prompt_text)
+
+            if error:
+                return JsonResponse({
+                    'status': 'error',
+                    'message': error
+                })
+
+            return JsonResponse({
+                'status': 'success',
+                'result': result,
+                'cell': target_cell
+            })
+
+        except Exception as e:
+            return JsonResponse({
+                'status': 'error',
+                'message': str(e)
+            })
+
+    return JsonResponse({'status': 'error', 'message': 'Invalid Method'})
