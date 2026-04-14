@@ -60,7 +60,16 @@ def extract_image_with_gemini(image_url, mime_type="image/jpeg", custom_prompt=N
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY
 
     prompt_text = """
-            You are a high-precision, automated data extraction engine. Your only function is to convert the primary table or list from a file into a pure, machine-parsable CSV string.
+CRITICAL INSTRUCTION:
+Before processing, check the image content:
+1. If the image contains a human face.
+2. If the image is NOT a receipt, invoice, bill, or a structured data table.
+
+If either condition is met, your ONLY response must be: INVALID_DOCUMENT
+
+If the image is a valid document, proceed with the extraction below:
+---
+You are a high-precision, automated data extraction engine. Your only function is to convert the primary table or list from a file into a pure, machine-parsable CSV string.
 
 **Your Extraction Strategy:**
 
