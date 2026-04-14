@@ -1,14 +1,16 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
 
+import traceback  # Thêm thư viện này ở đầu file
 import io
 import csv
 import os
 import json
+from django.utils import timezone
 from django.shortcuts import render, get_object_or_404, redirect
 from django.http import HttpResponse, JsonResponse
 from django.conf import settings
-from .forms import UploadFileForm
+from .forms import UploadFileForm, RegisterForm
 from .models import UploadedFile, ExtractedResult
 from .services.bridge import process_and_save_extraction
 from django.urls import reverse
@@ -18,7 +20,8 @@ from .services.gemini_rest import upload_to_imgbb, generate_text_with_gemini, ex
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_protect
 from .services.table_handler import TableFileHandler
-import traceback  # Thêm thư viện này ở đầu file
+from django.shortcuts import render, redirect
+from django.contrib.auth import login
 
 def _perform_extraction_logic(uploaded_file):
     """
@@ -287,3 +290,14 @@ def extract_only_api(request):
         'status': 'success',
         'table': table_data
     })
+
+def register(request):
+    if request.method == "POST":
+        form = RegisterForm(request.POST)
+        if form.is_valid():
+            user = form.save() # Mật khẩu tự động được băm tại đây
+            login(request, user)
+            return redirect('home')
+    else:
+        form = RegisterForm()
+    return render(request, 'registration/register.html', {'form': form})
