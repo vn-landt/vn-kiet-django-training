@@ -43,7 +43,9 @@ from django.core.mail import send_mail
 from django.conf import settings
 from .models import UserProfile, Notification, NotificationManager
 from django.db.models import Count
+import logging
 
+logger = logging.getLogger(__name__)
 def _perform_extraction_logic(uploaded_file, languages='all'):
     """
     Hàm trợ giúp tái sử dụng: Nhận file -> Trả về (table_data, image_url, error)
@@ -122,7 +124,8 @@ def home(request):
     if user.is_authenticated():
         # Lấy 10 kết quả gần nhất của user
         recent_results = ExtractedResult.objects.filter(
-            user=user
+            user=user,
+            is_deleted=False
         ).order_by('-created_at')[:10]
 
     # Không còn xử lý request.method == 'POST' ở đây nữa
@@ -152,7 +155,9 @@ def result_detail(request, result_id):
     if result.processed_at:
         last_final_time = timezone.localtime(result.processed_at).strftime('%d/%m/%Y %H:%M:%S')
 
-    recent_results = ExtractedResult.objects.order_by('-created_at')
+    recent_results = ExtractedResult.objects.filter(
+            is_deleted=False
+    ).order_by('-created_at')
     return render(request, 'result_detail.html', {
         'result': result,
         'table_json': table_json_str,
@@ -208,7 +213,7 @@ def delete_result(request, result_id):
         message=u"Bảng tính '{}' đã được chuyển vào mục lưu trữ và sẽ bị xóa vĩnh viễn sau 30 ngày.".format(
             result.title),
         level='warning',
-        linked_to=None
+        linked_to='/trash-bin/'
     )
 
     # 4. Điều hướng quay lại trang chủ hoặc trang danh sách
@@ -811,7 +816,7 @@ def documents_view(request):
     user = request.user
 
     # 1. Lấy danh sách bảng tính (dùng cho Sidebar 20%)
-    results_query = ExtractedResult.objects.filter(user=user)
+    results_query = ExtractedResult.objects.filter(user=user, is_deleted=False)
 
     # 2. Lấy TOÀN BỘ ảnh của user (dùng cho Gallery 80%)
     # Điều này đảm bảo ảnh vẫn hiện dù bảng tính bị xóa
@@ -1196,3 +1201,78 @@ def toggle_read(request, noti_id):
             return JsonResponse({'success': True, 'is_read': noti.is_read})
         except:
             return JsonResponse({'success': False}, status=400)
+
+# Trash Bin
+@login_required
+def trash_bin_view(request):
+    """Hiển thị trang Thùng rác"""
+    deleted_results = ExtractedResult.objects.filter(user=request.user, is_deleted=True).order_by('-delete_at')
+    deleted_files = UploadedFile.objects.filter(user=request.user, is_deleted=True).order_by('-delete_at')
+    return render(request, 'trash_bin.html', {
+        'deleted_results': deleted_results,
+        'deleted_files': deleted_files,
+    })
+
+
+@login_required
+def restore_item_api(request):
+    """
+    API DUY NHẤT xử lý khôi phục.
+    Hỗ trợ: Khôi phục 1 ảnh, nhiều ảnh, 1 bảng, nhiều bảng.
+    """
+    if request.method == 'POST':
+        item_type = request.POST.get('type')
+        ids = request.POST.getlist('ids[]')
+
+        if not ids:
+            return JsonResponse({'status': 'error', 'message': u'Chưa chọn mục nào'}, status=400)
+
+        try:
+            # Lấy số lượng mục được chọn để đưa vào thông báo
+            count = len(ids)
+            label = u""  # Để phân biệt "ảnh" hay "bảng"
+
+            if item_type == 'image':
+                # Khôi phục hàng loạt ảnh
+                UploadedFile.objects.filter(id__in=ids, user=request.user).update(
+                    is_deleted=False, delete_at=None
+                )
+                label = u"ảnh"
+
+            elif item_type == 'table':
+                # Khôi phục bảng và ảnh liên quan
+                tables = ExtractedResult.objects.filter(id__in=ids, user=request.user)
+                for table in tables:
+                    table.is_deleted = False
+                    table.delete_at = None
+                    table.save()
+
+                    # Khôi phục luôn ảnh kèm theo bảng
+                    if table.source_file_ids:
+                        UploadedFile.objects.filter(
+                            id__in=table.source_file_ids,
+                            user=request.user
+                        ).update(is_deleted=False, delete_at=None)
+
+                label = u"bảng"
+            else:
+                return JsonResponse({'status': 'error', 'message': u'Loại dữ liệu lạ'}, status=400)
+
+            # Tạo nội dung thông báo động
+            msg = u"Đã khôi phục %d %s thành công!" % (count, label)
+
+            # --- LƯU THÔNG BÁO VÀO DATABASE ---
+            Notification.objects.create_notification(
+                user=request.user,
+                title=u"Khôi phục dữ liệu",
+                message=msg,
+                level='success',
+                linked_to='/documents/'  # Bạn có thể truyền link trang chủ nếu muốn
+            )
+
+            return JsonResponse({'status': 'success', 'message': msg})
+
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': unicode(e)}, status=500)
+
+    return JsonResponse({'status': 'error', 'message': u'Method not allowed'}, status=405)

@@ -80,8 +80,16 @@
                                          data-read="{{ noti.is_read|yesno:'true,false' }}"
                                          onclick="handleNotiToggle(event, {{ noti.id }})">
 
-                                        <div class="d-flex justify-content-between align-items-start">
-                                            <span class="badge badge-{{ noti.level }} mb-1" style="font-size: 0.6rem;">{{ noti.get_level_display }}</span>
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
+                                            <div>
+                                                <span class="badge badge-{{ noti.level }}" style="font-size: 0.6rem;">
+                                                    {{ noti.get_level_display }}
+                                                </span>
+                                                <small class="text-muted ml-2" style="font-size: 0.65rem;">
+                                                    <i class="far fa-clock mr-1"></i>{{ noti.created_at|date:"H:i d/m" }}
+                                                </small>
+                                            </div>
+                                            
                                             <div class="noti-actions">
                                                 <a href="javascript:void(0)" onclick="deleteNoti(event, {{ noti.id }})" class="text-danger">
                                                     <i class="fas fa-trash small"></i>
@@ -114,6 +122,7 @@
                         <div class="dropdown-menu dropdown-menu-right shadow border-0">
                             <a class="dropdown-item py-2" href="{% url 'documents' %}"><i class="fas fa-folder mr-2"></i> Tài liệu</a>
                             <a class="dropdown-item py-2" href="{% url 'settings' %}"><i class="fas fa-cog mr-2"></i> Cài đặt</a>
+                            <a class="dropdown-item py-2" href="{% url 'trash_bin' %}"><i class="fas fa-trash-alt mr-2"></i> Thùng rác</a>                            
                             <div class="dropdown-divider"></div>
                             <a class="dropdown-item py-2 text-danger" href="{% url 'logout' %}"><i class="fas fa-sign-out-alt mr-2"></i> Đăng xuất</a>
                         </div>
