@@ -55,6 +55,12 @@ indexes:
   - name: created_at
     direction: desc
 
+- kind: img2xl_app_notification
+  properties:
+  - name: user_id
+  - name: created_at
+    direction: desc
+
 - kind: img2xl_app_uploadedfile
   properties:
   - name: is_deleted

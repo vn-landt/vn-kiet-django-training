@@ -15,18 +15,20 @@ urlpatterns = [
     url(r'^reset-password-final/$', views.reset_password_final, name='reset_password_final'),
     url(r'^$', views.home, name='home'),
     url(r'^result/(?P<result_id>\d+)/$', views.result_detail, name='result_detail'),
-    url(r'^delete/(?P<result_id>\d+)/$', views.delete_result, name='delete_result'),
+    url(r'^home/delete/(?P<result_id>\d+)/$', views.delete_result, name='delete_result'),
     url(r'^export/(?P<result_id>\d+)/$', views.export, name='export'),
     url(r'^export_to_sheets/(?P<result_id>\d+)/$', views.export_to_sheets, name='export_to_sheets'),
     url(r'^result/(?P<result_id>\d+)/update/$', views.update_table_data, name='update_table_data'),
-    url(r'^api/generate-ai-content/$', views.ai_generate_view, name='ai_generate_view'),
+    url(r'^api/generate-ai-content/$', views.generate_ai_content, name='generate_ai_content'),
     url(r'^extract-only-api/$', views.extract_only_api, name='extract_only_api'),
     url(r'^tasks/auto-cleanup/$', views.auto_cleanup_task, name='cleanup_old_data'),
     url(r'^documents/$', views.documents_view, name='documents'),
     url(r'^settings/$', views.settings_view, name='settings'),
 
+    # documents and home
+    url(r'^create-spreadsheet-blank/$', views.create_spreadsheet_blank, name='create_spreadsheet_blank'),
+
     # documents.html
-    url(r'^documents/create-blank/$', views.create_blank_document, name='create_blank_document'),
     # 1. API cho Bảng tính từ documents.js (ExtractedResult)
     url(r'^documents/update-title/(?P<result_id>\d+)/$', views.update_title_api, name='update_title_api'),
     url(r'^documents/delete-result/(?P<result_id>\d+)/$', views.delete_result_api, name='delete_result_api'),

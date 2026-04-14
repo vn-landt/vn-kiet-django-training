@@ -12,7 +12,10 @@ except ImportError:
     from django.db.models import BinaryField as BlobField
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import logging
 
+# Khai báo logger để debug trên GAE
+logger = logging.getLogger(__name__)
 
 class UserProfile(models.Model):
     """
@@ -107,15 +110,15 @@ class ExtractedResult(models.Model):
     # Thời gian lưu bản draft
     updated_at = models.DateTimeField(auto_now=True)
 
+    # Bổ trợ xoá mềm
+    is_deleted = models.BooleanField(default=False)
+    delete_at = models.DateTimeField(blank=True, null=True)
+
     def __unicode__(self):
         return u"%s - %s" % (self.title, self.status)
 
     def get_related_images(self):
-        """
-        Hàm tiện ích để lấy các object ảnh gốc từ Media Library.
-        Nếu ảnh đã bị xóa (do giới hạn 50 tấm), nó sẽ không xuất hiện trong kết quả.
-        """
-        if not self.source_file_ids:
+        if not self.source_file_ids or self.is_deleted: # Nếu bảng tính đã bị xóa mềm, có thể không cần lấy ảnh
             return []
         return UploadedFile.objects.filter(id__in=self.source_file_ids, is_deleted=False)
 
@@ -139,14 +142,33 @@ class UsageLog(models.Model):
 
 
 class NotificationManager(models.Manager):
-    """Manager tùy chỉnh để mặc định chỉ lấy thông báo chưa bị xóa mềm"""
+    """Manager cung cấp hàm tạo thông báo nhanh chóng"""
 
-    def get_queryset(self):
-        return super(NotificationManager, self).get_queryset().filter(is_deleted=False)
+    def create_notification(self, user, title, message, level='info', linked_to=None):
+        """
+        Hàm tạo thông báo tập trung.
+        Cách dùng: Notification.objects.create_notification(user, u'Tiêu đề', u'Nội dung', ...)
+        """
+        # Đảm bảo level nằm trong danh sách cho phép
+        valid_levels = [choice[0] for choice in Notification.LEVEL_CHOICES]
+        if level not in valid_levels:
+            level = 'info'
+
+        try:
+            return self.create(
+                user=user,
+                title=title,
+                message=message,
+                level=level,
+                linked_to=linked_to
+            )
+        except Exception as e:
+            logger.error(u"Không thể tạo thông báo: " + unicode(e))
+            return None
 
 
 class Notification(models.Model):
-    # Cấu hình các cấp độ thông báo
+    # Các loại thông báo chuẩn
     LEVEL_CHOICES = (
         ('info', u'Thông tin'),
         ('success', u'Thành công'),
@@ -159,29 +181,20 @@ class Notification(models.Model):
     title = models.CharField(max_length=255)
     message = models.TextField()
 
-    # Trạng thái đọc
-    is_read = models.BooleanField(default=False)
-
-    # Trạng thái xóa mềm (Soft Delete)
-    is_deleted = models.BooleanField(default=False)
-    deleted_at = models.DateTimeField(null=True, blank=True)
-
-    created_at = models.DateTimeField(auto_now_add=True)
-
+    # Đường dẫn liên kết (Ví dụ: dẫn tới file excel hoặc trang kết quả)
     linked_to = models.CharField(max_length=500, null=True, blank=True)
 
-    # Đăng ký Manager
-    objects = NotificationManager()  # Truy vấn thông thường: Notification.objects.all()
-    all_objects = models.Manager()  # Truy vấn tất cả (kể cả đã xóa): Notification.all_objects.all()
+    # Trạng thái và thời gian
+    is_read = models.BooleanField(default=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    # Đăng ký Manager mặc định
+    objects = NotificationManager()
 
     class Meta:
         ordering = ['-created_at']
+        verbose_name = u"Thông báo"
+        verbose_name_plural = u"Danh sách thông báo"
 
     def __unicode__(self):
         return u"[%s] %s: %s" % (self.level, self.user.username, self.title)
-
-    def soft_delete(self):
-        """Hàm gọi nhanh để xóa mềm một thông báo"""
-        self.is_deleted = True
-        self.deleted_at = timezone.now()
-        self.save()
