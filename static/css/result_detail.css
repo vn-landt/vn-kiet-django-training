@@ -243,3 +243,49 @@ h1 {
     color: #333;
     text-decoration: underline;
 }
+
+#export-modal {
+        display: none; position: fixed; z-index: 1000; left: 0; top: 0;
+        width: 100%; height: 100%; background-color: rgba(0,0,0,0.5);
+    }
+.modal-content {
+    background-color: #fff; margin: 5% auto; width: 80%; max-width: 900px;
+    height: 70vh; display: flex; border-radius: 8px; overflow: hidden; position: relative;
+}
+.modal-left { flex: 0 0 30%; background: #f4f4f4; padding: 20px; border-right: 1px solid #ddd; }
+.modal-right { flex: 1; padding: 20px; overflow: auto; background: #fff; }
+.btn-close { position: absolute; top: 10px; right: 15px; cursor: pointer; font-size: 20px; font-weight: bold; }
+.preview-table { width: 100%; border-collapse: collapse; font-size: 12px; margin: 0;}
+.preview-table td { border: 1px solid #eee; padding: 5px; white-space: nowrap;}
+.footer-actions { position: absolute; bottom: 20px; right: 20px; }
+/* Style cho Header Excel */
+.excel-header {
+    background-color: #e6e6e6;
+    color: #333;
+    font-weight: bold;
+    text-align: center;
+    border: 1px solid #bbb !important;
+    width: 30px;
+}
+
+/* Khung chứa bảng để có thể đổi nền */
+#preview-container {
+    width: 100%;       /* Hoặc chiều rộng cố định bạn muốn, ví dụ 600px */
+    height: 450px;      /* Chiều cao cố định bắt buộc */
+    border: 1px dashed #ccc;
+    overflow: auto;   /* Cắt bỏ phần thừa nếu có lỗi */
+    display: block;
+    align-items: center;
+    justify-content: center;
+    background-color: #f9f9f9;
+    position: relative;
+    transition: all 0.3s ease;
+}
+
+#table-render-preview {
+    transform-origin: center; /* Thu nhỏ vào giữa khung */
+    transition: transform 0.2s ease; /* Hiệu ứng thu phóng mượt mà */
+    white-space: nowrap; /* Tránh việc chữ bị xuống dòng làm vỡ hàng */
+    display: table;
+    margin: 0 auto;
+}
