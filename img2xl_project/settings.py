@@ -2,14 +2,11 @@
 from __future__ import unicode_literals
 import os
 
-import logging
-logging.getLogger('googleapiclient.discovery_cache').setLevel(logging.ERROR)
-logging.getLogger('httplib2').setLevel(logging.WARNING)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
 SECRET_KEY = 'change-this-to-a-random-string'
 
-DEBUG = False
+DEBUG = True
 ALLOWED_HOSTS = ['*']
 
 INSTALLED_APPS = [
@@ -55,13 +52,6 @@ TEMPLATES = [
 DATABASES = {
     'default': {
         'ENGINE': 'djangae.db.backends.appengine',
-    }
-}
-
-DJANGAE = {
-    'DATASTORE': {
-        'PROJECT_ID': 'img2xl-490607',  # Project ID GCP
-        'NAMESPACE': '',
     }
 }
 

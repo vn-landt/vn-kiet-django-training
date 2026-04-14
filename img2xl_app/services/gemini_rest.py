@@ -56,11 +56,48 @@ def upload_to_imgbb(image_bytes):
 # =====================================
 # 🔹 Gọi Gemini bằng urlfetch
 # =====================================
-def extract_with_gemini(image_url, mime_type="image/jpeg", custom_prompt=None):
+def extract_image_with_gemini(image_url, mime_type="image/jpeg", custom_prompt=None):
     url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=" + GEMINI_API_KEY
 
-    # ... (Giữ nguyên phần text prompt của bạn ở đây) ...
-    prompt_text = """... (prompt của bạn) ..."""
+    prompt_text = """
+            You are a high-precision, automated data extraction engine. Your only function is to convert the primary table or list from a file into a pure, machine-parsable CSV string.
+
+**Your Extraction Strategy:**
+
+You must process the data using the following hierarchical strategy. Attempt Step 1 first. Only if it fails, proceed to Step 2.
+
+**Step 1: The "Header-First" Method (Primary Strategy for PDFs & Formal Tables)**
+
+1.  **Find a Header Row:** Scan the entire text for a single line that clearly functions as a table header. Headers typically contain words like "S.N.", "Item", "Description", "Quantity", "Rate", "Amount", "Price", etc.
+2.  **Apply Strict Structure:** If a clear header row is identified:
+    *   Use that line as your CSV header.
+    *   Assume all subsequent lines that follow a consistent pattern are rows of that table. The number of columns is now strictly defined by this header.
+    *   Extract every column found. Do not merge or simplify data.
+    *   **Crucially, identify and discard any repeated header rows** that may appear in the middle of the data, which is a common issue from multi-page PDF extractions.
+
+**Step 2: The "Flexible List" Method (Fallback for Handwriting & Simple Lists)**
+
+*   **Condition:** Use this method **only if** you cannot identify a clear header row in Step 1.
+*   **Action:** Look for a simple itemized list (e.g., lines starting with numbers like `1.`, `(2)`, or bullets).
+*   **Structure:**
+    *   Create a simple 2 or 3-column CSV with headers like "No.", "Description", and optionally "Details".
+    *   Merge any inconsistent data (like quantities that only appear on some lines) into the "Description" column to maintain a valid CSV structure.
+
+**Universal Formatting Rules (Apply to ALL Outputs):**
+
+*   **IMPERATIVE Quoting Rule:** If any cell value contains a comma, the entire value **MUST** be enclosed in double quotes (`"`). This is the most critical rule for preventing parser failure.
+    *   **Correct Example:** `1,"Item, with comma",100`
+    *   **Incorrect Example:** `1,Item, with comma,100`
+*   **Row Consistency:** Every row in the final CSV must have the exact same number of commas. Represent empty cells as an empty field (e.g., `value1,,value3`).
+*   **Special Text:** Append ` [CROSSED_OUT]` to any text that is clearly struck-through.
+*   **Ignore Noise:** Discard all unrelated text: page numbers, company logos, addresses, paragraphs, signatures, and marginalia.
+
+**Final Output Requirements (Strictly Enforced):**
+
+1.  **If Data Found:** Your response **must ONLY be the pure CSV string**.
+2.  **If No Data Found:** Your response **must ONLY be the exact string: `NO_TABLE_FOUND`**.
+3.  **DO NOT** include any explanations, summaries, or markdown formatting (like ` ```csv `).
+            """
 
     payload = {
         "contents": [{
