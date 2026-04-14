@@ -27,6 +27,9 @@ env_variables:
   DJANGO_SETTINGS_MODULE: "img2xl_project.settings"
   GEMINI_API_KEY: "YOUR_GEMINI_API"
   IMGBB_API_KEY: "YOUR_IMGBB_API"
+  # Thêm cấu hình Email vào đây
+  EMAIL_USER: "your-email@gmail.com"
+  EMAIL_PASS: "abcd efgh ijkl mnop" # 16 ký tự mật khẩu ứng dụng
 
 
 skip_files:

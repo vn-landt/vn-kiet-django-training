@@ -3,43 +3,45 @@
         <a class="navbar-brand footer-brand" href="{% url 'home' %}">
             <span class="text-primary font-weight-bold">Extractor</span> AI
         </a>
-
-        <div class="mx-auto d-none d-lg-block" style="width: 35%; min-width: 250px;">
-            <div class="d-flex justify-content-between small mb-1">
-                <a href="{% url 'documents' %}" class="text-light text-decoration-none" style="opacity: 0.9;">
-                    <i class="fas fa-folder-open mr-1"></i> <u>Thư viện</u>
-                </a>
-                <span class="text-white-50">{{ uploaded_count|default:0 }}/50 ảnh</span>
-            </div>
+        {% if user.is_authenticated %}
+            <div class="mx-auto d-none d-lg-block" style="width: 35%; min-width: 250px;">
+                <div class="d-flex justify-content-between small mb-1">
+                    <a href="{% url 'documents' %}" class="text-light text-decoration-none" style="opacity: 0.9;">
+                        <i class="fas fa-folder-open mr-1"></i> <u>Thư viện</u>
+                    </a>
+                    <span class="text-white-50">{{ uploaded_count|default:0 }}/50 ảnh</span>
+                </div>
+                
+                <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1);">
+                    <div class="progress-bar {% if uploaded_count >= 45 %}bg-danger{% elif uploaded_count >= 35 %}bg-warning{% else %}bg-primary{% endif %}" 
+                         role="progressbar" 
+                         style="width: {% widthratio uploaded_count|default:0 50 100 %}%">
+                    </div>
+                </div>
             
-            <div class="progress" style="height: 6px; background-color: rgba(255,255,255,0.1);">
-                <div class="progress-bar {% if uploaded_count >= 45 %}bg-danger{% elif uploaded_count >= 35 %}bg-warning{% else %}bg-primary{% endif %}" 
-                     role="progressbar" 
-                     style="width: {% widthratio uploaded_count|default:0 50 100 %}%">
+                <div class="text-center mt-1">
+                    <a href="{% url 'settings' %}" class="text-decoration-none" style="font-size: 0.75rem;">
+                        <i class="fas fa-clock mr-1 text-info"></i>
+                        <span class="text-white-50">
+                            {% if auto_delete_duration == 0 %}
+                                Ảnh sẽ không tự động xóa
+                            {% elif auto_delete_duration == 30 %}
+                                Tự xóa ảnh sau 30 phút
+                            {% elif auto_delete_duration == 60 %}
+                                Tự xóa ảnh sau 1 giờ
+                            {% elif auto_delete_duration == 1440 %}
+                                Tự xóa ảnh sau 1 ngày
+                            {% elif auto_delete_duration == 10080 %}
+                                Tự xóa ảnh sau 1 tuần
+                            {% else %}
+                                Chưa thiết lập chế độ tự động xoá ảnh.
+                            {% endif %}
+                        </span>
+                    </a>
                 </div>
             </div>
-        
-            <div class="text-center mt-1">
-                <a href="{% url 'settings' %}" class="text-decoration-none" style="font-size: 0.75rem;">
-                    <i class="fas fa-clock mr-1 text-info"></i>
-                    <span class="text-white-50">
-                        {% if auto_delete_duration == 0 %}
-                            Ảnh sẽ không tự động xóa
-                        {% elif auto_delete_duration == 30 %}
-                            Tự xóa ảnh sau 30 phút
-                        {% elif auto_delete_duration == 60 %}
-                            Tự xóa ảnh sau 1 giờ
-                        {% elif auto_delete_duration == 1440 %}
-                            Tự xóa ảnh sau 1 ngày
-                        {% elif auto_delete_duration == 10080 %}
-                            Tự xóa ảnh sau 1 tuần
-                        {% else %}
-                            Chưa thiết lập chế độ tự động xoá ảnh.
-                        {% endif %}
-                    </span>
-                </a>
-            </div>
-        </div>
+        {% endif %}
+
 
         <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#headerNavbar">
             <span class="navbar-toggler-icon"></span>

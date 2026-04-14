@@ -1,0 +1,113 @@
+/* Tổng thể */
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    height: 100vh;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-wrapper {
+    width: 100%;
+    max-width: 400px;
+    padding: 20px;
+}
+
+/* Thẻ Card */
+.login-card {
+    background: #fff;
+    padding: 40px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    text-align: center;
+}
+
+.login-header h2 {
+    margin: 0 0 10px;
+    color: #333;
+}
+
+.login-header p {
+    color: #777;
+    font-size: 14px;
+    margin-bottom: 30px;
+}
+
+/* Style cho Django Form (form.as_p) */
+.form-content p {
+    text-align: left;
+    margin-bottom: 20px;
+}
+
+.form-content label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    color: #555;
+}
+
+.form-content input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    box-sizing: border-box; /* Quan trọng để input không bị tràn */
+    transition: border-color 0.3s;
+}
+
+.form-content input:focus {
+    outline: none;
+    border-color: #667eea;
+}
+
+/* Nút bấm */
+button {
+    width: 100%;
+    padding: 14px;
+    background: #667eea;
+    border: none;
+    border-radius: 6px;
+    color: white;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background 0.3s;
+    position: relative;
+}
+
+button:hover {
+    background: #5a6fd6;
+}
+
+/* Footer link */
+.login-footer {
+    margin-top: 25px;
+    font-size: 14px;
+}
+
+.login-footer a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+/* Hiệu ứng loading đơn giản */
+.loader {
+    display: none;
+    width: 20px;
+    height: 20px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #3498db;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    position: absolute;
+    left: 47%;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
