@@ -1,28 +1,38 @@
 // Thêm biến toàn cục để quản lý thời gian chờ
 let autosaveTimeout = null;
 document.addEventListener("DOMContentLoaded", function() {
-        var rawData = window.DJANGO_TABLE_DATA || [['', '', '', '']];
+    var rawData = window.DJANGO_TABLE_DATA || [['', '', '', '']];
     var spreadsheetDiv = document.getElementById('spreadsheet');
     if (spreadsheetDiv) {
         window.mySpreadsheet = jspreadsheet(spreadsheetDiv, {
             data: rawData,
-            minDimensions: [10, 22  ],
+            minDimensions: [10, 22],
             defaultColWidth: 120,
-            tableOverflow: true,
-            tableWidth: "100%",
-            tableHeight: "600px",
-            allowInsertRow: true, // Cho phép thêm dòng
-            allowInsertColumn: true, // Cho phép thêm cột
+            // tableOverflow: true,
+            tableWidth: "100%",        // ← sửa lại, bỏ khoảng trắng thừa
+            tableHeight: "600px",      // giữ nguyên hoặc tăng lên 620px cũng được
+            allowInsertRow: true,
+            allowInsertColumn: true,
             search: true,
             columnSorting: true,
-            onchange: function() {
-                // Kích hoạt tự động lưu khi có bất kỳ thay đổi nào
-                triggerAutoSave();
-            },
+            freezeColumns: 0,
+            onchange: function() { triggerAutoSave(); },
             oninsertrow: triggerAutoSave,
             oninsertcolumn: triggerAutoSave,
             ondeleterow: triggerAutoSave,
             ondeletecolumn: triggerAutoSave
+        });
+    }
+
+    // BỔ SUNG: Lắng nghe sự kiện chọn ảnh để lưu tên file gốc
+    const picUpload = document.getElementById('pic-upload');
+    if (picUpload) {
+        picUpload.addEventListener('change', function() {
+            if (this.files && this.files[0]) {
+                // Lưu tên file vào biến toàn cục để image_handler.js có thể lấy được
+                window.originalFileName = this.files[0].name;
+                console.log("Đã lưu tên file gốc tại detail:", window.originalFileName);
+            }
         });
     }
 });
@@ -162,9 +172,10 @@ function parseCoords(cellStr) {
 
 
 /**
- * Hàm Callback đã sửa lỗi để hiển thị được lên bảng
+ * Hàm xử lý khi Generate thêm dữ liệu vào một ô cụ thể trong bảng hiện tại
+ * Đã cập nhật để gửi result_id và kiểm tra giới hạn 50 ảnh
  */
-async function onImageCropped(blob) {
+async function onImageCropped(blob, languagesStr, originalFileName) {
     // 1. Hỏi tọa độ (Kết quả trả về là STRING, ví dụ: "A1")
     const { value: targetCoordsStr } = await Swal.fire({
         title: 'Chọn ô bắt đầu',
@@ -183,26 +194,33 @@ async function onImageCropped(blob) {
 
     if (!targetCoordsStr) return;
 
-    // --- BƯỚC QUAN TRỌNG: CHUYỂN STRING THÀNH OBJECT ---
+    // --- CHUYỂN STRING THÀNH OBJECT TOẠ ĐỘ ---
     const coordsObj = parseCoords(targetCoordsStr);
-    // --------------------------------------------------
 
     // 2. Hiển thị Loading
     Swal.fire({
         title: 'Đang xử lý...',
-        text: 'Đang phân tích vùng ảnh đã cắt',
+        text: 'AI đang phân tích vùng ảnh đã chọn',
         allowOutsideClick: false,
         didOpen: () => { Swal.showLoading(); }
     });
 
-    // 3. Chuẩn bị dữ liệu
+    // 3. Chuẩn bị dữ liệu gửi lên Backend
     const formData = new FormData();
     formData.append('file', blob, 'extracted_part.jpg');
+    formData.append('original_filename', originalFileName);
+    // Đặt là 'false' để backend biết đây là flow cập nhật bản nháp (Flow 2)
     formData.append('save_db', 'false');
+
+    // GỬI KÈM ID CỦA BẢNG HIỆN TẠI ĐỂ LƯU VẾT ẢNH VÀO source_file_ids
+    // Giả sử bạn lưu ID của result hiện tại vào biến global CURRENT_RESULT_ID
+    formData.append('result_id', window.CURRENT_RESULT_ID);
+
+    formData.append('languages', languagesStr || 'all');
 
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
-    // 4. Gửi Request
+    // 4. Gửi Request tới API dùng chung
     fetch("/extract-only-api/", {
         method: 'POST',
         headers: { 'X-CSRFToken': csrftoken },
@@ -212,11 +230,12 @@ async function onImageCropped(blob) {
     .then(data => {
         Swal.close();
 
+        // TRƯỜNG HỢP 1: Thành công
         if (data.status === 'success') {
-            // 5. CẬP NHẬT GIAO DIỆN: Dùng coordsObj đã parse thay vì targetCoordsStr
+            // Cập nhật dữ liệu lên giao diện bảng
             updateTableDisplay(data.table, coordsObj);
 
-            // Kích hoạt tự động lưu nháp
+            // Tự động lưu bản nháp vào ExtractedResult.table_data_draft
             triggerAutoSave();
 
             const Toast = Swal.mixin({
@@ -226,10 +245,28 @@ async function onImageCropped(blob) {
                 timer: 3000,
                 timerProgressBar: true
             });
-            Toast.fire({ icon: 'success', title: 'Đã chèn dữ liệu thành công!' });
+            Toast.fire({ icon: 'success', title: 'Đã chèn dữ liệu và lưu vết ảnh!' });
+        }
 
-        } else {
-            Swal.fire({ icon: 'error', title: 'Không thể trích xuất', text: data.message });
+        // TRƯỜNG HỢP 2: Kho lưu trữ 50 ảnh đã đầy
+        else if (data.status === 'limit_exceeded') {
+            Swal.fire({
+                title: 'Kho lưu trữ đầy!',
+                text: data.message,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Đến trang dọn dẹp',
+                cancelButtonText: 'Đóng'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    window.location.href = data.redirect_url; // Điều hướng đến Documents để xóa ảnh
+                }
+            });
+        }
+
+        // TRƯỜNG HỢP 3: Các lỗi khác (AI, server...)
+        else {
+            Swal.fire({ icon: 'error', title: 'Lỗi', text: data.message });
         }
     })
     .catch(err => {

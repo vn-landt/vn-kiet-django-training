@@ -1,0 +1,236 @@
+body {
+    padding-top: 80px;
+    background-color: #f4f7f6;
+}
+
+/* Custom Grid 20% - 80% cho Desktop */
+@media (min-width: 992px) {
+    .col-custom-20 { flex: 0 0 20%; max-width: 20%; }
+    .col-custom-80 { flex: 0 0 80%; max-width: 80%; }
+}
+
+/* Cột Sidebar Sticky */
+.sidebar-spreadsheets {
+    max-height: 80vh;
+    overflow-y: auto;
+    border-radius: 8px;
+}
+
+.spreadsheet-filter-item {
+    cursor: pointer;
+    transition: all 0.2s;
+    border-left: 4px solid transparent;
+}
+
+.spreadsheet-filter-item:hover {
+    background-color: #f8f9fa;
+}
+
+.spreadsheet-filter-item.active {
+    background-color: #e7f1ff;
+    border-left-color: #7ebb5b;
+    color: #ec002c;
+}
+
+.spreadsheet-title-link {
+    color: #333;
+    font-weight: 600;
+    text-decoration: none !important;
+}
+
+.spreadsheet-title-link:hover {
+    color: #007bff;
+    text-decoration: underline !important;
+}
+
+.spreadsheet-actions {
+    display: flex;
+    opacity: 0.3;
+    transition: opacity 0.2s;
+}
+
+.spreadsheet-filter-item:hover .spreadsheet-actions {
+    opacity: 1;
+}
+
+.sidebar-spreadsheets::-webkit-scrollbar {
+    width: 6px;
+}
+.sidebar-spreadsheets::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 10px;
+}
+.list-group-item.active {
+    border-color: #007bff;
+}
+.list-group-item.active .text-primary {
+    color: white !important;
+}
+
+/* Wrapper ảnh */
+.image-wrapper {
+    position: relative;
+    aspect-ratio: 1/1;
+    overflow: hidden;
+    background: #eee;
+    border-radius: 4px 4px 0 0;
+}
+
+.img-main {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s;
+}
+
+.list-item:hover .img-main {
+    transform: scale(1.05);
+}
+
+.font-size-small {
+    font-size: 11px;
+}
+
+/* Tools ảnh */
+.list-item-image-tools {
+    position: absolute;
+    top: 5px;
+    right: 5px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 4px;
+    padding: 3px 6px;
+    opacity: 0;
+}
+
+.top-right { top: 0; right: 0; border-bottom-left-radius: 8px; }
+
+.list-item:hover .list-item-image-tools {
+    opacity: 1;
+}
+
+.btn-icon {
+    color: white;
+    cursor: pointer;
+    transition: color 0.2s;
+}
+.btn-icon:hover {
+    color: #3498db;
+}
+
+/* Tên SpreadSheet in hờ trên ảnh */
+.badge-spreadsheet-name {
+    position: absolute;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    background: rgba(0, 0, 0, 0.6);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    backdrop-filter: blur(2px);
+    z-index: 2;
+    pointer-events: none;
+}
+
+/* Mô tả dưới ảnh */
+.list-item-desc {
+    padding: 10px 5px;
+    background: #fff;
+    min-height: 70px;
+}
+
+.list-item-desc-title-link {
+    font-weight: 600;
+    font-size: 13px;
+    color: #333;
+    text-decoration: none;
+}
+.list-item-desc-title-link:hover {
+    color: #007bff;
+}
+
+.info-date-group {
+    margin-top: 4px;
+    line-height: 1.4;
+    border-top: 1px solid #eee;
+    padding-top: 4px;
+}
+
+.info-date-group .font-size-small {
+    font-size: 11px;
+    color: #777;
+    display: flex;
+    align-items: center;
+}
+
+/* Hiệu ứng hover card */
+.list-item {
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: #fff;
+}
+
+.list-item:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    border: 1px solid #ddd;
+}
+
+/* Trạng thái được chọn (áp dụng cho toàn bộ card thuộc SpreadSheet được chọn) */
+.list-item.is-selected {
+    border: 2px solid #007bff;
+    background: #e7f1ff;
+}
+
+.list-item.is-selected .icon-check {
+    color: #007bff;
+    font-weight: 900;
+}
+
+#bulk-actions-bar {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px); /* Giấu bên dưới */
+    width: auto;
+    min-width: 350px;
+    z-index: 2000;
+    background: #2c3e50; /* Màu tối cho sang trọng */
+    color: white;
+    border: none;
+    border-radius: 50px; /* Bo tròn kiểu viên thuốc */
+    box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+    transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
+    opacity: 0;
+    display: flex !important; /* Luôn là flex nhưng ẩn bằng opacity/transform */
+    padding: 10px 25px;
+}
+
+#bulk-actions-bar.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+#bulk-actions-bar .alert-info { background: transparent; border: none; color: white; margin: 0; padding: 0; }
+#bulk-actions-bar span { font-weight: 500; margin-right: 20px; }
+
+/* Hiệu ứng cho card khi được chọn */
+.gallery-card.is-selected .list-item {
+    border: 2px solid #3498db;
+    box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
+    transform: scale(0.98);
+}
+
+.empty-table-placeholder {
+    width: 100%;
+    height: 100%;
+    background: #f8f9fa;
+    border: 1px dashed #ced4da;
+    border-radius: 4px;
+}
+
+.list-item.is-selected .list-item-image-tools {
+    opacity: 1 !important;
+}

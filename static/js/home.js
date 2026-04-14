@@ -1,3 +1,4 @@
+window.originalFileName = "";
 document.addEventListener('DOMContentLoaded', function() {
     const fileInput = document.getElementById('id_file');
     const selectBtn = document.getElementById('selectBtn'); // Nút chọn/đổi ảnh
@@ -18,28 +19,27 @@ document.addEventListener('DOMContentLoaded', function() {
         if (this.files && this.files[0]) {
             const file = this.files[0];
 
-            // Hiển thị tên file
+            // LƯU TÊN FILE GỐC VÀO BIẾN TOÀN CỤC TẠI ĐÂY
+            window.originalFileName = this.files[0].name; // Cập nhật vào window
+
+            // Hiển thị tên file trên giao diện
             fileNameDisplay.innerText = "📄 File: " + file.name;
 
             const reader = new FileReader();
             reader.onload = function(e) {
                 imagePreview.src = e.target.result;
-
-                // Hiện khung preview, ẩn placeholder
                 previewContainer.style.display = 'block';
                 previewPlaceholder.style.display = 'none';
-
-                // Cuộn xuống nhẹ để người dùng thấy ảnh nếu màn hình nhỏ
                 previewContainer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
             };
             reader.readAsDataURL(file);
         }
     });
 
-    // 3. Khi nhấn nút "Bắt đầu trích xuất" (nút dưới ảnh)
+    // 3. Khi nhấn nút "Bắt đầu trích xuất"
     extractBtn.addEventListener('click', function() {
         if (fileInput.files && fileInput.files[0]) {
-            // Gọi hàm initEditor từ file image_handler.js
+            // Khi gọi initEditor, biến originalFileName đã có giá trị tên file gốc
             initEditor(fileInput);
         } else {
             Swal.fire('Thông báo', 'Vui lòng chọn ảnh trước!', 'info');
@@ -117,18 +117,24 @@ document.addEventListener('click', function(e) {
 });
 
 /**
- * Hàm gọi khi hoàn tất Crop ảnh (giữ nguyên logic cũ của bạn)
+ * Hàm gọi khi hoàn tất Crop ảnh từ Trang chủ (Tạo bảng mới)
+ * Đã cập nhật logic kiểm tra hạn mức 50 ảnh.
  */
-function onImageCropped(blob, languagesStr) {
+function onImageCropped(blob, languagesStr, originalFileName) {
     const formData = new FormData();
     formData.append('file', blob, "processed_image.jpg");
-    formData.append('save_db', 'true');
 
+    // Đảm bảo tên file không bị rỗng nếu có sự cố
+    const finalName = originalFileName || "image_" + Date.now() + ".jpg";
+    formData.append('original_filename', finalName);    formData.append('save_db', 'true'); // Yêu cầu backend tạo mới ExtractedResult và lưu UploadedFile
+
+    formData.append('mime_type', blob.type);
     // Gắn chuỗi ngôn ngữ vào form data
-    formData.append('languages', languagesStr || 'all')
+    formData.append('languages', languagesStr || 'all');
 
     const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
 
+    // Hiển thị trạng thái đang xử lý
     Swal.fire({
         title: 'Đang xử lý...',
         text: 'AI đang phân tích bảng biểu...',
@@ -144,14 +150,38 @@ function onImageCropped(blob, languagesStr) {
     .then(response => response.json())
     .then(data => {
         Swal.close();
+
+        // 1. Xử lý khi thành công
         if (data.status === 'success') {
             window.location.href = "/result/" + data.result_id + "/";
-        } else {
-            Swal.fire('Lỗi AI', data.message, 'error');
+        }
+
+        // 2. Xử lý khi kho lưu trữ 50 ảnh đã đầy
+        else if (data.status === 'limit_exceeded') {
+            Swal.fire({
+                title: 'Kho lưu trữ đầy!',
+                text: data.message, // Thông báo từ backend: "Kho lưu trữ ảnh đã đầy (50/50)..."
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Dọn dẹp ngay',
+                cancelButtonText: 'Để sau'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    // Điều hướng người dùng đến trang quản lý tài liệu để xóa ảnh
+                    window.location.href = data.redirect_url;
+                }
+            });
+        }
+
+        // 3. Xử lý các lỗi khác (AI fail, định dạng file...)
+        else {
+            Swal.fire('Lỗi hệ thống', data.message, 'error');
         }
     })
     .catch(error => {
         Swal.close();
-        Swal.fire('Lỗi', 'Không thể kết nối máy chủ.', 'error');
+        Swal.fire('Lỗi kết nối', 'Không thể kết nối máy chủ. Vui lòng thử lại.', 'error');
     });
 }
