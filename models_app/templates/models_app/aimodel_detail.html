@@ -1,0 +1,22 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ aimodel.name }} - Chi tiết{% endblock %}
+
+{% block content %}
+    <div class="card">
+        <h2>{{ aimodel.name }}</h2>
+        <p><strong>Mô tả:</strong> {{ aimodel.description|linebreaks }}</p>
+        <p><strong>Ngày tạo:</strong> {{ aimodel.created_at|date:"d/m/Y H:i" }}</p>
+        <p><strong>Cập nhật:</strong> {{ aimodel.updated_at|date:"d/m/Y H:i" }}</p>
+        {% if aimodel.model_file %}
+            <p><strong>File model:</strong> <a href="{{ aimodel.model_file.url }}" target="_blank">Tải về</a> ({{ aimodel.model_file.name }})</p>
+        {% else %}
+            <p>Chưa có file model.</p>
+        {% endif %}
+        <div>
+            <a href="{% url 'models_app:aimodel_update' pk=aimodel.pk %}" class="btn btn-warning">Chỉnh sửa</a>
+            <a href="{% url 'models_app:aimodel_delete' pk=aimodel.pk %}" class="btn btn-danger">Xóa</a>
+        </div>
+    </div>
+    <a href="{% url 'models_app:aimodel_list' %}">← Quay lại danh sách</a>
+{% endblock %}

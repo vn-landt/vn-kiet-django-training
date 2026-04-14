@@ -1,0 +1,20 @@
+{% extends 'base.html' %}
+
+{% block title %}Danh sách Model AI{% endblock %}
+
+{% block content %}
+    <h2>Danh sách Model AI</h2>
+    {% if aimodels %}
+        {% for model in aimodels %}
+            <div class="card">
+                <h3><a href="{% url 'models_app:aimodel_detail' pk=model.pk %}">{{ model.name }}</a></h3>
+                <a href="{% url 'models_app:aimodel_update' pk=model.pk %}" class="btn btn-warning btn-sm">Chỉnh sửa</a>
+                <a href="{% url 'models_app:aimodel_delete' pk=model.pk %}" class="btn btn-danger btn-sm">Xóa</a>
+                <p><strong>Tạo lúc:</strong> {{ model.created_at|date:"d/m/Y H:i" }}</p>
+                <p>{{ model.description|truncatewords:30|linebreaks }}</p>
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>Chưa có model nào. Hãy thêm qua <a href="/admin/">Admin</a>!</p>
+    {% endif %}
+{% endblock %}

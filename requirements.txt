@@ -1,0 +1,4 @@
+Django==1.11.29
+djangorestframework==3.9.4
+pillow==6.2.2
+requests==2.27.1

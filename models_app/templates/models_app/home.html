@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Trang chủ - AI Model Hub{% endblock %}
+
+{% block content %}
+    <h2>Chào mừng đến AI Model Hub</h2>
+    <p>Đây là nơi bạn quản lý, upload và xem các model AI đã xây dựng.</p>
+    <div class="card">
+        <h3>Bắt đầu ngay</h3>
+        <p><a href="{% url 'models_app:aimodel_list' %}">Xem danh sách model AI</a></p>
+    </div>
+{% endblock %}
