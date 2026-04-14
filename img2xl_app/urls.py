@@ -40,4 +40,11 @@ urlpatterns = [
     url(r'^settings/update-account/$', views.update_account_settings, name='update_account_settings'),
     url(r'^settings/update-profile/$', views.update_profile_settings, name='update_profile_settings'),
     url(r'^settings/password/$', views.change_password, name='change_password'),
+
+    # Notifications
+    url(r'^notifications/mark-read/(?P<noti_id>\d+)/$', views.mark_as_read, name='mark_as_read'),
+    url(r'^notifications/delete/(?P<noti_id>\d+)/$', views.delete_notification, name='delete_notification'),
+    url(r'^notifications/mark-all-read/$', views.mark_all_read, name='mark_all_read'),
+    url(r'^notifications/delete-all/$', views.delete_all_notifications, name='delete_all_notifications'),
+    url(r'^notifications/toggle-read/(?P<noti_id>\d+)/$', views.toggle_read, name='toggle_read'),
 ]
