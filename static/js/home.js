@@ -47,6 +47,75 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
+
+// Thêm đoạn này vào cuối file home.js hoặc bên trong DOMContentLoaded
+document.addEventListener('click', function(e) {
+    // Kiểm tra nếu click vào nút xóa hoặc icon bên trong nút xóa
+    const deleteBtn = e.target.closest('.delete-history-btn');
+
+    if (deleteBtn) {
+        const resultId = deleteBtn.getAttribute('data-id');
+        const historyItem = document.getElementById(`item-${resultId}`);
+        const csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+
+        Swal.fire({
+            title: 'Xác nhận xóa?',
+            text: "Dữ liệu và file ảnh liên quan sẽ bị xóa vĩnh viễn!",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            cancelButtonColor: '#6c757d',
+            confirmButtonText: 'Vâng, xóa nó!',
+            cancelButtonText: 'Hủy'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Hiển thị trạng thái đang xóa
+                deleteBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+                deleteBtn.disabled = true;
+
+                // Gửi request xóa tới server
+                // Lưu ý: URL '/delete/ID/' phải khớp với urls.py của bạn
+                fetch(`/delete/${resultId}/`, {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRFToken': csrftoken,
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                })
+                .then(response => {
+                    if (response.ok || response.redirected) {
+                        // Hiệu ứng ẩn dòng bị xóa
+                        $(historyItem).fadeOut(400, function() {
+                            $(this).remove();
+
+                            // Nếu không còn item nào, hiện thông báo trống
+                            if (document.querySelectorAll('.history-item').length === 0) {
+                                document.querySelector('.history-list').innerHTML = '<p class="text-muted text-center py-3">Chưa có dữ liệu.</p>';
+                            }
+                        });
+
+                        Swal.fire({
+                            title: 'Đã xóa!',
+                            text: 'Bản ghi của bạn đã được dọn dẹp.',
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        throw new Error('Lỗi phản hồi từ server');
+                    }
+                })
+                .catch(error => {
+                    console.error(error);
+                    deleteBtn.innerHTML = '<i class="fas fa-trash-alt"></i>';
+                    deleteBtn.disabled = false;
+                    Swal.fire('Thất bại', 'Không thể xóa bản ghi lúc này. Vui lòng thử lại.', 'error');
+                });
+            }
+        });
+    }
+});
+
 /**
  * Hàm gọi khi hoàn tất Crop ảnh (giữ nguyên logic cũ của bạn)
  */
