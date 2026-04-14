@@ -11,7 +11,6 @@ except ImportError:
 from django.utils import timezone
 import json
 
-
 class UploadedFile(models.Model):
     filename = models.CharField(max_length=255)
     mime_type = models.CharField(max_length=100, blank=True, null=True)
@@ -28,9 +27,9 @@ class ExtractedResult(models.Model):
 
     status = models.CharField(max_length=20, default='pending')
     raw_response = models.TextField(blank=True, null=True)
-    table_data = JSONField(default=list, blank=True, null=True)  # Djangae hỗ trợ JSONField
-    error_message = models.TextField(blank=True, null=True)
+    table_data_compressed = BlobField(blank=True, null=True)
 
+    error_message = models.TextField(blank=True, null=True)
     processed_at = models.DateTimeField(blank=True, null=True)
     created_at = models.DateTimeField(default=timezone.now)
 
@@ -38,6 +37,11 @@ class ExtractedResult(models.Model):
         return u"%s - %s" % (self.uploaded_file.filename, self.status)
 
     def get_table(self):
-        if self.table_data:
-            return self.table_data
-        return []
+        """Sử dụng OOP Handler để lấy dữ liệu"""
+        if not self.id:
+            return []
+
+        # Gọi file handler nằm trong thư mục services
+        from .services.table_handler import TableFileHandler
+        handler = TableFileHandler(self)  # Chuyền cả object vào thay vì self.id
+        return handler.load_data()

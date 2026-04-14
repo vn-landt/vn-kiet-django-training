@@ -1,48 +1,88 @@
 # -*- coding: utf-8 -*-
 from __future__ import unicode_literals
-
+import os
 import json
-import gspread
+from google.appengine.api import urlfetch
 from oauth2client.service_account import ServiceAccountCredentials
 from django.conf import settings
-import os
 
 SCOPE = [
-    'https://spreadsheets.google.com/feeds',
+    'https://www.googleapis.com/auth/spreadsheets',
     'https://www.googleapis.com/auth/drive'
 ]
 
 
 def export_to_google_sheets(table_data, filename):
-    """
-    Export table (list of lists) to a new Google Sheet.
-    Returns: shareable link or error message.
-    """
     credentials_path = os.path.join(settings.BASE_DIR, 'service-account.json')
 
-    if not os.path.exists(credentials_path):
-        return None, "Service account file not found: service-account.json"
-
     try:
+        # 1. Lấy Access Token từ Service Account
         creds = ServiceAccountCredentials.from_json_keyfile_name(credentials_path, SCOPE)
-        client = gspread.authorize(creds)
+        access_token = creds.get_access_token().access_token
 
-        # Create new spreadsheet
-        sheet_title = "Extracted Table - " + filename.replace('.', '_')
-        spreadsheet = client.create(sheet_title)
+        auth_headers = {
+            'Authorization': 'Bearer ' + access_token,
+            'Content-Type': 'application/json'
+        }
 
-        # Get first worksheet
-        worksheet = spreadsheet.sheet1
+        # 2. Tạo Spreadsheet mới (Drive API v3)
+        create_drive_url = "https://www.googleapis.com/drive/v3/files"
+        drive_payload = {
+            'name': "Extracted - " + filename.replace('.', '_'),
+            'mimeType': 'application/vnd.google-apps.spreadsheet'
+        }
 
-        # Update with data (starting from A1)
-        if table_data:
-            worksheet.update('A1', table_data)
+        res_drive = urlfetch.fetch(
+            url=create_drive_url,
+            payload=json.dumps(drive_payload),
+            method=urlfetch.POST,
+            headers=auth_headers,
+            validate_certificate=True
+        )
 
-        # Get shareable link
-        spreadsheet.share('', perm_type='anyone', role='reader')
-        sheet_url = spreadsheet.url
+        if res_drive.status_code != 200:
+            return None, "Drive Create Failed: " + res_drive.content
 
+        spreadsheet_id = json.loads(res_drive.content)['id']
+
+        # 3. Ghi dữ liệu vào Sheet (Sheets API v4)
+        # Sử dụng dải ô Sheet1!A1
+        update_url = "https://sheets.googleapis.com/v1/spreadsheets/{}/values/Sheet1!A1?valueInputOption=USER_ENTERED".format(
+            spreadsheet_id)
+        sheets_payload = {
+            'values': table_data
+        }
+
+        res_sheets = urlfetch.fetch(
+            url=update_url,
+            payload=json.dumps(sheets_payload),
+            method=urlfetch.PUT,
+            headers=auth_headers,
+            validate_certificate=True
+        )
+
+        if res_sheets.status_code != 200:
+            return None, "Sheets Update Failed: " + res_sheets.content
+
+        # 4. Chia sẻ quyền "Anyone with link can write"
+        perm_url = "https://www.googleapis.com/drive/v3/files/{}/permissions".format(spreadsheet_id)
+        perm_payload = {
+            'role': 'writer',
+            'type': 'anyone'
+        }
+
+        urlfetch.fetch(
+            url=perm_url,
+            payload=json.dumps(perm_payload),
+            method=urlfetch.POST,
+            headers=auth_headers,
+            validate_certificate=True
+        )
+
+        sheet_url = "https://docs.google.com/spreadsheets/d/{}".format(spreadsheet_id)
         return sheet_url, None
 
     except Exception as e:
+        import logging
+        logging.error("GAE Export Error: " + str(e))
         return None, "Export failed: " + str(e)
