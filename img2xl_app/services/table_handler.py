@@ -5,73 +5,64 @@ import zlib
 import base64
 import traceback
 from google.appengine.api.datastore_types import Blob
+from django.utils import timezone
 
 
 class TableFileHandler(object):
     def __init__(self, result_instance):
         self.result = result_instance
 
-    def save_data(self, table_data):
-        if not isinstance(table_data, list):
-            return False
+    def save_data(self, table_data, is_final=False):
+        """
+        is_final = False: Lưu vào bản Nháp (Auto-save)
+        is_final = True: Lưu vào bản Chính thức (Nút Save Changes)
+        """
         try:
-            # 1. Chuyển thành chuỗi UTF-8
             json_str = json.dumps(table_data, ensure_ascii=False)
-            if isinstance(json_str, unicode):
-                json_str = json_str.encode('utf-8')
-
-            # 2. Nén dữ liệu
+            if isinstance(json_str, unicode): json_str = json_str.encode('utf-8')
             compressed = zlib.compress(json_str, 9)
-
-            # 3. Chuyển sang Base64 ĐỂ TRÁNH LỖI ASCII TRÊN PYTHON 2.7
-            # Chúng ta dùng thêm một tiền tố 'B64:' để sau này dễ nhận biết
             safe_data = "B64:" + base64.b64encode(compressed)
+            blob_data = Blob(safe_data)
 
-            # 4. Ghi vào DB
-            model_class = self.result.__class__
-            instance = model_class.objects.get(pk=self.result.pk)
-            instance.table_data_compressed = Blob(safe_data)
-            instance.save()
+            if is_final:
+                # Khi nhấn Save Changes: Cập nhật cả 2 để đồng bộ
+                self.result.table_data_compressed = blob_data
+                self.result.table_data_draft = blob_data
+                self.result.is_draft = False
 
-            print "DEBUG: Save success with Base64 encoding."
+                self.result.processed_at = timezone.now()
+            else:
+                # Khi Auto-save: Chỉ cập nhật bản Nháp
+                self.result.table_data_draft = blob_data
+
+            self.result.save()
             return True
-        except Exception as e:
-            print "DEBUG: Save Error: %s" % str(e)
-            traceback.print_exc()
+        except:
             return False
 
-    def load_data(self):
-        """Hàm load thông minh: Tương thích cả dữ liệu cũ và mới"""
-        if not getattr(self.result, 'table_data_compressed', None):
-            return []
+    def load_data(self, for_export=False):
+        """
+        for_export = True: Chỉ lấy dữ liệu Chính thức (Final)
+        for_export = False: Ưu tiên lấy bản Nháp để hiển thị trên Web
+        """
+        # Xác định trường dữ liệu cần lấy
+        if for_export:
+            raw_blob = self.result.table_data_compressed
+        else:
+            # Ưu tiên nháp, nếu nháp trống thì lấy final
+            raw_blob = self.result.table_data_draft or self.result.table_data_compressed
+
+        if not raw_blob: return []
 
         try:
-            # Lấy dữ liệu thô (có thể là Blob hoặc str)
-            raw_data = str(self.result.table_data_compressed)
-
-            # KIỂM TRA ĐỊNH DẠNG
+            raw_data = str(raw_blob)
             if raw_data.startswith("B64:"):
-                # Dữ liệu mới: Bỏ tiền tố 'B64:' rồi giải mã
-                actual_b64 = raw_data[4:]
-                binary_data = base64.b64decode(actual_b64)
+                binary_data = base64.b64decode(raw_data[4:])
             else:
-                # Dữ liệu cũ (hoặc dữ liệu nén trực tiếp)
                 binary_data = raw_data
-
-            # Giải nén zlib
-            decompressed = zlib.decompress(binary_data)
-
-            # Decode JSON
-            return json.loads(decompressed.decode('utf-8'))
-
-        except Exception as e:
-            # Nếu vẫn lỗi, in ra để debug chứ đừng để trống
-            print "DEBUG: Load Error: %s" % str(e)
-            # Thử phương án cuối: trả về chính nó nếu không nén (đề phòng)
-            try:
-                return json.loads(raw_data.decode('utf-8'))
-            except:
-                return []
+            return json.loads(zlib.decompress(binary_data).decode('utf-8'))
+        except:
+            return []
 
     def delete_file(self):
         """
