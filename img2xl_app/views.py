@@ -19,7 +19,8 @@ from .services.bridge import process_and_save_extraction
 from django.urls import reverse
 from .services.sheets_export import export_to_google_sheets
 from .services.compress_image import compress_image
-from .services.gemini_rest import upload_to_imgbb, generate_text_with_gemini, extract_image_with_gemini
+from .services.gemini_rest import (upload_to_imgbb, generate_text_with_gemini,
+                                   extract_image_with_gemini, extract_multi_images_with_gemini)
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from .services.table_handler import TableFileHandler
@@ -1276,3 +1277,107 @@ def restore_item_api(request):
             return JsonResponse({'status': 'error', 'message': unicode(e)}, status=500)
 
     return JsonResponse({'status': 'error', 'message': u'Method not allowed'}, status=405)
+
+# --- Hàm trợ giúp dùng chung ---
+def _save_uploaded_file(user, uploaded_file, imgname, expiry_date):
+    MAX_SIZE = 5 * 1024 * 1024
+    ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
+
+    if uploaded_file.size > MAX_SIZE:
+        return None, u"File quá lớn (Tối đa 5MB)."
+    if uploaded_file.content_type not in ALLOWED_TYPES:
+        return None, u"Định dạng file không hỗ trợ."
+
+    file_bytes = uploaded_file.read()
+    compressed_bytes = compress_image(io.BytesIO(file_bytes))
+    if hasattr(compressed_bytes, "getvalue"):
+        compressed_bytes = compressed_bytes.getvalue()
+
+    image_url, error = upload_to_imgbb(compressed_bytes)
+    if error:
+        return None, error
+
+    uf = UploadedFile.objects.create(
+        user=user,
+        filename=imgname,
+        mime_type=uploaded_file.content_type,
+        image_url=image_url,
+        file_size=len(compressed_bytes),
+        delete_at=expiry_date
+    )
+    return uf, None
+
+@require_POST
+def batch_extract_api(request):
+    user = request.user
+    if not user.is_authenticated():
+        return JsonResponse({'status': 'error', 'message': u'Vui lòng đăng nhập.'}, status=401)
+
+    # 1. Lấy danh sách file từ FormData
+    files = request.FILES.getlist('files')  # Lấy tất cả file có key là 'files'
+    languages = request.POST.get('languages', 'all')
+
+    try:
+        duration = int(request.POST.get('deleteDuration', 0))
+        expiry_date = timezone.now() + timedelta(minutes=duration) if duration > 0 else None
+    except:
+        expiry_date = None
+
+    if not files:
+        return JsonResponse({'status': 'error', 'message': u'Chưa có file nào được gửi.'})
+
+    # 2. KIỂM TRA HẠN MỨC
+    if is_storage_full(user):
+        return JsonResponse({'status': 'error', 'message': u'Kho lưu trữ đã đầy.'}, status=403)
+
+    uploaded_ids = []
+    image_urls = []
+
+    # 3. Vòng lặp xử lý Upload từng ảnh lên ImgBB (Xử lý nội bộ trên Server)
+    for f in files:
+        # Tái sử dụng logic nén và upload ImgBB của bạn
+        uf, error = _save_uploaded_file(user, f, f.name, expiry_date)
+        if uf:
+            uploaded_ids.append(uf.id)
+            image_urls.append(uf.image_url)
+        else:
+            # Nếu một ảnh lỗi, có thể bỏ qua hoặc báo lỗi tùy bạn
+            continue
+
+    if not image_urls:
+        return JsonResponse({'status': 'error', 'message': u'Lỗi upload ảnh lên ImgBB.'})
+
+    # 4. GỌI GEMINI AI MỘT LẦN DUY NHẤT VỚI DANH SÁCH URL
+    # Gemini sẽ nhận mảng image_urls và trả về 1 bộ dữ liệu duy nhất
+    table_data, error = extract_multi_images_with_gemini(image_urls, languages)
+
+    if error:
+        return JsonResponse({'status': 'error', 'message': error})
+
+    # 5. LƯU KẾT QUẢ VÀO DATABASE
+    res_obj = ExtractedResult.objects.create(
+        user=user,
+        title=u"Trích xuất hàng loạt " + str(len(image_urls)) + u" ảnh",
+        source_file_ids=uploaded_ids,
+        status='success',
+        processed_at=timezone.now()
+    )
+
+    # Thông báo tạo bảng mới từ nhiều ảnh
+    Notification.objects.create_notification(
+        user=user,
+        title=u"Tạo bảng mới!",
+        message=u"Tạo bảng mới '{}' từ nhiều ảnh.".format(res_obj.title),
+        level='success',
+        linked_to=reverse('result_detail', kwargs={'result_id': res_obj.id})
+    )
+
+    handler = TableFileHandler(res_obj)
+    handler.save_data(table_data, is_final=True)
+
+    # Cập nhật log sử dụng
+    usage, _ = UsageLog.objects.get_or_create(user=user, usage_date=timezone.now().date())
+    usage.upload_count += len(image_urls)
+    usage.save()
+
+    return JsonResponse({'status': 'success', 'result_id': res_obj.id})
