@@ -838,10 +838,9 @@ def documents_view(request):
         'current_sort': sort
     })
 
-@login_required
 @require_POST
 def create_spreadsheet_blank(request):
-    """Tạo bảng trống - KHÔNG cần tạo UploadedFile giả nữa"""
+    """Tạo bảng trống """
     name = request.POST.get('name', 'Untitled Spreadsheet')
     user = request.user
 

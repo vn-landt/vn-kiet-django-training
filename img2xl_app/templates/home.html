@@ -128,4 +128,5 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
     <script src="{% static 'js/image_handler.js' %}"></script>
     <script src="{% static 'js/home.js' %}"></script>
+    window.isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
 {% endblock %}
