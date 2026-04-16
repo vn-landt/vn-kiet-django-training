@@ -18,12 +18,12 @@ from .models import UploadedFile, ExtractedResult, UsageLog, Notification, Notif
 from .services.bridge import process_and_save_extraction
 from django.urls import reverse
 from .services.sheets_export import export_to_google_sheets
-from .services.compress_image import compress_image
-from .services.gemini_rest import (upload_to_imgbb, generate_text_with_gemini,
-                                   extract_image_with_gemini, extract_multi_images_with_gemini)
 from django.views.decorators.http import require_POST
 from django.views.decorators.csrf import csrf_protect, csrf_exempt
 from .services.table_handler import TableFileHandler
+from .services.ai_extraction_images import generate_images_with_gemini
+from .services.ai_extraction_text import generate_text_with_gemini
+from .services.upload_image import upload_to_imgbb
 from django.shortcuts import render, redirect
 from django.contrib.auth import login
 from django.contrib import messages
@@ -47,72 +47,6 @@ from django.db.models import Count
 import logging
 
 logger = logging.getLogger(__name__)
-def _perform_extraction_logic(uploaded_file, languages='all'):
-    """
-    Hàm trợ giúp tái sử dụng: Nhận file -> Trả về (table_data, image_url, error)
-    Logic này được tách ra từ bridge.py và home để dùng chung.
-    """
-    try:
-        # 1. Kiểm tra Kỹ thuật (Chặn sớm để tiết kiệm tài nguyên)
-        MAX_SIZE = 5 * 1024 * 1024  # 5MB
-        ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
-
-        if uploaded_file.size > MAX_SIZE:
-            return None, None, u"File quá lớn (Tối đa 5MB). Vui lòng chọn ảnh khác."
-
-        if uploaded_file.content_type not in ALLOWED_TYPES:
-            return None, None, u"Định dạng file không hỗ trợ (Chỉ nhận JPG, PNG, WebP)."
-
-        file_bytes = uploaded_file.read()
-
-        # 2. Nén ảnh
-        compressed_bytes = compress_image(io.BytesIO(file_bytes))
-        if hasattr(compressed_bytes, "getvalue"):
-            compressed_bytes = compressed_bytes.getvalue()
-
-        # 3. Upload lên ImgBB
-        image_url, error = upload_to_imgbb(compressed_bytes)
-        if error:
-            return None, None, u"Lỗi kết nối máy chủ ảnh. Vui lòng thử lại."
-
-        # 4. Gọi Gemini trích xuất & Kiểm tra nội dung (Mặt người/Hoá đơn)
-        result_text, error = extract_image_with_gemini(image_url, uploaded_file.content_type, languages)
-
-        if result_text == "INVALID_DOCUMENT":
-            return None, image_url, u"Tài liệu không hợp lệ hoặc không đủ độ rõ nét. Vui lòng chọn ảnh hóa đơn, chứng từ khác."
-
-        if error:
-            logging.error(u"AI Processing Error: %s", error)
-            return None, image_url, u"Hệ thống AI không thể xử lý ảnh này. Vui lòng thử lại."
-
-        # 4. Làm sạch và Parse CSV (Logic từ bridge.py)
-        cleaned_text = result_text.strip()
-        if '```csv' in cleaned_text:
-            cleaned_text = cleaned_text.split('```csv')[1].split('```')[0].strip()
-        elif '```' in cleaned_text:
-            cleaned_text = cleaned_text.split('```')[1].strip()
-
-        if cleaned_text == 'NO_TABLE_FOUND':
-            return None, image_url, u"Không tìm thấy bảng dữ liệu trong ảnh."
-
-        # Parse CSV thành List
-        csv_content = cleaned_text.encode('utf-8') if isinstance(cleaned_text, unicode) else cleaned_text
-        csv_reader = csv.reader(io.BytesIO(csv_content))
-        table_data = [row for row in csv_reader]
-
-        # Bộ lọc rác (Chỉ giữ dòng có > 1 cột)
-        if table_data:
-            max_cols = max(len(row) for row in table_data)
-            if max_cols > 1:
-                table_data = [row for row in table_data if len(row) > 1]
-
-        return table_data, image_url, None
-
-    except Exception as e:
-        return None, None, str(e)
-
-
-# views.py
 
 def home(request):
     """
@@ -307,115 +241,6 @@ def generate_ai_content(request):
             })
 
     return JsonResponse({'status': 'error', 'message': 'Invalid Method'})
-
-
-# views.py
-
-@require_POST
-def extract_only_api(request):
-    user = request.user
-    if not user.is_authenticated():
-        return JsonResponse({'status': 'error', 'message': u'Vui lòng đăng nhập.'}, status=401)
-
-    # 1. KIỂM TRA HẠN MỨC 50 ẢNH (Luôn kiểm tra vì bước nào cũng lưu vết ảnh)
-    if is_storage_full(user):
-        return JsonResponse({
-            'status': 'limit_exceeded',
-            'message': u'Kho lưu trữ ảnh đã đầy (50/50). Hãy xóa bớt ảnh cũ.',
-            'redirect_url': reverse('documents_view')
-        }, status=403)
-
-    # 2. ĐỌC THAM SỐ TỪ FRONTEND
-    # save_db=true: Tạo bảng mới (Home) | save_db=false: Cập nhật bảng hiện tại (Detail)
-    is_create_new = request.POST.get('save_db') == 'true'
-    current_result_id = request.POST.get('result_id')  # ID bảng đang mở (nếu có)
-    languages = request.POST.get('languages', 'all')
-    mime_type = request.POST.get('mime_type', 'image/jpeg')
-
-    try:
-        delete_duration_min = int(request.POST.get('deleteDuration', 0))
-    except (ValueError, TypeError):
-        # Nếu lỗi (không phải số), lấy mặc định từ profile
-        delete_duration_min = user.profile.auto_delete_duration
-
-    # TÍNH TOÁN THỜI ĐIỂM XÓA
-    expiry_date = None
-    if delete_duration_min > 0:
-        # Thời điểm xóa = Hiện tại + X phút
-        expiry_date = timezone.now() + timedelta(minutes=delete_duration_min)
-
-
-    if 'file' not in request.FILES:
-        return JsonResponse({'status': 'error', 'message': u'Chưa có file.'})
-
-    uploaded_file = request.FILES['file']
-
-    imgname = request.POST.get('original_filename', uploaded_file.name)
-
-    # 3. THỰC HIỆN OCR
-    table_data, image_url, error = _perform_extraction_logic(uploaded_file, languages)
-    if error:
-        return JsonResponse({'status': 'error', 'message': error})
-
-    # 4. LUÔN LƯU VẾT ẢNH (UPLOADEDFILE) - Bất kể tạo mới hay cập nhật
-    uf = UploadedFile.objects.create(
-        user=user,
-        filename=imgname,
-        mime_type=mime_type,
-        image_url=image_url,
-        file_size=uploaded_file.size,
-        delete_at=expiry_date
-    )
-
-    # Cập nhật UsageLog
-    usage, _ = UsageLog.objects.get_or_create(user=user, usage_date=timezone.now().date())
-    usage.upload_count += 1
-    usage.save()
-
-    # 5. XỬ LÝ EXTRACTEDRESULT (BẢNG DỮ LIỆU)
-    res_obj = None
-
-    if is_create_new:
-        # FLOW 1: TỪ TRANG CHỦ -> TẠO BẢNG MỚI
-        res_obj = ExtractedResult.objects.create(
-            user=user,
-            title=u"Bảng tạo từ " + uf.filename,
-            source_file_ids=[uf.id],
-            status='success',
-            processed_at=timezone.now()  # Đánh dấu đã có bản Final đầu tiên
-        )
-        # Lưu vào cả Draft và Final
-        handler = TableFileHandler(res_obj)
-        handler.save_data(table_data, is_final=True)
-        # Thông báo tạo bảng mời từ ảnh
-        Notification.objects.create_notification(
-            user=user,
-            title=u"Tạo bảng mới!",
-            message=u"Tạo bảng mới '{}'.".format(res_obj.title),
-            level='success',
-            linked_to=reverse('result_detail', kwargs={'result_id': res_obj.id})
-        )
-
-    elif current_result_id:
-        # FLOW 2: TRONG BẢNG CHI TIẾT -> CHỈ CẬP NHẬT DRAFT
-        res_obj = get_object_or_404(ExtractedResult, id=current_result_id, user=user)
-
-        # Thêm ID ảnh mới vào danh sách lưu vết của bảng
-        if uf.id not in res_obj.source_file_ids:
-            res_obj.source_file_ids.append(uf.id)
-            res_obj.save()
-
-        # CHỈ cập nhật bản Nháp (Draft), không đè lên bản Chính (Final)
-        # Người dùng có thể xóa data này đi, nhưng ID ảnh trong source_file_ids vẫn còn
-        handler = TableFileHandler(res_obj)
-        handler.save_data(table_data, is_final=False)
-
-    return JsonResponse({
-        'status': 'success',
-        'result_id': res_obj.id if res_obj else None,
-        'table': table_data  # Trả về để JS hiển thị lên bảng
-    })
-
 
 def check_email_exists(request):
     """Bước 3: Kiểm tra trùng lặp email (AJAX)"""
@@ -1277,106 +1102,37 @@ def restore_item_api(request):
 
     return JsonResponse({'status': 'error', 'message': u'Method not allowed'}, status=405)
 
-# --- Hàm trợ giúp dùng chung ---
-def _save_uploaded_file(user, uploaded_file, imgname, expiry_date):
-    MAX_SIZE = 5 * 1024 * 1024
-    ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/webp']
 
-    if uploaded_file.size > MAX_SIZE:
-        return None, u"File quá lớn (Tối đa 5MB)."
-    if uploaded_file.content_type not in ALLOWED_TYPES:
-        return None, u"Định dạng file không hỗ trợ."
-
-    file_bytes = uploaded_file.read()
-    compressed_bytes = compress_image(io.BytesIO(file_bytes))
-    if hasattr(compressed_bytes, "getvalue"):
-        compressed_bytes = compressed_bytes.getvalue()
-
-    image_url, error = upload_to_imgbb(compressed_bytes)
-    if error:
-        return None, error
-
-    uf = UploadedFile.objects.create(
-        user=user,
-        filename=imgname,
-        mime_type=uploaded_file.content_type,
-        image_url=image_url,
-        file_size=len(compressed_bytes),
-        delete_at=expiry_date
-    )
-    return uf, None
-
+@login_required
 @require_POST
-def batch_extract_api(request):
-    user = request.user
-    if not user.is_authenticated():
-        return JsonResponse({'status': 'error', 'message': u'Vui lòng đăng nhập.'}, status=401)
-
-    # 1. Lấy danh sách file từ FormData
-    files = request.FILES.getlist('files')  # Lấy tất cả file có key là 'files'
+def generate_ai_images(request):
+    # 1. Trích xuất dữ liệu từ request
+    is_create_new = request.POST.get('save_db') == 'true'
+    current_result_id = request.POST.get('result_id')
     languages = request.POST.get('languages', 'all')
-
+    
+    # Xử lý files
+    files = request.FILES.getlist('files')
+    if not files and 'file' in request.FILES:
+        files = [request.FILES['file']]
+    
+    # Xử lý thời gian xóa tự động
     try:
         duration = int(request.POST.get('deleteDuration', 0))
         expiry_date = timezone.now() + timedelta(minutes=duration) if duration > 0 else None
     except:
         expiry_date = None
-
-    if not files:
-        return JsonResponse({'status': 'error', 'message': u'Chưa có file nào được gửi.'})
-
-    # 2. KIỂM TRA HẠN MỨC
-    if is_storage_full(user):
-        return JsonResponse({'status': 'error', 'message': u'Kho lưu trữ đã đầy.'}, status=403)
-
-    uploaded_ids = []
-    image_urls = []
-
-    # 3. Vòng lặp xử lý Upload từng ảnh lên ImgBB (Xử lý nội bộ trên Server)
-    for f in files:
-        # Tái sử dụng logic nén và upload ImgBB của bạn
-        uf, error = _save_uploaded_file(user, f, f.name, expiry_date)
-        if uf:
-            uploaded_ids.append(uf.id)
-            image_urls.append(uf.image_url)
-        else:
-            # Nếu một ảnh lỗi, có thể bỏ qua hoặc báo lỗi tùy bạn
-            continue
-
-    if not image_urls:
-        return JsonResponse({'status': 'error', 'message': u'Lỗi upload ảnh lên ImgBB.'})
-
-    # 4. GỌI GEMINI AI MỘT LẦN DUY NHẤT VỚI DANH SÁCH URL
-    # Gemini sẽ nhận mảng image_urls và trả về 1 bộ dữ liệu duy nhất
-    table_data, error = extract_multi_images_with_gemini(image_urls, languages)
-
-    if error:
-        return JsonResponse({'status': 'error', 'message': error})
-
-    # 5. LƯU KẾT QUẢ VÀO DATABASE
-    res_obj = ExtractedResult.objects.create(
-        user=user,
-        title=u"Trích xuất hàng loạt " + str(len(image_urls)) + u" ảnh",
-        source_file_ids=uploaded_ids,
-        status='success',
-        processed_at=timezone.now()
-    )
-
-    # Thông báo tạo bảng mới từ nhiều ảnh
-    Notification.objects.create_notification(
-        user=user,
-        title=u"Tạo bảng mới!",
-        message=u"Tạo bảng mới '{}' từ nhiều ảnh.".format(res_obj.title),
-        level='success',
-        linked_to=reverse('result_detail', kwargs={'result_id': res_obj.id})
-    )
-
-    handler = TableFileHandler(res_obj)
-    handler.save_data(table_data, is_final=True)
-
-    # Cập nhật log sử dụng
-    usage, _ = UsageLog.objects.get_or_create(user=user, usage_date=timezone.now().date())
-    usage.upload_count += len(image_urls)
-    usage.save()
-
-    return JsonResponse({'status': 'success', 'result_id': res_obj.id})
+    
+    # 2. Gọi Service
+    try:
+        result = generate_images_with_gemini(
+            user=request.user,
+            files=files,
+            is_create_new=is_create_new,
+            current_result_id=current_result_id,
+            languages=languages,
+            expiry_date=expiry_date
+        )
+        return JsonResponse(result)
+    except Exception as e:
+        return JsonResponse({'status': 'error', 'message': str(e)}, status=500)
