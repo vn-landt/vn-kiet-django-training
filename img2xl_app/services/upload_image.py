@@ -15,23 +15,24 @@ from img2xl_app.models import UploadedFile
 
 IMGBB_API_KEY = os.environ.get("IMGBB_API_KEY")
 
+
 def compress_image(content):
-    try:
-        img = Image.open(io.BytesIO(content))
-
-        if img.mode in ("RGBA", "P"):
-            img = img.convert("RGB")
-
-        img.thumbnail((768, 768))
-
-        output = io.BytesIO()
-        img.save(output, format='JPEG', quality=70)
-
-        return output.getvalue()
-
-    except Exception as e:
-        print("Preprocess error:", e)
-        return content
+	try:
+		img = Image.open(io.BytesIO(content))
+		
+		if img.mode in ("RGBA", "P"):
+			img = img.convert("RGB")
+		
+		img.thumbnail((768, 768))
+		
+		output = io.BytesIO()
+		img.save(output, format='JPEG', quality=70)
+		
+		return output.getvalue()
+	
+	except Exception as e:
+		print("Preprocess error:", e)
+		return content
 
 
 def _save_uploaded_file(user, uploaded_file, filename, expiry_date=None):
@@ -71,38 +72,39 @@ def _save_uploaded_file(user, uploaded_file, filename, expiry_date=None):
 		logging.error("Error in _save_uploaded_file: %s", str(e))
 		return None, str(e)
 
+
 # =====================================
 # 🔹 Upload ảnh lên ImgBB bằng urlfetch
 # =====================================
 def upload_to_imgbb(image_bytes):
-    url = "https://api.imgbb.com/1/upload"
-
-    # Encode payload chuẩn form-urlencoded
-    payload = urllib.urlencode({
-        "key": IMGBB_API_KEY,
-        "image": base64.b64encode(image_bytes)
-    })
-
-    try:
-        res = urlfetch.fetch(
-            url=url,
-            payload=payload,
-            method=urlfetch.POST,
-            headers={'Content-Type': 'application/x-www-form-urlencoded'},
-            deadline=30
-        )
-
-        if res.status_code != 200:
-            return None, "HTTP Error: " + str(res.status_code)
-
-        data = json.loads(res.content)
-
-        if not data.get("success"):
-            return None, str(data)
-
-        return data["data"]["url"], None
-
-    except urlfetch.Error as e:
-        return None, "GAE urlfetch error: " + str(e)
-    except Exception as e:
-        return None, "Unexpected: " + str(e)
+	url = "https://api.imgbb.com/1/upload"
+	
+	# Encode payload chuẩn form-urlencoded
+	payload = urllib.urlencode({
+		"key": IMGBB_API_KEY,
+		"image": base64.b64encode(image_bytes)
+	})
+	
+	try:
+		res = urlfetch.fetch(
+			url=url,
+			payload=payload,
+			method=urlfetch.POST,
+			headers={'Content-Type': 'application/x-www-form-urlencoded'},
+			deadline=30
+		)
+		
+		if res.status_code != 200:
+			return None, "HTTP Error: " + str(res.status_code)
+		
+		data = json.loads(res.content)
+		
+		if not data.get("success"):
+			return None, str(data)
+		
+		return data["data"]["url"], None
+	
+	except urlfetch.Error as e:
+		return None, "GAE urlfetch error: " + str(e)
+	except Exception as e:
+		return None, "Unexpected: " + str(e)

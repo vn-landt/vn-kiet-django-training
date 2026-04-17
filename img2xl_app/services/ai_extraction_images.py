@@ -8,7 +8,6 @@ from django.utils import timezone
 from django.http import JsonResponse
 from django.urls import reverse
 from django.shortcuts import get_object_or_404
-from django.views.decorators.http import require_POST
 from google.appengine.api import urlfetch
 
 from .table_handler import TableFileHandler
@@ -18,12 +17,11 @@ from ..models import ExtractedResult, Notification, UsageLog
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
 
-
 # =====================================================================
 # 1. UNIFIED API ENDPOINT
 # =====================================================================
-
-def generate_images_with_gemini(user, files, is_create_new, current_result_id, languages, expiry_date):
+def generate_images_with_gemini(user, files, is_create_new, current_result_id, languages,
+								expiry_date):
 	"""
 	API duy nhất xử lý trích xuất cho cả 1 ảnh hoặc nhiều ảnh.
 	Frontend có thể gửi 1 file qua key 'file' hoặc danh sách qua key 'files'.
@@ -33,7 +31,6 @@ def generate_images_with_gemini(user, files, is_create_new, current_result_id, l
 	
 	# BƯỚC 1: XỬ LÝ UPLOAD (Nén + Upload ImgBB + Lưu Model UploadedFile)
 	for f in files:
-		# Tái sử dụng hàm _save_uploaded_file đã có của bạn
 		# (Hàm này nên bao gồm: nén -> upload -> create UploadedFile object)
 		uf, error = _save_uploaded_file(user, f, f.name, expiry_date)
 		if uf:
@@ -52,7 +49,8 @@ def generate_images_with_gemini(user, files, is_create_new, current_result_id, l
 		return JsonResponse({'status': 'error', 'message': ai_error})
 	
 	if result_text == "INVALID_DOCUMENT":
-		return JsonResponse({'status': 'error', 'message': u'Tài liệu không hợp lệ hoặc chứa khuôn mặt người.'})
+		return JsonResponse(
+			{'status': 'error', 'message': u'Tài liệu không hợp lệ hoặc chứa khuôn mặt người.'})
 	
 	# BƯỚC 3: PARSE CSV VÀ LƯU DATABASE
 	table_data, parse_error = _parse_csv_to_table(result_text)
@@ -63,7 +61,8 @@ def generate_images_with_gemini(user, files, is_create_new, current_result_id, l
 	
 	# Trường hợp 1: Tạo bảng mới hoàn toàn (Home hoặc Batch)
 	if is_create_new or not current_result_id:
-		title = u"Bảng từ " + files[0].name if len(files) == 1 else u"Trích xuất hàng loạt {} ảnh".format(len(files))
+		title = u"Bảng từ " + files[0].name if len(
+			files) == 1 else u"Trích xuất hàng loạt {} ảnh".format(len(files))
 		res_obj = ExtractedResult.objects.create(
 			user=user,
 			title=title,
@@ -102,6 +101,7 @@ def generate_images_with_gemini(user, files, is_create_new, current_result_id, l
 		'table': table_data
 	})
 
+
 # =====================================================================
 # 2. HELPER METHOD
 # =====================================================================
@@ -117,7 +117,8 @@ def _parse_csv_to_table(result_text):
 		return None, u"Không tìm thấy bảng dữ liệu trong ảnh."
 	
 	try:
-		csv_content = cleaned_text.encode('utf-8') if isinstance(cleaned_text, basestring) else cleaned_text
+		csv_content = cleaned_text.encode('utf-8') if isinstance(cleaned_text,
+																 basestring) else cleaned_text
 		csv_reader = csv.reader(io.BytesIO(csv_content))
 		table_data = [row for row in csv_reader]
 		
@@ -129,12 +130,11 @@ def _parse_csv_to_table(result_text):
 		return table_data, None
 	except Exception as e:
 		return None, u"Lỗi phân tích cú pháp dữ liệu: " + str(e)
-	
+
 
 # =====================================================================
 # 3. CORE AI LOGIC (UNIFIED)
 # =====================================================================
-
 def generate_images_with_gemini(image_urls, languages='all', mime_type="image/jpeg"):
 	"""
 	Hàm thống nhất trích xuất dữ liệu từ 1 hoặc nhiều ảnh bằng Gemini 2.5 Flash.
@@ -244,7 +244,8 @@ def generate_images_with_gemini(image_urls, languages='all', mime_type="image/jp
 			if not candidates:
 				return None, u"AI không trả về kết quả."
 			
-			text_result = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "").strip()
+			text_result = candidates[0].get("content", {}).get("parts", [{}])[0].get("text",
+																					 "").strip()
 			return text_result, None
 		
 		except (KeyError, IndexError) as e:
