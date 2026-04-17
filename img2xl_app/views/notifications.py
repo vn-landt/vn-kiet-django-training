@@ -1,10 +1,9 @@
 # -*- coding: utf-8 -*-
-# 1. Đánh dấu một thông báo là đã đọc
 from django.http import JsonResponse
 
 from img2xl_app.models import Notification
 
-
+# 1. Đánh dấu một thông báo là đã đọc
 def mark_as_read(request, noti_id):
     if request.method == "POST":
         try:

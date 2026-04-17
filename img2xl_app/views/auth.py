@@ -135,11 +135,11 @@ def register(request):
     else:
         form = RegisterForm()
 
-    return render(request, 'registration/register.html', {'form': form})
+    return render(request, 'img2xl_app/registration/register.html', {'form': form})
 
 def forgot_password_view(request):
     """Hiển thị trang nhập email để lấy lại mật khẩu"""
-    return render(request, 'registration/forgot_password.html')
+    return render(request, 'img2xl_app/registration/forgot_password.html')
 
 
 @csrf_exempt  # Hoặc đảm bảo JS gửi CSRF qua Header

@@ -3,6 +3,18 @@
  * Chứa các hàm xử lý Modal Export và Render Preview
  */
 
+// Script ẩn/hiện tùy chọn nền khi chọn qua lại giữa Excel và PNG
+function togglePngOptions() {
+    var isPng = document.getElementById('type_png').checked;
+    var pngOptions = document.getElementById('png_options');
+    if (isPng) {
+        pngOptions.style.display = 'block';
+    } else {
+        pngOptions.style.display = 'none';
+    }
+}
+
+
 function openExportModal() {
     const modal = document.getElementById('export-modal');
     if (modal) modal.style.display = 'block';

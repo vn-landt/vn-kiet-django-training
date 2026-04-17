@@ -11,7 +11,7 @@ from img2xl_app.services.upload_image import upload_to_imgbb
 @login_required
 def settings_view(request):
     # Trả về trang settings, dữ liệu user đã có sẵn trong request.user
-    return render(request, 'settings.html')
+    return render(request, 'img2xl_app/settings.html')
 
 
 @login_required

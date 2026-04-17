@@ -8,39 +8,45 @@ import django.utils.timezone
 
 
 class Migration(migrations.Migration):
-
-    initial = True
-
-    dependencies = [
-    ]
-
-    operations = [
-        migrations.CreateModel(
-            name='ExtractedResult',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('status', models.CharField(choices=[('pending', 'Pending'), ('processing', 'Processing'), ('success', 'Success'), ('failed', 'Failed')], default='pending', max_length=20)),
-                ('raw_response', models.TextField(blank=True, null=True)),
-                ('table_data', models.TextField(blank=True, null=True)),
-                ('error_message', models.TextField(blank=True, null=True)),
-                ('processed_at', models.DateTimeField(blank=True, null=True)),
-                ('created_at', models.DateTimeField(default=django.utils.timezone.now)),
-            ],
-        ),
-        migrations.CreateModel(
-            name='UploadedFile',
-            fields=[
-                ('id', models.AutoField(auto_created=True, primary_key=True, serialize=False, verbose_name='ID')),
-                ('filename', models.CharField(max_length=255)),
-                ('mime_type', models.CharField(blank=True, max_length=100, null=True)),
-                ('file', models.FileField(upload_to='uploads/')),
-                ('file_size', models.PositiveIntegerField(default=0)),
-                ('uploaded_at', models.DateTimeField(default=django.utils.timezone.now)),
-            ],
-        ),
-        migrations.AddField(
-            model_name='extractedresult',
-            name='uploaded_file',
-            field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE, related_name='extraction_results', to='img2xl_app.UploadedFile'),
-        ),
-    ]
+	initial = True
+	
+	dependencies = [
+	]
+	
+	operations = [
+		migrations.CreateModel(
+			name='ExtractedResult',
+			fields=[
+				('id', models.AutoField(auto_created=True, primary_key=True, serialize=False,
+										verbose_name='ID')),
+				('status', models.CharField(
+					choices=[('pending', 'Pending'), ('processing', 'Processing'),
+							 ('success', 'Success'), ('failed', 'Failed')], default='pending',
+					max_length=20)),
+				('raw_response', models.TextField(blank=True, null=True)),
+				('table_data', models.TextField(blank=True, null=True)),
+				('error_message', models.TextField(blank=True, null=True)),
+				('processed_at', models.DateTimeField(blank=True, null=True)),
+				('created_at', models.DateTimeField(default=django.utils.timezone.now)),
+			],
+		),
+		migrations.CreateModel(
+			name='UploadedFile',
+			fields=[
+				('id', models.AutoField(auto_created=True, primary_key=True, serialize=False,
+										verbose_name='ID')),
+				('filename', models.CharField(max_length=255)),
+				('mime_type', models.CharField(blank=True, max_length=100, null=True)),
+				('file', models.FileField(upload_to='uploads/')),
+				('file_size', models.PositiveIntegerField(default=0)),
+				('uploaded_at', models.DateTimeField(default=django.utils.timezone.now)),
+			],
+		),
+		migrations.AddField(
+			model_name='extractedresult',
+			name='uploaded_file',
+			field=models.ForeignKey(on_delete=django.db.models.deletion.CASCADE,
+									related_name='extraction_results',
+									to='img2xl_app.UploadedFile'),
+		),
+	]

@@ -34,7 +34,7 @@ def documents_view(request):
         results = results_query.order_by('-updated_at')
         all_images = all_images_query.order_by('-uploaded_at')
 
-    return render(request, 'documents.html', {
+    return render(request, 'img2xl_app/documents.html', {
         'results': results,  # Dùng cho sidebar
         'all_images': all_images,  # Dùng cho gallery ảnh
         'extractedResult': all_images.count(),  # Đếm ảnh thay vì đếm bảng

@@ -39,7 +39,7 @@ def result_detail(request, result_id):
     recent_results = ExtractedResult.objects.filter(
             is_deleted=False
     ).order_by('-created_at')
-    return render(request, 'result_detail.html', {
+    return render(request, 'img2xl_app/result_detail.html', {
         'result': result,
         'table_json': table_json_str,
         'final_table_json': final_table_json_str,

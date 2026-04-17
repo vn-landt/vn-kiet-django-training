@@ -11,7 +11,7 @@ def trash_bin_view(request):
     """Hiển thị trang Thùng rác"""
     deleted_results = ExtractedResult.objects.filter(user=request.user, is_deleted=True).order_by('-delete_at')
     deleted_files = UploadedFile.objects.filter(user=request.user, is_deleted=True).order_by('-delete_at')
-    return render(request, 'trash_bin.html', {
+    return render(request, 'img2xl_app/trash_bin.html', {
         'deleted_results': deleted_results,
         'deleted_files': deleted_files,
     })

@@ -26,7 +26,7 @@ def home(request):
         ).order_by('-created_at')[:10]
 
     # Không còn xử lý request.method == 'POST' ở đây nữa
-    return render(request, 'home.html', {
+    return render(request, 'img2xl_app/home.html', {
         'form': UploadFileForm(),
         'recent_results': recent_results
     })
