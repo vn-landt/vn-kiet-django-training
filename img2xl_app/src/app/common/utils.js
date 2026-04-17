@@ -60,3 +60,18 @@ function parseCoords(cellStr) {
 	}
 	return {col: col - 1, row: row};
 }
+
+/**
+ * Thiết lập bảo mật CSRF cho toàn bộ các yêu cầu AJAX
+ */
+function setupCSRF() {
+	const token = $('meta[name="csrf-token"]').attr('content');
+	$.ajaxSetup({
+		beforeSend: function (xhr, settings) {
+			const isUnsafe = !/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type);
+			if (isUnsafe && !this.crossDomain) {
+				xhr.setRequestHeader("X-CSRFToken", token);
+			}
+		}
+	});
+}
