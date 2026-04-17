@@ -45,3 +45,18 @@ function calculateScale(container, table) {
 	const containerH = container.offsetHeight - 40;
 	return Math.min(containerW / table.scrollWidth, containerH / table.scrollHeight, 1);
 }
+
+/**
+ * Chuyển đổi tọa độ Excel (A1) sang số (col: 0, row: 0)
+ */
+function parseCoords(cellStr) {
+	const match = cellStr.toUpperCase().match(/^([A-Z]+)(\d+)$/);
+	if (!match) return null;
+	let colStr = match[1];
+	let row = parseInt(match[2]) - 1;
+	let col = 0;
+	for (let i = 0; i < colStr.length; i++) {
+		col = col * 26 + (colStr.charCodeAt(i) - 64);
+	}
+	return {col: col - 1, row: row};
+}
