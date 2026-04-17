@@ -1,0 +1,55 @@
+<div class="settings-section">
+	<h5 class="mb-4">Profile settings</h5>
+	
+	<form method="POST" action="{% url 'update_profile_settings' %}" enctype="multipart/form-data">
+		{% csrf_token %}
+		
+		<div class="d-flex align-items-center mb-4">
+			<div class="avatar-wrapper mr-3">
+				<img
+					src="{% if user.profile.avatar_url %}{{ user.profile.avatar_url }}{% else %}https://i.ibb.co/cKMk11nT/default-avatar.png{% endif %}"
+					class="rounded-circle border"
+					id="avatarPreview"
+					style="width: 100px; height: 100px; object-fit: cover;">
+			</div>
+			<div class="upload-btn-wrapper">
+				<button type="button" class="btn btn-outline-secondary btn-sm"
+						onclick="document.getElementById('avatarInput').click();">Change avatar
+				</button>
+				<input type="file" id="avatarInput" name="avatar" style="display:none;"
+					   onchange="previewImage(this);"/>
+				<small class="d-block text-muted mt-1">Hỗ trợ JPG, PNG.</small>
+			</div>
+		</div>
+		
+		<div class="custom-control custom-checkbox mb-4">
+			<input type="checkbox" class="custom-control-input" id="privateProfile" checked
+				   disabled>
+			<label class="custom-control-label" for="privateProfile">Make my profile and identity
+				totally private</label>
+			<input type="hidden" name="is_private" value="on">
+		</div>
+		
+		<div class="form-group">
+			<label>Name</label>
+			<input type="text" name="full_name" class="form-control" placeholder="Your real name"
+					value="{{ user.profile.full_name|default:'' }}">
+			<small class="text-muted">This is your real name, not your username.</small>
+		</div>
+		
+		<div class="form-group">
+			<label>Website</label>
+			<input type="url" name="website" class="form-control"
+					placeholder="http://your-website.com"
+					value="{{ user.profile.website|default:'' }}">
+		</div>
+		
+		<div class="form-group">
+			<label>Bio</label>
+			<textarea name="bio" class="form-control" rows="4"
+				placeholder="Tell us about yourself...">{{ user.profile.bio|default:'' }}</textarea>
+		</div>
+		
+		<button type="submit" class="btn btn-primary px-4 shadow-sm">Save changes</button>
+	</form>
+</div>

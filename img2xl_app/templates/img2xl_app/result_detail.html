@@ -1,0 +1,171 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Extraction Result | Dashboard{% endblock %}
+
+
+{% block extra_css %}
+	<link rel="stylesheet"
+		href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
+	<link rel="stylesheet"
+		href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+	<link rel="stylesheet" href="https://bossanova.uk/jspreadsheet/v4/jexcel.css" type="text/css"/>
+	<link rel="stylesheet" href="https://jsuites.net/v4/jsuites.css" type="text/css"/>
+	<link rel="stylesheet"
+		href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+	
+	<link rel="stylesheet" href="{% static 'css/result_detail.css' %}">
+	<link rel="stylesheet" href="{% static 'css/export_ui.css' %}">
+	<link rel="stylesheet" href="{% static 'css/image_editor.css' %}">
+	
+	<script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
+	<script src="https://jsuites.net/v4/jsuites.js"></script>
+	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-wrapper">
+	<aside class="side-panel side-left">
+		<div class="info-box left-side shadow-sm mb-3">
+			<h4 class="box-title">File Details</h4>
+			<div class="small">
+				<p class="mb-1 text-truncate" title="{{ result.title }}">
+					<strong>Name:</strong> <a target="_blank" class="filename-link">{{ result.title
+					}}</a>
+				</p>
+				<p class="mb-1"><strong>Status:</strong> <span class="badge badge-primary">{{ result.status|title }}</span>
+				</p>
+				<p class="mb-0 text-muted">Processed: {{ result.processed_at|date:"d/m H:i" }}</p>
+			</div>
+		</div>
+		
+		<div class="info-box right-side shadow-sm">
+			<h4 class="box-title">Recent History</h4>
+			<div class="history-scroll">
+				<ul class="list-unstyled mb-0">
+					{% for res in recent_results %}
+					<li class="history-item {% if res.id == result.id %}active{% endif %}">
+						<a href="{% url 'result_detail' res.id %}" class="d-block text-truncate">
+							<i class="far fa-file-alt mr-1"></i> {{ res.title|truncatechars:50 }}
+						</a>
+					</li>
+					{% endfor %}
+				</ul>
+			</div>
+		</div>
+	</aside>
+	
+	<main class="main-workspace">
+		<div class="table-card shadow mt-0">
+			<div class="table-header-row mb-3">
+				<div class="d-flex align-items-start">
+					<a href="{% url 'home' %}" class="btn-home mr-3 py-1 px-2"
+						style="font-size: 13px;">
+						<i class="fas fa-arrow-left"></i> Home
+					</a>
+					<div>
+						<h2 class="table-title mb-0" style="font-size: 1.2rem; line-height: 1.2;">
+							Extracted Table</h2>
+						<div id="autosave-status" class="small text-muted">
+							<i class="fas fa-history"></i> Draft: {{ last_draft_time }}
+						</div>
+					</div>
+				</div>
+				
+				<div class="right-tools-group d-flex align-items-center">
+					<button onclick="saveTableData()"
+							class="btn btn-dark btn-sm font-weight-bold ml-2">Save Changes
+					</button>
+					<div class="input-item group-purple ml-2">
+						<input type="file" id="pic-upload" accept="image/*" style="display:none;"
+							onchange="initEditor(this)">
+						<button type="button"
+								onclick="document.getElementById('pic-upload').click()"
+								class="btn-purple py-1 px-2" style="font-size: 14px;">Chèn ảnh
+						</button>
+					</div>
+					<div class="input-item group-secondary ml-2">
+						<input type="file" id="csv-upload" accept=".csv" style="display:none;"
+							onchange="handleCSVUpdate()">
+						<button onclick="document.getElementById('csv-upload').click()"
+							class="btn-secondary py-1 px-2" style="font-size: 14px;">Update CSV
+						</button>
+					</div>
+				</div>
+			</div>
+			
+			<div id="table-content-area" class="border rounded bg-light" style="max-height: 650px;">
+				<div id="spreadsheet"></div>
+			</div>
+			
+			<div class="table-bottom-actions mt-3 pt-3 border-top">
+				<button type="button" onclick="openExportModal()"
+						class="btn-primary px-4 font-weight-bold">
+					<i class="fas fa-download mr-1"></i> Export
+				</button>
+				<a href="{% url 'export_to_sheets' result.id %}"
+					class="btn-success px-4 font-weight-bold ml-2 text-decoration-none">
+					<i class="fab fa-google-drive mr-1"></i> Google Sheets
+				</a>
+			</div>
+		</div>
+	</main>
+	
+	<aside class="side-panel side-right">
+		<div class="info-box ai-bg shadow-sm mb-3">
+			<h4 class="box-title"><i class="fas fa-robot mr-1"></i> Gemini AI</h4>
+			<div class="ai-input-wrapper">
+				<textarea id="ai-prompt" class="form-control form-control-sm mb-2"
+						placeholder="Yêu cầu AI..." rows="3"></textarea>
+				<button id="btn-ai-gen" class="btn btn-success btn-sm btn-block"
+						onclick="generateAIContent()">Generate
+				</button>
+			</div>
+			<div class="ai-result-wrapper">
+				<input type="text" id="ai-result-display" class="form-control form-control-sm mt-2"
+					readonly placeholder="Kết quả gợi ý...">
+			</div>
+		</div>
+		
+		<div class="info-box range-bg shadow-sm" id="range-tools-vertical">
+			<h4 class="box-title"><i class="fas fa-cut mr-1"></i> Tách Dữ Liệu</h4>
+			<div class="d-flex flex-wrap mb-2" style="gap: 5px;">
+				<input type="text" id="range-start" placeholder="Từ"
+					class="form-control form-control-sm" style="flex: 1; min-width: 45%;">
+				<input type="text" id="range-end" placeholder="Đến"
+					class="form-control form-control-sm" style="flex: 1; min-width: 45%;">
+				<input type="text" id="special-char" placeholder="Ký tự"
+					class="form-control form-control-sm w-100 mt-1">
+			</div>
+			<div class="tool-btns d-flex flex-column" style="gap: 5px;">
+				<button onclick="handleRangeAction('split-col')" class="btn-tool-blue w-100 py-2">
+					Chia Cột
+				</button>
+				<button onclick="handleRangeAction('split-row')" class="btn-tool-orange w-100 py-2">
+					Xuống Dòng
+				</button>
+				<button onclick="handleRangeAction('remove')" class="btn-tool-red w-100 py-2">Xóa
+					Vùng
+				</button>
+			</div>
+		</div>
+	</aside>
+</div>
+
+{% include "includes/export_ui.html" %}
+{% include "includes/image_editor.html" with api_url="/extract-only-api/" %}
+{% endblock %}
+
+{% block extra_js %}
+<script>
+	window.DJANGO_TABLE_DATA = {{table_json | safe}};
+	window.FINAL_TABLE_DATA = {{final_table_json | safe}};
+	window.DJANGO_SAVE_URL = "{% url 'update_table_data' result.id %}";
+	window.CURRENT_RESULT_ID = "{{ result.id }}";
+	</script>
+	<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
+	<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+	<script src="{% static 'js/image_handler.js' %}"></script>
+	<script src="{% static 'js/result_detail.js' %}"></script>
+{% endblock %}
+

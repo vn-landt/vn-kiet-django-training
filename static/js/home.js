@@ -259,6 +259,28 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 window.toggleMode = function() {
     const mode = document.querySelector('input[name="extractMode"]:checked').value;
+    const batchRadio = document.querySelector('input[name="extractMode"][value="batch"]');
+    const singleRadio = document.querySelector('input[name="extractMode"][value="single"]');
+    if (mode === 'batch' && !window.isAuthenticated) {
+        // 1. Thông báo cho người dùng
+        Swal.fire({
+            icon: 'warning',
+            title: 'Yêu cầu đăng nhập',
+            text: 'Tính năng trích xuất nhiều ảnh chỉ dành cho thành viên. Vui lòng đăng nhập để sử dụng!',
+            confirmButtonText: 'Đăng nhập ngay',
+            showCancelButton: true,
+            cancelButtonText: 'Để sau'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                window.location.href = "/login/"; // Chuyển hướng đến trang login của bạn
+            }
+        });
+
+        // 2. Trả lại chế độ 'single' và dừng thực hiện tiếp
+        singleRadio.checked = true;
+        window.extractMode = 'single';
+        return;
+    }
     window.extractMode = mode;
 
     const configSection = document.getElementById('globalConfigSection');

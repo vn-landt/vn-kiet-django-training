@@ -1,0 +1,69 @@
+<div class="settings-section">
+	<h5 class="mb-4">Account settings</h5>
+	<form method="POST" action="{% url 'update_account_settings' %}">
+		{% csrf_token %}
+		
+		<div class="form-group">
+			<label>Username</label>
+			<input type="text" class="form-control" value="{{ user.username }}" readonly>
+			<small class="text-muted">https://{{ user.username }}.imgbb.com/</small>
+		</div>
+		
+		<div class="form-group">
+			<label>Email address</label>
+			<input type="email" class="form-control" value="{{ user.email }}" readonly
+					style="background-color: #f8f9fa;">
+		</div>
+		
+		<div class="form-group">
+			<label>Automatically delete uploads</label>
+			<select name="auto_delete_duration" class="form-control custom-select">
+				<option value="0"
+					{% if user.profile.auto_delete_duration== 0 %}selected{% endif %}>
+						Don't autodelete
+				</option>
+				<option value="30"
+					{% if user.profile.auto_delete_duration== 30 %}selected{% endif %}>
+						After 30 minutes
+				</option>
+				<option value="60"
+					{% if user.profile.auto_delete_duration== 60 %}selected{% endif %}>
+						After 1 hour
+				</option>
+				<option value="1440"
+					{% if user.profile.auto_delete_duration== 1440 %}selected{% endif %}>
+						After 1 day
+				</option>
+				<option value="10080"
+					{% if user.profile.auto_delete_duration== 10080 %}selected{% endif %}>
+						After 1 week
+				</option>
+			</select>
+			<small class="form-text text-muted">Tính năng được áp dụng cho tất cả ảnh bao gồm cũ và
+				mới.</small>
+		</div>
+		
+		<hr>
+		
+		<div class="custom-control custom-checkbox mb-2">
+			<input type="checkbox" name="keep_exif" class="custom-control-input" id="exifData"
+					checked disabled>
+			<label class="custom-control-label" for="exifData">Keep image EXIF data on
+				upload</label>
+		</div>
+		
+		<div class="custom-control custom-checkbox mb-2">
+			<input type="checkbox" class="custom-control-input" id="newsletter" checked disabled>
+			<label class="custom-control-label" for="newsletter">Send me emails with news about
+				Extractor AI</label>
+			<input type="hidden" name="newsletter" value="on"></div>
+		
+		<div class="custom-control custom-checkbox mb-4">
+			<input type="checkbox" class="custom-control-input" id="unsafeContent" disabled>
+			<label class="custom-control-label" for="unsafeContent">Show unsafe content in listings
+				(from others)</label>
+		</div>
+		
+		<button type="submit" class="btn btn-primary px-4 shadow-sm">Save changes</button>
+	</form>
+</div>

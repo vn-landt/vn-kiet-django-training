@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block content %}
+<div class="container mt-4">
+	<div class="d-flex justify-content-between align-items-center mb-4">
+		<h3><i class="fas fa-trash-alt mr-2 text-secondary"></i> Thùng rác dữ liệu</h3>
+		
+		<button id="btn-restore-batch" class="btn btn-success shadow-sm" style="display: none;"
+				onclick="handleBatchRestore()">
+			<i class="fas fa-undo-alt mr-1"></i> Khôi phục <span id="selected-count">0</span> mục đã
+			chọn
+		</button>
+	</div>
+	
+	<ul class="nav nav-tabs border-0" id="trashTab" role="tablist">
+		<li class="nav-item">
+			<a class="nav-link active font-weight-bold" id="tab-table" data-toggle="tab"
+				href="#tables" role="tab">
+				<i class="fas fa-table mr-1"></i> Bảng tính
+			</a>
+		</li>
+		<li class="nav-item">
+			<a class="nav-link font-weight-bold" id="tab-image" data-toggle="tab" href="#images"
+				role="tab">
+				<i class="fas fa-image mr-1"></i> Hình ảnh
+			</a>
+		</li>
+	</ul>
+	
+	<div class="tab-content border bg-white p-3 shadow-sm" style="border-radius: 0 0 8px 8px;">
+		
+		<div class="tab-pane fade show active" id="tables" role="tabpanel">
+			<table class="table table-hover align-middle" id="table-results">
+				<thead class="thead-light">
+				<tr>
+					<th width="40">
+						<div class="custom-control custom-checkbox">
+							<input type="checkbox" class="custom-control-input check-all"
+								id="check-all-tables" data-target="table">
+							<label class="custom-control-label" for="check-all-tables"></label>
+						</div>
+					</th>
+					<th>Tiêu đề bảng</th>
+					<th>Ngày xóa</th>
+					<th class="text-right">Thao tác</th>
+				</tr>
+				</thead>
+				<tbody>
+				{% for table in deleted_results %}
+				<tr>
+					<td>
+						<div class="custom-control custom-checkbox">
+							<input type="checkbox"
+								class="custom-control-input check-item item-table"
+								id="chk-t-{{ table.id }}" value="{{ table.id }}">
+							<label class="custom-control-label" for="chk-t-{{ table.id }}"></label>
+						</div>
+					</td>
+					<td><strong>{{ table.title }}</strong></td>
+					<td><small class="text-muted">{{ table.delete_at|date:"d/m/Y H:i" }}</small>
+					</td>
+					<td class="text-right">
+						<button class="btn btn-sm btn-outline-success"
+								onclick="restoreSingle('table', {{ table.id }})">
+							<i class="fas fa-undo"></i> Khôi phục
+						</button>
+					</td>
+				</tr>
+				{% empty %}
+				<tr>
+					<td colspan="4" class="text-center py-4 text-muted">Thùng rác bảng tính trống.
+					</td>
+				</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+		
+		<div class="tab-pane fade" id="images" role="tabpanel">
+			<table class="table table-hover align-middle" id="table-images">
+				<thead class="thead-light">
+				<tr>
+					<th width="40">
+						<div class="custom-control custom-checkbox">
+							<input type="checkbox" class="custom-control-input check-all"
+								id="check-all-images" data-target="image">
+							<label class="custom-control-label" for="check-all-images"></label>
+						</div>
+					</th>
+					<th>Ảnh</th>
+					<th>Tên file</th>
+					<th>Ngày xóa</th>
+					<th class="text-right">Thao tác</th>
+				</tr>
+				</thead>
+				<tbody>
+				{% for img in deleted_files %}
+				<tr>
+					<td>
+						<div class="custom-control custom-checkbox">
+							<input type="checkbox"
+								class="custom-control-input check-item item-image"
+								id="chk-i-{{ img.id }}" value="{{ img.id }}">
+							<label class="custom-control-label" for="chk-i-{{ img.id }}"></label>
+						</div>
+					</td>
+					<td><img src="{{ img.image_url }}" class="rounded border"
+							 style="width: 50px; height: 40px; object-fit: cover;"></td>
+					<td>{{ img.filename }}</td>
+					<td><small class="text-muted">{{ img.delete_at|date:"d/m/Y H:i" }}</small></td>
+					<td class="text-right">
+						<button class="btn btn-sm btn-link text-success"
+								onclick="restoreSingle('image', {{ img.id }})">Khôi phục
+						</button>
+					</td>
+				</tr>
+				{% empty %}
+				<tr>
+					<td colspan="5" class="text-center py-4 text-muted">Thùng rác hình ảnh trống.
+					</td>
+				</tr>
+				{% endfor %}
+				</tbody>
+			</table>
+		</div>
+	</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+	<script src="{% static 'js/trash_bin.js' %}"></script>
+{% endblock %}
