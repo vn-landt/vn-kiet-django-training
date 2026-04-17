@@ -137,6 +137,7 @@ def register(request):
 
     return render(request, 'img2xl_app/registration/register.html', {'form': form})
 
+
 def forgot_password_view(request):
     """Hiển thị trang nhập email để lấy lại mật khẩu"""
     return render(request, 'img2xl_app/registration/forgot_password.html')
