@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from djangae import models
+from django.db import models
 from django.contrib.auth.models import User
 from django.utils import timezone
 
@@ -10,7 +10,6 @@ try:
 except ImportError:
 	from django.db.models import BinaryField as BlobField
 from djangae.fields import ListField, JSONField
-from ..services import TableFileHandler
 
 
 class ExtractedResult(models.Model):
@@ -65,6 +64,6 @@ class ExtractedResult(models.Model):
 		"""Sử dụng OOP Handler để lấy dữ liệu"""
 		if not self.id:
 			return []
-		
+		from ..services import TableFileHandler
 		handler = TableFileHandler(self)  # Chuyền cả object vào thay vì self.id
 		return handler.load_data(for_export=for_export)

@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
-import UserProfile
-import UploadedFile
-import ExtractedResult
-import UsageLog
-import Notification
+from user_profile import UserProfile
+from uploaded_file import UploadedFile
+from extracted_result import ExtractedResult
+from usage_log import UsageLog
+from notification import Notification
 
