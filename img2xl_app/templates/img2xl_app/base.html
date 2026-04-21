@@ -12,26 +12,28 @@
 		  href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/css/bootstrap.min.css">
 	<link rel="stylesheet"
 		  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css">
-	<link rel="stylesheet" href="{% static 'css/header.css' %}">
-	<link rel="stylesheet" href="{% static 'css/footer.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/header.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/footer.css' %}">
 	
 	{% block extra_css %}{% endblock %}
 </head>
 <body>
-	{% include "includes/header.html" %}
+	{% include "img2xl_app/includes/header.html" %}
 	
 	<main>
 		{% block content %}
 		{% endblock %}
 	</main>
 	
-	{% include "includes/footer.html" %}
+	{% include "img2xl_app/includes/footer.html" %}
 	
 	<script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-	<script src="{% static 'js/header.js' %}"></script>
-	<script src="{% static 'js/footer.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/common/utils.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/header.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/footer.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/services/notification_service.js' %}"></script>
 	
 	{% block extra_js %}{% endblock %}
 </body>

@@ -100,8 +100,8 @@
 											{{ noti.get_level_display }}
 										</span>
 										<small class="text-muted ml-2" style="font-size: 0.65rem;">
-											<i class="far fa-clock mr-1"></i>{{
-											noti.created_at|date:"H:i d/m" }}
+											<i class="far fa-clock mr-1"></i>
+											{{ noti.created_at|date:"H:i d/m" }}
 										</small>
 									</div>
 									
@@ -113,8 +113,7 @@
 										</a>
 									</div>
 								</div>
-								<h6 class="small font-weight-bold mb-1 text-dark">{{ noti.title
-									}}</h6>
+								<h6 class="small font-weight-bold mb-1 text-dark">{{ noti.title }}</h6>
 								<p class="small text-muted mb-2 text-wrap">{{ noti.message }}</p>
 								
 								{% if noti.linked_to %}

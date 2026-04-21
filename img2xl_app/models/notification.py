@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from djangae import models
+from django.db import models
 from django.contrib.auth.models import User
 
 import logging
@@ -32,9 +32,6 @@ class NotificationManager(models.Manager):
 		except Exception as e:
 			logger.error(u"Không thể tạo thông báo: " + unicode(e))
 			return None
-	
-	def create(self, user, title, message, level, linked_to):
-		pass
 
 
 class Notification(models.Model):

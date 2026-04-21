@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 from datetime import timedelta
-from time import timezone
+
+from django.utils import timezone
 
 from djangae.fields import json
 from django.contrib.auth.decorators import login_required
@@ -77,14 +78,32 @@ def create_spreadsheet_blank(request):
 def update_title_api(request, result_id):
     """API: Đổi tên bảng tính"""
     result = get_object_or_404(ExtractedResult, id=result_id, user=request.user)
+    old_title = result.title  # Lưu lại tên cũ để dùng cho thông báo
     new_title = request.POST.get('title')
-
+    
     if new_title:
         result.title = new_title
         result.save()
+        
+        
+        msg = u"Đã đổi tên bảng '{0}' thành '{1}'!".format(old_title, new_title)
+        
+        Notification.objects.create_notification(
+            user=request.user,
+            title=u"Cập nhật thành công",
+            message=msg,
+            level='success',
+            linked_to=reverse('result_detail', kwargs={'result_id': result.id})
+        )
+        
         return JsonResponse({'status': 'success'})
+    
+    # Trường hợp lỗi
+    return JsonResponse(
+        {'status': 'error', 'message': u'Tiêu đề không được để trống'},
+        status=400
+    )
 
-    return JsonResponse({'status': 'error', 'message': 'Thiếu tiêu đề'}, status=400)
 
 # Xoá bảng tính ở documents/
 @login_required

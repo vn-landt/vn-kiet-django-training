@@ -20,8 +20,7 @@ GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 # =====================================================================
 # 1. UNIFIED API ENDPOINT
 # =====================================================================
-def generate_images_with_gemini(user, files, is_create_new, current_result_id, languages,
-								expiry_date):
+def generate_images(user, files, is_create_new, current_result_id, languages,expiry_date):
 	"""
 	API duy nhất xử lý trích xuất cho cả 1 ảnh hoặc nhiều ảnh.
 	Frontend có thể gửi 1 file qua key 'file' hoặc danh sách qua key 'files'.
@@ -31,7 +30,7 @@ def generate_images_with_gemini(user, files, is_create_new, current_result_id, l
 	
 	# BƯỚC 1: XỬ LÝ UPLOAD (Nén + Upload ImgBB + Lưu Model UploadedFile)
 	for f in files:
-		# (Hàm này nên bao gồm: nén -> upload -> create UploadedFile object)
+		# (Hàm này nên abo gồm: nén -> upload -> create UploadedFile object)
 		uf, error = _save_uploaded_file(user, f, f.name, expiry_date)
 		if uf:
 			uploaded_ids.append(uf.id)
@@ -40,29 +39,28 @@ def generate_images_with_gemini(user, files, is_create_new, current_result_id, l
 			logging.error(u"Upload error for file %s: %s", f.name, error)
 	
 	if not image_urls:
-		return JsonResponse({'status': 'error', 'message': u'Không thể upload ảnh lên máy chủ.'})
+		return {'status': 'error', 'message': u'Không thể upload ảnh.'}
 	
 	# BƯỚC 2: GỌI GEMINI (Logic chung cho 1 hoặc nhiều ảnh)
 	result_text, ai_error = generate_images_with_gemini(image_urls, languages)
 	
 	if ai_error:
-		return JsonResponse({'status': 'error', 'message': ai_error})
+		return {'status': 'error', 'message': ai_error}
 	
 	if result_text == "INVALID_DOCUMENT":
-		return JsonResponse(
-			{'status': 'error', 'message': u'Tài liệu không hợp lệ hoặc chứa khuôn mặt người.'})
+		return {'status': 'error', 'message': u'Tài liệu không hợp lệ hoặc chứa khuôn mặt người.'}
 	
 	# BƯỚC 3: PARSE CSV VÀ LƯU DATABASE
 	table_data, parse_error = _parse_csv_to_table(result_text)
 	if parse_error:
-		return JsonResponse({'status': 'error', 'message': parse_error})
+		return {'status': 'error', 'message': parse_error}
 	
 	res_obj = None
 	
 	# Trường hợp 1: Tạo bảng mới hoàn toàn (Home hoặc Batch)
 	if is_create_new or not current_result_id:
-		title = u"Bảng từ " + files[0].name if len(
-			files) == 1 else u"Trích xuất hàng loạt {} ảnh".format(len(files))
+		title = u"Bảng từ " + files[0].name if len(files) == 1 \
+							else (u"Bảng từ batch_img " + timezone.now().strftime("%d/%m/%Y %H:%M"))
 		res_obj = ExtractedResult.objects.create(
 			user=user,
 			title=title,
@@ -95,41 +93,56 @@ def generate_images_with_gemini(user, files, is_create_new, current_result_id, l
 	usage.upload_count += len(image_urls)
 	usage.save()
 	
-	return JsonResponse({
+	return {
 		'status': 'success',
 		'result_id': res_obj.id,
 		'table': table_data
-	})
-
+	}
 
 # =====================================================================
 # 2. HELPER METHOD
 # =====================================================================
 def _parse_csv_to_table(result_text):
-	"""Hàm nội bộ: Làm sạch Markdown và chuyển CSV string thành list python"""
+	"""Làm sạch Markdown và chuyển CSV string thành list python"""
+	if not result_text:
+		return None, u"Không có dữ liệu trả về từ AI."
+	
 	cleaned_text = result_text.strip()
+	
+	# 1. Xử lý Markdown Code Block
 	if '```csv' in cleaned_text:
 		cleaned_text = cleaned_text.split('```csv')[1].split('```')[0].strip()
 	elif '```' in cleaned_text:
 		cleaned_text = cleaned_text.split('```')[1].strip()
 	
-	if cleaned_text == 'NO_TABLE_FOUND':
+	if cleaned_text == 'NO_TABLE_FOUND' or not cleaned_text:
 		return None, u"Không tìm thấy bảng dữ liệu trong ảnh."
 	
 	try:
-		csv_content = cleaned_text.encode('utf-8') if isinstance(cleaned_text,
-																 basestring) else cleaned_text
-		csv_reader = csv.reader(io.BytesIO(csv_content))
-		table_data = [row for row in csv_reader]
+		# 2. Sử dụng StringIO cho Python 3 (Xử lý text trực tiếp)
+		f = io.StringIO(cleaned_text)
+		reader = csv.reader(f, delimiter=',')
 		
-		if table_data:
-			max_cols = max(len(row) for row in table_data)
-			if max_cols > 1:
-				table_data = [row for row in table_data if len(row) > 1]
+		# 3. Chuyển thành list và strip() từng ô dữ liệu
+		table_data = []
+		for row in reader:
+			if any(field.strip() for field in row):  # Chỉ lấy dòng có dữ liệu
+				clean_row = [field.strip() for field in row]
+				table_data.append(clean_row)
+		
+		# 4. Kiểm tra tính hợp lệ của bảng
+		if not table_data:
+			return None, u"Dữ liệu bảng trống."
+		
+		# Lọc bỏ các dòng chỉ có 1 cột nếu bảng có nhiều cột (Tránh dòng rác)
+		max_cols = max(len(row) for row in table_data)
+		if max_cols > 1:
+			table_data = [row for row in table_data if len(row) > 1]
 		
 		return table_data, None
+	
 	except Exception as e:
-		return None, u"Lỗi phân tích cú pháp dữ liệu: " + str(e)
+		return None, u"Lỗi phân tích cú pháp CSV: " + str(e)
 
 
 # =====================================================================

@@ -1,12 +1,12 @@
-{% extends "base.html" %}
+{% extends "img2xl_app/base.html" %}
 {% load static %}
 
 {% block extra_css %}
-	<link rel="stylesheet" href="{% static 'css/settings.css' %}">
-	<link rel="stylesheet" href="{% static 'css/settings/account.css' %}">
-	<link rel="stylesheet" href="{% static 'css/settings/profile.css' %}">
-	<link rel="stylesheet" href="{% static 'css/settings/password.css' %}">
-	<link rel="stylesheet" href="{% static 'css/settings/linkedAccount.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/settings.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/settings/account.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/settings/profile.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/settings/password.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/settings/linkedAccount.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -28,16 +28,16 @@
 		<div class="col-md-9">
 			<div class="tab-content p-4 rounded">
 				<div class="tab-pane active" id="account">
-					{% include "settings/account.html" %}
+					{% include "img2xl_app/settings/account.html" %}
 				</div>
 				<div class="tab-pane" id="profile">
-					{% include "settings/profile.html" %}
+					{% include "img2xl_app/settings/profile.html" %}
 				</div>
 				<div class="tab-pane" id="password">
-					{% include "settings/password.html" %}
+					{% include "img2xl_app/settings/password.html" %}
 				</div>
 				<div class="tab-pane" id="linked">
-					{% include "settings/linkedAccount.html" %}
+					{% include "img2xl_app/settings/linkedAccount.html" %}
 				</div>
 			</div>
 		</div>
@@ -46,8 +46,8 @@
 {% endblock %}
 
 {% block extra_js %}
-	<script src="{% static 'js/settings/account.js' %}"></script>
-	<script src="{% static 'js/settings/profile.js' %}"></script>
-	<script src="{% static 'js/settings/password.js' %}"></script>
-	<script src="{% static 'js/settings/linkedAccount.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/settings/account.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/settings/profile.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/settings/password.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/settings/linkedAccount.js' %}"></script>
 {% endblock %}

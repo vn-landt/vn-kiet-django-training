@@ -1,30 +1,8 @@
-function getCookie(name) {
-    var cookieValue = null;
-    if (document.cookie && document.cookie !== '') {
-        var cookies = document.cookie.split(';');
-        for (var i = 0; i < cookies.length; i++) {
-            var cookie = cookies[i].trim();
-            if (cookie.substring(0, name.length + 1) === (name + '=')) {
-                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
-                break;
-            }
-        }
-    }
-    return cookieValue;
-}
+// -*- coding: utf-8 -*-
+/**
+ * Logic điều khiển giao diện Thùng rác
+ */
 
-// 2. Cấu hình AJAX Header tự động
-var csrftoken = getCookie('csrftoken');
-
-$.ajaxSetup({
-    beforeSend: function(xhr, settings) {
-        // Chỉ gửi token cho các request "không an toàn" (POST, PUT, DELETE)
-        // và không gửi cho các request sang domain khác (crossDomain)
-        if (!/^(GET|HEAD|OPTIONS|TRACE)$/i.test(settings.type) && !this.crossDomain) {
-            xhr.setRequestHeader("X-CSRFToken", csrftoken);
-        }
-    }
-});
 $(document).ready(function() {
     // 1. Xử lý "Chọn tất cả" cho từng tab riêng biệt
     $('.check-all').on('change', function() {
@@ -71,10 +49,11 @@ function restoreSingle(type, id) {
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
-        confirmButtonText: 'Đồng ý'
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy'
     }).then((result) => {
         if (result.isConfirmed) {
-            sendRestoreRequest(type, [id]);
+            executeRestore(type, [id]);
         }
     });
 }
@@ -91,23 +70,26 @@ function handleBatchRestore() {
         ids.push($(this).val());
     });
 
+    if (ids.length === 0) return;
+
     Swal.fire({
         title: 'Khôi phục ' + ids.length + ' mục đã chọn?',
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#28a745',
-        confirmButtonText: 'Khôi phục ngay'
+        confirmButtonText: 'Khôi phục ngay',
+        cancelButtonText: 'Hủy'
     }).then((result) => {
         if (result.isConfirmed) {
-            sendRestoreRequest(type, ids);
+            executeRestore(type, ids);
         }
     });
 }
 
 /**
- * Hàm gửi AJAX chung đến restore_item_api
+ * Hàm điều hướng thực thi khôi phục và hiển thị kết quả
  */
-function sendRestoreRequest(type, ids) {
+function executeRestore(type, ids) {
     // Hiển thị loading
     Swal.fire({
         title: 'Đang xử lý...',
@@ -115,14 +97,9 @@ function sendRestoreRequest(type, ids) {
         onBeforeOpen: () => { Swal.showLoading(); }
     });
 
-    $.ajax({
-        url: "/trash-bin/api/restore/", // Khớp với name='restore_item_api'
-        method: 'POST',
-        data: {
-            'type': type,
-            'ids[]': ids,
-        },
-        success: function(response) {
+    // Gọi tới service
+    apiRestoreItems(type, ids)
+        .done(function(response) {
             Swal.fire({
                 title: 'Thành công!',
                 text: response.message,
@@ -130,13 +107,12 @@ function sendRestoreRequest(type, ids) {
             }).then(() => {
                 location.reload(); // Load lại trang để cập nhật danh sách
             });
-        },
-        error: function(xhr) {
+        })
+        .fail(function(xhr) {
             var errorMsg = "Đã có lỗi xảy ra.";
             if (xhr.responseJSON && xhr.responseJSON.message) {
                 errorMsg = xhr.responseJSON.message;
             }
             Swal.fire('Thất bại', errorMsg, 'error');
-        }
-    });
+        });
 }

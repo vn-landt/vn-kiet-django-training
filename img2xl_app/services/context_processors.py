@@ -44,12 +44,10 @@ def notification_context(request):
 		# Đếm số lượng chưa đọc cho Badge đỏ
 		unread_count = notifications_qs.filter(is_read=False).count()
 		
-		# Lấy 5 thông báo mới nhất để hiện ở Dropdown chuông
-		latest_notifications = notifications_qs[:5]
 		
 		return {
 			'GLOBAL_NOTIFICATIONS_COUNT': unread_count,
-			'GLOBAL_NOTIFICATIONS_LIST': latest_notifications,
+			'GLOBAL_NOTIFICATIONS_LIST': notifications_qs,
 		}
 	
 	# Trả về mặc định nếu user chưa đăng nhập

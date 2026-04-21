@@ -1,3 +1,3 @@
 # -*- coding: utf-8 -*-
-import RegisterForm
-import UploadFileForm
+from register_form import RegisterForm
+from upload_file_form import UploadFileForm

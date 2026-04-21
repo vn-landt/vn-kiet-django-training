@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "img2xl_app/base.html" %}
 {% load static %}
 
 {% block content %}
@@ -129,5 +129,6 @@
 {% endblock %}
 
 {% block extra_js %}
-	<script src="{% static 'js/trash_bin.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/services/trash_bin_service.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/trash_bin.js' %}"></script>
 {% endblock %}
