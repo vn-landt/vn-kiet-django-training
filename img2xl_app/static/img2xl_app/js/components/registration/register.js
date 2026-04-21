@@ -17,7 +17,7 @@ document.addEventListener('DOMContentLoaded', function () {
 		const email = this.value.trim();
 		if (!email || registrationStates.otpVerified) return;
 		
-		apiCheckEmailUnique(email).then(data => {
+		apiCheckEmailExists(email).then(data => {
 			const emailError = document.getElementById('email-error');
 			const emailSuccess = document.getElementById('email-success');
 			const otpSection = document.getElementById('otp-section');

@@ -1,13 +1,12 @@
-{% extends "base.html" %}
+{% extends "img2xl_app/base.html" %}
 {% load static %}
 
 {% block title %}Table Extractor AI - Trang chủ{% endblock %}
 
 {% block extra_css %}
-	<link rel="stylesheet"
-		  href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
-	<link rel="stylesheet" href="{% static 'css/home.css' %}">
-	<link rel="stylesheet" href="{% static 'css/image_editor.css' %}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
+    <link rel="stylesheet" href="{% static 'img2xl_app/css/home.css' %}">
+    <link rel="stylesheet" href="{% static 'img2xl_app/css/image_editor.css' %}">
 {% endblock %}
 
 {% block content %}
@@ -82,8 +81,7 @@
 							id="item-{{ res.id }}">
 							<a href="{% url 'result_detail' res.id %}"
 								class="text-truncate flex-grow-1">
-								<i class="far fa-file-image mr-2"></i>{{ res.title|truncatechars:15
-								}}
+								<i class="far fa-file-image mr-2"></i>{{ res.title|truncatechars:30 }}
 							</a>
 							<div class="d-flex align-items-center">
 								<span
@@ -152,8 +150,16 @@
 {% endblock %}
 
 {% block extra_js %}
-	<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-	<script src="{% static 'js/image_handler.js' %}"></script>
-	<script src="{% static 'js/home.js' %}"></script>
-	window.isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <script src="{% static 'img2xl_app/js/components/image_handler.js' %}"></script>
+    <script src="{% static 'img2xl_app/js/services/home_service.js' %}"></script>
+    <script src="{% static 'img2xl_app/js/components/home/home.js' %}"></script>
+    <script src="{% static 'img2xl_app/js/components/home/historyManager.js' %}"></script>
+    <script src="{% static 'img2xl_app/js/components/home/filePreviewManager.js' %}"></script>
+    <script src="{% static 'img2xl_app/js/components/home/extractionHandler.js' %}"></script>
+
+    <script>
+        window.isAuthenticated = {{ user.is_authenticated|yesno:"true,false" }};
+    </script>
 {% endblock %}

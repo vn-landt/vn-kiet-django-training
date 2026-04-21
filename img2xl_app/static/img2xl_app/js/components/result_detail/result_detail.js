@@ -42,8 +42,15 @@ function generateAIContent() {
 	const resultDisplay = document.getElementById('ai-result-display');
 	const btn = document.getElementById('btn-ai-gen');
 	
-	if (!promptText) return alert("Vui lòng nhập yêu cầu!");
-	
+	if (!promptText) {
+		return Swal.fire({
+			icon: 'warning',
+			title: 'Thông báo',
+			text: 'Vui lòng nhập yêu cầu!',
+			confirmButtonColor: '#3085d6',
+			confirmButtonText: 'Đồng ý'
+		});
+	}
 	const originalText = btn.innerText;
 	btn.innerText = "...";
 	btn.disabled = true;

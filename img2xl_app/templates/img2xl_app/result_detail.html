@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "img2xl_app/base.html" %}
 {% load static %}
 
 {% block title %}Extraction Result | Dashboard{% endblock %}
@@ -14,9 +14,9 @@
 	<link rel="stylesheet"
 		href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css">
 	
-	<link rel="stylesheet" href="{% static 'css/result_detail.css' %}">
-	<link rel="stylesheet" href="{% static 'css/export_ui.css' %}">
-	<link rel="stylesheet" href="{% static 'css/image_editor.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/result_detail.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/export_ui.css' %}">
+	<link rel="stylesheet" href="{% static 'img2xl_app/css/image_editor.css' %}">
 	
 	<script src="https://bossanova.uk/jspreadsheet/v4/jexcel.js"></script>
 	<script src="https://jsuites.net/v4/jsuites.js"></script>
@@ -30,8 +30,7 @@
 			<h4 class="box-title">File Details</h4>
 			<div class="small">
 				<p class="mb-1 text-truncate" title="{{ result.title }}">
-					<strong>Name:</strong> <a target="_blank" class="filename-link">{{ result.title
-					}}</a>
+					<strong>Name:</strong> <a target="_blank" class="filename-link">{{ result.title }}</a>
 				</p>
 				<p class="mb-1"><strong>Status:</strong> <span class="badge badge-primary">{{ result.status|title }}</span>
 				</p>
@@ -152,8 +151,8 @@
 	</aside>
 </div>
 
-{% include "includes/export_ui.html" %}
-{% include "includes/image_editor.html" with api_url="/extract-only-api/" %}
+{% include "img2xl_app/includes/export_ui.html" %}
+{% include "img2xl_app/includes/image_editor.html" with api_url="/extract-only-api/" %}
 {% endblock %}
 
 {% block extra_js %}
@@ -165,16 +164,12 @@
 	</script>
 	<script src="https://cdn.jsdelivr.net/npm/bootstrap@4.6.2/dist/js/bootstrap.bundle.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
-	<script src="{% static 'js/image_handler.js' %}"></script>
-	<script src="{% static 'js/result_detail.js' %}"></script>
 
-<!--	<script src="{% static 'js/utils.js' %}"></script>-->
+	<script src="{% static 'img2xl_app/js/services/table_service.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/result_detail/spreadsheet_manager.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/result_detail/table_actions.js' %}"></script>
+	<script src="{% static 'img2xl_app/js/components/result_detail/result_detail.js' %}"></script>
 
-<!--	<script src="{% static 'src/app/services/tableApiService.js' %}"></script>-->
-<!--	-->
-<!--	<script src="{% static 'src/app/components/spreadsheetManager.js' %}"></script>-->
-<!--	<script src="{% static 'src/app/components/tableActions.js' %}"></script>-->
-<!--	-->
-<!--	<script src="{% static 'src/app/result_detail.js' %}"></script>-->
+	<script src="{% static 'img2xl_app/js/components/export_ui.js' %}"></script>
 {% endblock %}
 

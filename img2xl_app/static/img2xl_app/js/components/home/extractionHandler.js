@@ -5,8 +5,7 @@
  */
 async function onImageCropped(blob, languagesStr, originalFileName, deleteDuration) {
 	const formData = new FormData();
-	formData.append('file', blob, "processed_image.jpg");
-	formData.append('original_filename', originalFileName || "image_" + Date.now() + ".jpg");
+	formData.append('file', blob, originalFileName || "image_" + Date.now() + ".jpg");
 	formData.append('save_db', 'true');
 	formData.append('languages', languagesStr || 'all');
 	formData.append('deleteDuration', deleteDuration);

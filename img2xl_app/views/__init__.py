@@ -3,7 +3,7 @@
 
 from home import home, delete_result
 
-from result_detail_views import result_detail, update_table_data, generate_ai_content, generate_ai_images
+from result_detail_views import result_detail, update_table_data, generate_ai_content
 from result_detail_table_exports import export, export_to_sheets
 
 from trash_bin import trash_bin_view, restore_item_api
@@ -13,5 +13,7 @@ from settings import settings_view, update_account_settings, update_profile_sett
 
 from auto_cleanup import auto_cleanup_task
 from auth import register, check_email_exists, send_otp, verify_otp_ajax, forgot_password_view, reset_password_final
+
+from generate_images import generate_ai_images
 
 ## Words White because not used no problems

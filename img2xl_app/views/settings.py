@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
-from django.core.checks import messages
+from django.contrib import messages
+from django.http import JsonResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
 
 from img2xl_app.models import Notification
@@ -32,10 +33,23 @@ def update_account_settings(request):
         profile.save()
 
         # 4. Thông báo thành công và reload lại trang
-        messages.success(request, u"Cài đặt tài khoản của bạn đã được cập nhật thành công!")
-        return redirect('settings')  # Hoặc tên URL dẫn đến trang account của bạn
-
-    return redirect('settings')
+        # Thông báo đặt lại mật khẩu thành công
+        if int(auto_delete) == 0:
+            msg = u"Đã đặt thời gian tự động xoá mặc định là: không tự động xoá'{0}' phút!"
+        else:
+            msg = u"Đã đặt thời gian tự động xoá mặc định là: '{0}' phút!".format(int(auto_delete))
+            
+        Notification.objects.create_notification(
+            user=request.user,
+            title=u"Đặt lại thời gian tự động xoá!",
+            message=msg,
+            level='success',
+            linked_to='/settings/'
+        )
+        return_url = request.META.get('HTTP_REFERER', '/')
+        return HttpResponseRedirect(return_url)
+    
+    return HttpResponseRedirect(request.path_info)
 
 
 @login_required
@@ -64,9 +78,11 @@ def update_profile_settings(request):
 
         profile.save()
         messages.success(request, u"Hồ sơ đã được cập nhật thành công!")
-        return redirect('settings')
+        return_url = request.META.get('HTTP_REFERER', '/')
+        return HttpResponseRedirect(return_url)
+    
+    return HttpResponseRedirect(request.path_info)
 
-    return redirect('settings')
 
 @login_required
 def change_password(request):
@@ -102,15 +118,15 @@ def change_password(request):
             title=u"Đặt lại mật khẩu!",
             message=u"Đặt lại mật khẩu thành công!",
             level='success',
-            linked_to=None
+            linked_to='/settings/password/'
         )
 
         # 6. CẬP NHẬT SESSION (Rất quan trọng!)
         # Sau khi đổi mật khẩu, Django sẽ làm mới session hash.
         # Nếu không có dòng này, người dùng sẽ bị văng ra trang Login ngay lập tức.
         update_session_auth_hash(request, user)
-
-        messages.success(request, u"Chúc mừng! Mật khẩu đã được thay đổi thành công.")
-        return redirect('settings')
-
-    return redirect('settings')
+        
+        return_url = request.META.get('HTTP_REFERER', '/')
+        return HttpResponseRedirect(return_url)
+    
+    return HttpResponseRedirect(request.path_info)

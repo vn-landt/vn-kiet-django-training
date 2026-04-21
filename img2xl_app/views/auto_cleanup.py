@@ -1,6 +1,7 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
-from time import timezone
+
+from django.utils import timezone
 
 from django.db.models import Count
 from django.http import HttpResponse

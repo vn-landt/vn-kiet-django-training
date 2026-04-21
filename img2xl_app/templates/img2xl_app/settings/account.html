@@ -19,23 +19,23 @@
 			<label>Automatically delete uploads</label>
 			<select name="auto_delete_duration" class="form-control custom-select">
 				<option value="0"
-					{% if user.profile.auto_delete_duration== 0 %}selected{% endif %}>
+					{% if user.profile.auto_delete_duration == 0 %}selected{% endif %}>
 						Don't autodelete
 				</option>
 				<option value="30"
-					{% if user.profile.auto_delete_duration== 30 %}selected{% endif %}>
+					{% if user.profile.auto_delete_duration == 30 %}selected{% endif %}>
 						After 30 minutes
 				</option>
 				<option value="60"
-					{% if user.profile.auto_delete_duration== 60 %}selected{% endif %}>
+					{% if user.profile.auto_delete_duration == 60 %}selected{% endif %}>
 						After 1 hour
 				</option>
 				<option value="1440"
-					{% if user.profile.auto_delete_duration== 1440 %}selected{% endif %}>
+					{% if user.profile.auto_delete_duration == 1440 %}selected{% endif %}>
 						After 1 day
 				</option>
 				<option value="10080"
-					{% if user.profile.auto_delete_duration== 10080 %}selected{% endif %}>
+					{% if user.profile.auto_delete_duration == 10080 %}selected{% endif %}>
 						After 1 week
 				</option>
 			</select>

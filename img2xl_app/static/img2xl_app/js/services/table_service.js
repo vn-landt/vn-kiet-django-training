@@ -21,10 +21,9 @@ function apiSaveTableData(currentData, isDraft) {
  * Gửi vùng ảnh đã crop để AI trích xuất dữ liệu
  */
 function apiExtractImagePart(formData) {
-	const csrftoken = getCookie('csrftoken');
 	return fetch("/extract-only-api/", {
 		method: 'POST',
-		headers: {'X-CSRFToken': csrftoken},
+		headers: {'X-CSRFToken': getCookie('csrftoken')},
 		body: formData
 	}).then(res => res.json());
 }

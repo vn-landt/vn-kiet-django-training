@@ -90,7 +90,7 @@ window.cropBatchItem = function (index) {
 	window.currentBatchCropIndex = index;
 	const item = window.batchFiles[index];
 	window.originalFileName = item.originalName;
-	initEditor({files: [item.file]}); // Gọi từ image_handler.js
+	initEditor({files: [item.file]});
 };
 
 window.clearAllFiles = function () {

@@ -102,11 +102,27 @@ function handleRangeAction(actionType) {
 	const endInput = document.getElementById('range-end').value;
 	const char = document.getElementById('special-char').value;
 	
-	if (!startInput || !endInput || !char) return alert("Vui lòng nhập đủ thông tin!");
+	if (!startInput || !endInput || !char) {
+		return Swal.fire({
+			icon: 'warning',
+			title: 'Thông báo',
+			text: 'Vui lòng nhập đẩy đủ thông tin!',
+			confirmButtonColor: '#3085d6',
+			confirmButtonText: 'Đồng ý'
+		});
+	}
 	
 	const start = parseCoords(startInput);
 	const end = parseCoords(endInput);
-	if (!start || !end) return alert("Phạm vi lỗi!");
+	if (!start || !end) {
+		return Swal.fire({
+			icon: 'warning',
+			title: 'Thông báo',
+			text: 'Vui lòng nhập phạm vi hợp lí!',
+			confirmButtonColor: '#3085d6',
+			confirmButtonText: 'Đồng ý'
+		});
+	}
 	
 	let tempData = window.mySpreadsheet.getData();
 	const rStart = Math.max(0, start.row), rEnd = Math.min(end.row, tempData.length - 1);

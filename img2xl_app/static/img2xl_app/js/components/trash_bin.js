@@ -1,67 +1,118 @@
 // -*- coding: utf-8 -*-
+/**
+ * Logic điều khiển giao diện Thùng rác
+ */
+
 $(document).ready(function() {
-	// Lắng nghe sự kiện UI
-	$('.check-all').on('change', function() {
-		var targetType = $(this).data('target');
-		var isChecked = $(this).is(':checked');
-		$('.item-' + targetType).prop('checked', isChecked);
-		updateBatchUI();
-	});
+    // 1. Xử lý "Chọn tất cả" cho từng tab riêng biệt
+    $('.check-all').on('change', function() {
+        var targetType = $(this).data('target');
+        var isChecked = $(this).is(':checked');
+        $('.item-' + targetType).prop('checked', isChecked);
+        updateBatchUI();
+    });
 
-	$(document).on('change', '.check-item', updateBatchUI);
+    // 2. Cập nhật UI khi chọn từng item lẻ
+    $(document).on('change', '.check-item', function() {
+        updateBatchUI();
+    });
 
-	$('a[data-toggle="tab"]').on('shown.bs.tab', function() {
-		$('.check-item, .check-all').prop('checked', false);
-		updateBatchUI();
-	});
+    // 3. Reset checkbox khi chuyển Tab (để tránh khôi phục nhầm loại)
+    $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+        $('.check-item, .check-all').prop('checked', false);
+        updateBatchUI();
+    });
 });
 
-function updateBatchUI() {
-	var count = $('.check-item:checked').length;
-	if (count > 0) {
-		$('#btn-restore-batch').fadeIn();
-		$('#selected-count').text(count);
-	} else {
-		$('#btn-restore-batch').fadeOut();
-	}
-}
-
 /**
- * Điều khiển logic UI khi khôi phục
+ * Cập nhật hiển thị của nút Khôi phục hàng loạt
  */
-function handleRestore(type, ids, titleText) {
-	Swal.fire({
-		title: titleText,
-		icon: 'question',
-		showCancelButton: true,
-		confirmButtonColor: '#28a745',
-		confirmButtonText: 'Đồng ý'
-	}).then((result) => {
-		if (result.isConfirmed) {
-			executeRestore(type, ids);
-		}
-	});
+function updateBatchUI() {
+    var selectedItems = $('.check-item:checked');
+    var count = selectedItems.length;
+
+    if (count > 0) {
+        $('#btn-restore-batch').fadeIn();
+        $('#selected-count').text(count);
+    } else {
+        $('#btn-restore-batch').fadeOut();
+    }
 }
 
 /**
- * Cầu nối giữa UI và Service
+ * Khôi phục 1 mục duy nhất
+ */
+function restoreSingle(type, id) {
+    Swal.fire({
+        title: 'Xác nhận khôi phục?',
+        text: type === 'table' ? "Bảng và các ảnh liên quan sẽ quay lại danh sách chính." : "Ảnh sẽ được khôi phục.",
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        confirmButtonText: 'Đồng ý',
+        cancelButtonText: 'Hủy'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            executeRestore(type, [id]);
+        }
+    });
+}
+
+/**
+ * Khôi phục nhiều mục đã chọn thông qua checkbox
+ */
+function handleBatchRestore() {
+    var activeTab = $('.nav-tabs .nav-link.active').attr('href'); // #tables hoặc #images
+    var type = activeTab === '#tables' ? 'table' : 'image';
+
+    var ids = [];
+    $('.item-' + type + ':checked').each(function() {
+        ids.push($(this).val());
+    });
+
+    if (ids.length === 0) return;
+
+    Swal.fire({
+        title: 'Khôi phục ' + ids.length + ' mục đã chọn?',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonColor: '#28a745',
+        confirmButtonText: 'Khôi phục ngay',
+        cancelButtonText: 'Hủy'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            executeRestore(type, ids);
+        }
+    });
+}
+
+/**
+ * Hàm điều hướng thực thi khôi phục và hiển thị kết quả
  */
 function executeRestore(type, ids) {
-	Swal.fire({
-		title: 'Đang xử lý...',
-		allowOutsideClick: false,
-		onBeforeOpen: () => { Swal.showLoading(); }
-	});
+    // Hiển thị loading
+    Swal.fire({
+        title: 'Đang xử lý...',
+        allowOutsideClick: false,
+        onBeforeOpen: () => { Swal.showLoading(); }
+    });
 
-	// GỌI SERVICE
-	restoreItemAPI(type, ids)
-		.done(function(response) {
-			Swal.fire('Thành công!', response.message, 'success')
-				.then(() => { location.reload(); });
-		})
-		.fail(function(xhr) {
-			var msg = (xhr.responseJSON && xhr.responseJSON.message)
-				? xhr.responseJSON.message : "Lỗi hệ thống";
-			Swal.fire('Thất bại', msg, 'error');
-		});
+    // Gọi tới service
+    apiRestoreItems(type, ids)
+        .done(function(response) {
+            Swal.fire({
+                title: 'Thành công!',
+                text: response.message,
+                icon: 'success'
+            }).then(() => {
+                location.reload(); // Load lại trang để cập nhật danh sách
+            });
+        })
+        .fail(function(xhr) {
+            var errorMsg = "Đã có lỗi xảy ra.";
+            if (xhr.responseJSON && xhr.responseJSON.message) {
+                errorMsg = xhr.responseJSON.message;
+            }
+            Swal.fire('Thất bại', errorMsg, 'error');
+        });
 }

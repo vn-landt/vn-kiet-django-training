@@ -2,14 +2,13 @@
 /**
  * Service xử lý các yêu cầu liên quan đến Thùng rác
  */
-function restoreItemAPI(type, ids) {
-	// Trả về một Promise (deferred object) để Component xử lý kết quả
+function apiRestoreItems(type, ids) {
 	return $.ajax({
-		url: "/trash-bin/api/restore/",
+		url: "/trash-bin/api/restore/", // Khớp với name='restore_item_api' trong urls.py
 		method: 'POST',
 		data: {
 			'type': type,
-			'ids[]': ids
+			'ids[]': ids,
 		}
 	});
 }

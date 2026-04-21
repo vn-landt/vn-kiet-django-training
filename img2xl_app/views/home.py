@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 from datetime import timedelta
-from time import timezone
+
+from django.utils import timezone
 
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render, get_object_or_404, redirect
 from django.views.decorators.http import require_POST
 
-from img2xl_app.forms import UploadFileForm
+from ..forms import UploadFileForm
 from img2xl_app.models import ExtractedResult, Notification
 
 
