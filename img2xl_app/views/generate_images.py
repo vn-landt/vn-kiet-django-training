@@ -24,7 +24,8 @@ def generate_ai_images(request):
 	
 	# Xử lý thời gian xóa tự động
 	try:
-		duration = int(request.POST.get('deleteDuration', 0))
+		raw_duration = request.POST.get('deleteDuration', '0').strip()
+		duration = int(raw_duration) if raw_duration.isdigit() else 0
 		expiry_date = timezone.now() + timedelta(minutes=duration) if duration > 0 else None
 	except:
 		expiry_date = None
