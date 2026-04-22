@@ -54,7 +54,10 @@ async function startBatchProcessing() {
 	const formData = new FormData();
 	
 	window.batchFiles.forEach((item) => {
-		formData.append('files', item.file);
+	   // Tham số 1: Key (files)
+	   // Tham số 2: Dữ liệu ảnh (Blob hoặc File)
+	   // Tham số 3: Tên file (Lấy từ originalName chúng ta đã lưu)
+	   formData.append('files', item.file, item.originalName);
 	});
 	formData.append('languages', languagesStr);
 	formData.append('deleteDuration', deleteDuration);

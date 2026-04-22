@@ -1,3 +1,4 @@
+@charset "UTF-8";
 body {
   font-family: "Segoe UI", Arial, sans-serif;
   background: linear-gradient(135deg, #8e44ad 0%, #3498db 100%);
@@ -282,6 +283,38 @@ button:disabled {
   color: #3498db;
   text-decoration: none;
   font-weight: 600;
+}
+
+.password-field-container {
+  position: relative;
+  display: block;
+}
+
+/* Icon con mắt */
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #666;
+  z-index: 10;
+  transition: color 0.3s;
+}
+.toggle-password :hover {
+  color: #333;
+}
+
+/* Đảm bảo input có đủ khoảng trống bên phải để không bị chữ đè lên icon */
+.form-content input[type=password],
+.form-content input[type=text] {
+  padding-right: 40px !important;
+}
+
+/* Ẩn nút hiện mật khẩu mặc định trên Edge */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
 }
 
 /*# sourceMappingURL=register.css.map */

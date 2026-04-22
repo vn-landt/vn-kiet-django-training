@@ -6,53 +6,76 @@
 		</div>
 		
 		<div class="ice-modal-body">
-			<div class="ice-img-container mb-4">
-				<img id="imageToEdit" style="max-width: 100%;">
-			</div>
-			
-			<div id="languageSection" class="config-section mb-3">
-				<label class="section-label text-primary"><i class="fas fa-language mr-1"></i>
-					<strong>Ngôn ngữ trích xuất:</strong></label>
-				<div class="lang-grid mt-2">
-					<label class="lang-item">
-						<input type="checkbox" name="langs" value="vie">
-						<span class="lang-chip">Tiếng Việt</span>
-					</label>
-					<label class="lang-item">
-						<input type="checkbox" name="langs" value="eng">
-						<span class="lang-chip">Tiếng Anh</span>
-					</label>
-					<label class="lang-item">
-						<input type="checkbox" name="langs" value="all" checked>
-						<span class="lang-chip">Tự nhận diện</span>
-					</label>
+			<div class="row">
+				<div class="col-md-7">
+					<div class="ice-img-container" style="min-height: 300px; display: flex; align-items: center; justify-content: center;">
+						<img id="imageToEdit" style="max-width: 100%; display: block;">
+					</div>
+				
+				
+					<div class="ice-editor-toolbar d-flex justify-content-center p-2" style="background-color: rgba(0,0,0,0.05); border-top: 1px solid #dee2e6;">
+						<div class="btn-group" role="group" aria-label="Image manipulations">
+							<button type="button" class="btn btn-sm btn-outline-secondary" onclick="rotateImage(-90)" title="Xoay trái 90 độ">
+								<i class="fas fa-undo"></i>
+							</button>
+							
+							<button type="button" class="btn btn-sm btn-outline-secondary" onclick="flipImageHorizontal()" title="Lật ảnh ngang">
+								<i class="fas fa-arrows-alt-h"></i>
+							</button>
+							
+							<button type="button" class="btn btn-sm btn-outline-secondary" onclick="rotateImage(90)" title="Xoay phải 90 độ">
+								<i class="fas fa-redo"></i>
+							</button>
+						</div>
+					</div>
 				</div>
-				<small class="text-muted d-block mt-1">Không chọn mặc định là Tự nhận diện.</small>
-			</div>
 			
-			<div id="deleteSection" class="config-section">
-				<label class="section-label text-danger"><i class="fas fa-history mr-1"></i>
-					<strong>Tự động xóa ảnh này:</strong></label>
-				<select name="delete_duration" id="deleteDuration"
-						class="form-control custom-select mt-1 shadow-sm">
-					<option value="0" {% if auto_delete_duration == 0 %}selected{% endif %}>Không tự
-						động xóa
-					</option>
-					<option value="30" {% if auto_delete_duration == 30 %}selected{% endif %}>Sau 30
-						phút
-					</option>
-					<option value="60" {% if auto_delete_duration == 60 %}selected{% endif %}>Sau 1
-						giờ
-					</option>
-					<option value="1440" {% if auto_delete_duration == 1440 %}selected{% endif %}>Sau
-						1 ngày
-					</option>
-					<option value="10080" {% if auto_delete_duration == 10080 %}selected{% endif %}>
-						Sau 1 tuần
-					</option>
-				</select>
-				<small class="text-muted d-block mt-1">Gợi ý dựa trên cài đặt tài khoản của
-					bạn.</small>
+				<div class="col-md-5">
+					<div id="languageSection" class="config-section mb-3">
+						<label class="section-label text-primary"><i class="fas fa-language mr-1"></i>
+							<strong>Ngôn ngữ trích xuất:</strong></label>
+						<div class="lang-grid mt-2">
+							<label class="lang-item">
+								<input type="checkbox" name="langs" value="vie">
+								<span class="lang-chip">Tiếng Việt</span>
+							</label>
+							<label class="lang-item">
+								<input type="checkbox" name="langs" value="eng">
+								<span class="lang-chip">Tiếng Anh</span>
+							</label>
+							<label class="lang-item">
+								<input type="checkbox" name="langs" value="all" checked>
+								<span class="lang-chip">Tự nhận diện</span>
+							</label>
+						</div>
+						<small class="text-muted d-block mt-1">Không chọn mặc định là Tự nhận diện.</small>
+					</div>
+					
+					<div id="deleteSection" class="config-section">
+						<label class="section-label text-danger"><i class="fas fa-history mr-1"></i>
+							<strong>Tự động xóa ảnh này:</strong></label>
+						<select name="delete_duration" id="deleteDuration"
+								class="form-control custom-select mt-1 shadow-sm">
+							<option value="0" {% if auto_delete_duration == 0 %}selected{% endif %}>Không tự
+								động xóa
+							</option>
+							<option value="30" {% if auto_delete_duration == 30 %}selected{% endif %}>Sau 30
+								phút
+							</option>
+							<option value="60" {% if auto_delete_duration == 60 %}selected{% endif %}>Sau 1
+								giờ
+							</option>
+							<option value="1440" {% if auto_delete_duration == 1440 %}selected{% endif %}>Sau
+								1 ngày
+							</option>
+							<option value="10080" {% if auto_delete_duration == 10080 %}selected{% endif %}>
+								Sau 1 tuần
+							</option>
+						</select>
+						<small class="text-muted d-block mt-1">Gợi ý dựa trên cài đặt tài khoản của
+							bạn.</small>
+					</div>
+				</div>
 			</div>
 		</div>
 		

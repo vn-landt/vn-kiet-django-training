@@ -10,7 +10,6 @@ document.addEventListener("DOMContentLoaded", function () {
 		picUpload.addEventListener('change', function () {
 			if (this.files && this.files[0]) {
 				window.originalFileName = this.files[0].name;
-				console.log("Đã lưu tên file gốc:", window.originalFileName);
 			}
 		});
 	}

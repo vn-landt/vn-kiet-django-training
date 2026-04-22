@@ -8,6 +8,39 @@ document.addEventListener('DOMContentLoaded', function () {
 	const resendLink = document.getElementById('resend-link');
 	const otpInput = document.getElementById('otp_code_input');
 	
+	const passwordFields = [
+        document.getElementById('id_password1'),
+        document.getElementById('id_password2')
+    ];
+
+    passwordFields.forEach(field => {
+        if (field) {
+            // 1. Bao bọc input bằng một div container để dễ định vị icon
+            const wrapper = document.createElement('div');
+            wrapper.className = 'password-field-container';
+            field.parentNode.insertBefore(wrapper, field);
+            wrapper.appendChild(field);
+
+            // 2. Tạo icon con mắt (FontAwesome)
+            const eyeIcon = document.createElement('i');
+            eyeIcon.className = 'fa fa-eye toggle-password';
+            wrapper.appendChild(eyeIcon);
+
+            // 3. Sự kiện click để ẩn/hiện
+            eyeIcon.addEventListener('click', function() {
+                if (field.type === 'password') {
+                    field.type = 'text';
+                    this.classList.remove('fa-eye');
+                    this.classList.add('fa-eye-slash');
+                } else {
+                    field.type = 'password';
+                    this.classList.remove('fa-eye-slash');
+                    this.classList.add('fa-eye');
+                }
+            });
+        }
+    });
+	
 	// 1. Kiểm tra mật khẩu khi nhập
 	pass1.addEventListener('input', checkPasswordsMatch);
 	pass2.addEventListener('input', checkPasswordsMatch);
@@ -15,14 +48,33 @@ document.addEventListener('DOMContentLoaded', function () {
 	// 2. Kiểm tra Email duy nhất khi rời ô nhập
 	emailInput.addEventListener('blur', function () {
 		const email = this.value.trim();
+		
+		// Lấy các phần tử UI cần thiết
+		const emailError = document.getElementById('email-error');
+		const emailSuccess = document.getElementById('email-success');
+		const otpSection = document.getElementById('otp-section');
+		const reqEmail = document.getElementById('req-email');
+		
+		// Nếu trống hoặc đã xác thực OTP xong thì không làm gì
 		if (!email || registrationStates.otpVerified) return;
 		
+		// --- BƯỚC MỚI: Kiểm tra định dạng Email bằng Regex ---
+		const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+		if (!emailRegex.test(email)) {
+			registrationStates.emailUnique = false;
+			emailError.innerText = "Định dạng email không hợp lệ!";
+			emailError.style.display = "block";
+			emailSuccess.style.display = "none";
+			emailInput.classList.add('is-invalid');
+			otpSection.style.display = "none";
+			updateTooltipStatus(reqEmail, false);
+			validateRegistrationForm();
+			return; // Dừng lại ở đây, không gọi API nữa
+		}
+		// ---------------------------------------------------
+		
+		// Nếu định dạng đúng, tiến hành gọi API kiểm tra tồn tại
 		apiCheckEmailExists(email).then(data => {
-			const emailError = document.getElementById('email-error');
-			const emailSuccess = document.getElementById('email-success');
-			const otpSection = document.getElementById('otp-section');
-			const reqEmail = document.getElementById('req-email');
-			
 			if (data.is_taken) {
 				registrationStates.emailUnique = false;
 				emailError.innerText = "Email này đã được sử dụng!";
@@ -35,7 +87,8 @@ document.addEventListener('DOMContentLoaded', function () {
 				registrationStates.emailUnique = true;
 				emailError.style.display = "none";
 				emailSuccess.style.display = "block";
-				emailInput.classList.replace('is-invalid', 'is-valid');
+				emailInput.classList.remove('is-invalid'); // Xóa class lỗi
+				emailInput.classList.add('is-valid');
 				otpSection.style.display = "block";
 				updateTooltipStatus(reqEmail, true);
 			}

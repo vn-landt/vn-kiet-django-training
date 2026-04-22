@@ -319,3 +319,37 @@ button {
 		font-weight: 600;
 	}
 }
+
+.password-field-container {
+	position: relative;
+	display: block;
+}
+
+/* Icon con mắt */
+.toggle-password {
+	position: absolute;
+	right: 15px;
+	top: 50%;
+	transform: translateY(-50%);
+	cursor: pointer;
+	color: #666;
+	z-index: 10;
+	transition: color 0.3s;
+	
+	:hover {
+		color: #333;
+	}
+}
+
+/* Đảm bảo input có đủ khoảng trống bên phải để không bị chữ đè lên icon */
+.form-content input[type="password"],
+.form-content input[type="text"] {
+	padding-right: 40px !important;
+}
+
+/* Ẩn nút hiện mật khẩu mặc định trên Edge */
+input::-ms-reveal,
+input::-ms-clear {
+	display: none;
+}
+

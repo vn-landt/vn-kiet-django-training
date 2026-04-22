@@ -13,10 +13,11 @@
 
 .ice-modal-content {
   background-color: #fff;
-  margin: 2% auto;
+  margin: 6% auto;
   padding: 0;
-  width: 90%;
-  max-width: 900px;
+  width: 80%;
+  max-width: 1000px;
+  max-height: 800px;
   border-radius: 12px;
   overflow: hidden;
 }
