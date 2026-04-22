@@ -1,292 +1,287 @@
-/* --- Thiết lập chung cho nội dung --- */
 body {
-    background-color: #f0f2f5;
-    color: #1c1e21;
-    /* Lưu ý: padding-top được quản lý trong header.css để tránh đè Navbar */
+  background-color: #f0f2f5;
+  color: #1c1e21;
 }
 
 .main-container {
-    max-width: 1400px;
-    margin: 20px auto 40px auto;
-    padding: 0 20px;
+  max-width: 1400px;
+  margin: 20px auto 40px auto;
+  padding: 0 20px;
 }
 
 .workspace {
-    display: flex;
-    gap: 25px;
-    align-items: flex-start;
+  display: flex;
+  gap: 25px;
+  align-items: flex-start;
 }
 
 .control-panel {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-width: 320px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  min-width: 320px;
 }
 
 .preview-panel {
-    flex: 2;
-    background: #ffffff;
-    border-radius: 15px;
-    padding: 25px;
-    min-height: 650px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid #e0e0e0;
+  flex: 2;
+  background: #ffffff;
+  border-radius: 15px;
+  padding: 25px;
+  min-height: 650px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #e0e0e0;
 }
 
-/* --- Card & Typography --- */
 .card {
-    padding: 20px;
-    border-radius: 15px;
-    background: #fff;
-}
-.section-title {
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: #4a5568;
-    margin-bottom: 15px;
-    border-bottom: 2px solid #f8f9fa;
-    padding-bottom: 8px;
+  padding: 20px;
+  border-radius: 15px;
+  background: #fff;
 }
 
-/* --- Buttons --- */
-.btn-select {
-    padding: 12px;
-    font-weight: 700;
-    border: 2px dashed #007bff;
-    border-radius: 10px;
-    background: #f0f7ff;
-    color: #007bff;
-    transition: 0.2s;
+.section-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #4a5568;
+  margin-bottom: 15px;
+  border-bottom: 2px solid #f8f9fa;
+  padding-bottom: 8px;
 }
-.btn-select:hover { background: #007bff; color: #fff; }
+
+.btn-select {
+  padding: 12px;
+  font-weight: 700;
+  border: 2px dashed #007bff;
+  border-radius: 10px;
+  background: #f0f7ff;
+  color: #007bff;
+  transition: 0.2s;
+}
+.btn-select:hover {
+  background: #007bff;
+  color: #fff;
+}
 
 .action-footer {
-    display: flex;
-    justify-content: center; /* Căn giữa theo chiều ngang */
-    align-items: center;     /* Căn giữa theo chiều dọc (nếu cần) */
-    padding: 20px 0;         /* Tạo khoảng cách trên dưới */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 20px 0;
 }
 
 .btn-extract {
-    padding: 12px 40px;
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: white;
-    background: linear-gradient(135deg, #28a745, #218838);
-    border: none;
-    border-radius: 50px;
-    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
-    cursor: pointer;
+  padding: 12px 40px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: white;
+  background: linear-gradient(135deg, #28a745, #218838);
+  border: none;
+  border-radius: 50px;
+  box-shadow: 0 4px 12px rgba(40, 167, 69, 0.2);
+  cursor: pointer;
 }
 
-/* --- History List --- */
 .history-item {
-    transition: background 0.2s;
-    padding: 8px 10px;
-    border-radius: 6px;
+  transition: background 0.2s;
+  padding: 8px 10px;
+  border-radius: 6px;
+  padding: 10px;
+  border-bottom: 1px solid #eee;
+  min-height: 30px;
 }
-
 .history-item:hover {
-    background-color: #f8f9fa;
+  background-color: #f8f9fa;
+}
+.history-item:hover .delete-history-btn {
+  opacity: 1;
+}
+.history-item a {
+  color: #4a5568;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.history-item:last-child {
+  border-bottom: none;
 }
 
-.history-item a { color: #4a5568; text-decoration: none; font-size: 0.9rem; }
 .status-tag {
-    font-size: 0.7rem;
-    padding: 2px 8px;
-    border-radius: 12px;
-    font-weight: bold;
+  font-size: 0.7rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
 }
-.status-tag.success { background: #c6f6d5; color: #2f855a; }
-.status-tag.failed { background: #fed7d7; color: #9b2c2c; }
+.status-tag.success {
+  background: #c6f6d5;
+  color: #2f855a;
+}
+.status-tag.failed {
+  background: #fed7d7;
+  color: #9b2c2c;
+}
 
 .delete-history-btn {
-    opacity: 0.5;
-    transition: opacity 0.2s, transform 0.2s;
+  opacity: 0.5;
+  transition: opacity 0.2s, transform 0.2s;
 }
-
-.history-item:hover .delete-history-btn {
-    opacity: 1;
-}
-
 .delete-history-btn:hover {
-    transform: scale(1.2);
-    color: #dc3545 !important;
+  transform: scale(1.2);
+  color: #dc3545 !important;
 }
 
-/* --- Image Preview --- */
 .image-wrapper {
-    width: 100%;
-    background: #f8fafc;
-    border-radius: 10px;
-    overflow: hidden;
-    display: flex;
-    justify-content: center;
+  width: 100%;
+  background: #f8fafc;
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  justify-content: center;
 }
-#imagePreview { max-width: 100%; max-height: 500px; }
 
-/* Responsive */
+#imagePreview {
+  max-width: 100%;
+  max-height: 500px;
+}
+
+.workspace {
+  display: flex;
+}
 @media (max-width: 992px) {
-    .workspace { flex-direction: column; }
-    .control-panel, .preview-panel { width: 100%; }
+  .workspace {
+    flex-direction: column;
+  }
 }
 
-/* Khu vực cuộn danh sách ảnh */
+@media (max-width: 992px) {
+  .control-panel, .preview-panel {
+    width: 100%;
+  }
+}
+
 .batch-scroll-area {
-    max-height: 350px;
-    overflow-y: auto;
-    padding-right: 5px;
+  max-height: 350px;
+  overflow-y: auto;
+  padding-right: 5px;
 }
 
-/* Tùy chỉnh thanh cuộn (scrollbar) cho hiện đại */
 .batch-scroll-area::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
 .batch-scroll-area::-webkit-scrollbar-thumb {
-    background-color: #dee2e6;
-    border-radius: 10px;
+  background-color: #dee2e6;
+  border-radius: 10px;
 }
 
-/* Style cho các chip ngôn ngữ (nếu bạn chưa có) */
 .lang-grid {
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
 }
-.lang-item input { display: none; }
-.lang-chip {
-    padding: 6px 15px;
-    border: 1px solid #ddd;
-    border-radius: 20px;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: #f8f9fa;
+
+.lang-item input {
+  display: none;
 }
 .lang-item input:checked + .lang-chip {
-    background: #007bff;
-    color: white;
-    border-color: #007bff;
+  background: #007bff;
+  color: white;
+  border-color: #007bff;
 }
 
-/* Section label */
+.lang-chip {
+  padding: 6px 15px;
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  cursor: pointer;
+  transition: all 0.2s;
+  background: #f8f9fa;
+}
+
 .section-label {
-    display: block;
-    font-size: 0.9rem;
-    color: #495057;
+  display: block;
+  font-size: 0.9rem;
+  color: #495057;
 }
 
 .history-list {
-    /* Thiết lập chiều cao tối đa (thường 1 item khoảng 45-50px) */
-    /* 250px là con số vừa đủ cho khoảng 5 items */
-    max-height: 150px;
-
-    /* Hiện thanh trượt dọc nếu vượt quá chiều cao */
-    overflow-y: auto;
-
-    /* Ẩn thanh trượt ngang nếu không cần thiết */
-    overflow-x: hidden;
-
-    /* Thêm một chút padding để thanh cuộn không đè lên nút xóa */
-    padding-right: 5px;
+  max-height: 150px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 5px;
 }
-
-/* Tùy chỉnh thanh cuộn cho đẹp và gọn hơn (dành cho Chrome, Safari, Edge) */
 .history-list::-webkit-scrollbar {
-    width: 6px;
+  width: 6px;
 }
-
 .history-list::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 10px;
+  background: #f1f1f1;
+  border-radius: 10px;
 }
-
 .history-list::-webkit-scrollbar-thumb {
-    background: #ccc;
-    border-radius: 10px;
+  background: #ccc;
+  border-radius: 10px;
 }
-
 .history-list::-webkit-scrollbar-thumb:hover {
-    background: #b3b3b3;
+  background: #b3b3b3;
 }
 
-.history-item {
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-        min-height: 30px; /* Đảm bảo chiều cao tối thiểu cho mỗi dòng */
-}
-
-.history-item:last-child {
-    border-bottom: none;
-}
-
-    /* Trạng thái đóng băng */
 .config-frozen {
-    opacity: 0.5; /* Làm mờ */
-    pointer-events: none; /* Ngăn click, chọn, thay đổi */
-    user-select: none; /* Ngăn bôi đen văn bản */
-    filter: grayscale(0.8); /* (Tùy chọn) Làm bạc màu để trông giống bị disable */
+  opacity: 0.5;
+  pointer-events: none;
+  user-select: none;
+  filter: grayscale(0.8);
 }
 
-/* Container của mỗi item ảnh */
 .batch-item-wrapper {
-    position: relative;
-    width: 100%;
-    margin-bottom: 15px;
-    border-radius: 8px;
-    overflow: hidden;
-    border: 2px solid #eee;
-    background: #fff;
-    transition: all 0.3s ease;
+  position: relative;
+  width: 100%;
+  margin-bottom: 15px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px solid #eee;
+  background: #fff;
+  transition: all 0.3s ease;
 }
-
 .batch-item-wrapper:hover {
-    border-color: #007bff;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  border-color: #007bff;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
-
-/* Ảnh preview to hơn */
-.batch-img-large {
-    width: 100%;
-    height: 180px; /* Tăng chiều cao ảnh lên */
-    object-fit: contain; /* Đảm bảo thấy hết nội dung ảnh */
-    background: #fdfdfd;
-}
-
-/* Overlay chứa các nút bấm nằm trên ảnh */
-.batch-actions-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    background: rgba(0, 0, 0, 0.2); /* Làm tối nhẹ ảnh để nổi nút */
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    gap: 10px;
-    opacity: 0; /* Mặc định ẩn nút */
-    transition: opacity 0.3s ease;
-}
-
-/* Hiện nút khi di chuột vào ảnh */
 .batch-item-wrapper:hover .batch-actions-overlay {
-    opacity: 1;
+  opacity: 1;
 }
 
-/* Tên file nằm dưới đáy ảnh */
-.batch-file-name {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 5px 10px;
-    font-size: 12px;
-    font-weight: bold;
-    text-align: center;
+.batch-img-large {
+  width: 100%;
+  height: 180px;
+  object-fit: contain;
+  background: #fdfdfd;
 }
+
+.batch-actions-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.2);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.batch-file-name {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+}
+
+/*# sourceMappingURL=home.css.map */

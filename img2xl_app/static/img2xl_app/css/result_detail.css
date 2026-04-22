@@ -1,159 +1,204 @@
-/* --- 1. DASHBOARD LAYOUT --- */
+@charset "UTF-8";
 body {
-    background-color: #f4f7f9;
-    padding-top: 75px; /* Để trống cho header.css */
-    overflow-x: hidden;
+  background-color: #f4f7f9;
+  padding-top: 75px;
+  overflow-x: hidden;
 }
 
 .dashboard-wrapper {
-    display: flex;
-    max-width: 100%; /* Trải rộng màn hình */
-    max-height: 100%;
-    margin: 0 auto;
-    padding: 10px 15px;
-    gap: 12px; /* Giảm khoảng cách giữa các cột để sát nhau hơn */
-    align-items: flex-start;
+  display: flex;
+  max-width: 100%;
+  max-height: 100%;
+  margin: 0 auto;
+  padding: 10px 15px;
+  gap: 12px;
+  align-items: flex-start;
 }
 
-/* Sidebar Trái */
 .side-panel {
-    flex: 0 0 250px; /* Cố định độ rộng 2 sidebars */
-    position: sticky;
-    top: 85px;
+  flex: 0 0 250px;
+  position: sticky;
+  top: 85px;
 }
 
-/* Nút trong sidebar cần rộng ra */
 .side-panel .btn-tool-blue,
 .side-panel .btn-tool-orange,
 .side-panel .btn-tool-red {
-    display: block;
-    width: 100%;
-    margin-bottom: 2px;
-    text-align: center;
+  display: block;
+  width: 100%;
+  margin-bottom: 2px;
+  text-align: center;
 }
 
-/* Nội dung Chính Phải */
 .main-workspace {
-    flex: 1; /* Tự động co giãn chiếm phần còn lại */
-    min-width: 0;
+  flex: 1;
+  min-width: 0;
 }
 
-/* --- 2. COMPONENTS: INFO BOXES (Sidebar) --- */
 .info-box {
-    padding: 15px;
-    border-radius: 10px;
-    background: #fff;
-    border: 1px solid #e0e6ed;
+  padding: 15px;
+  border-radius: 10px;
+  background: #fff;
+  border: 1px solid #e0e6ed;
 }
 
 .box-title {
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    color: #95a5a6;
-    margin-bottom: 12px;
-    border-bottom: 1px solid #f8f9fa;
-    padding-bottom: 5px;
-    letter-spacing: 0.5px;
+  font-size: 11px;
+  font-weight: 800;
+  text-transform: uppercase;
+  color: #95a5a6;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #f8f9fa;
+  padding-bottom: 5px;
+  letter-spacing: 0.5px;
 }
 
-.left-side { border-left: 5px solid #3498db; }
-.right-side { border-left: 5px solid #2ecc71; }
-.ai-bg { background-color: #f0fff4; border-left: 5px solid #27ae60; }
+.left-side {
+  border-left: 5px solid #3498db;
+}
+
+.right-side {
+  border-left: 5px solid #2ecc71;
+}
+
+.ai-bg {
+  background-color: #f0fff4;
+  border-left: 5px solid #27ae60;
+}
 
 .history-scroll {
-    max-height: 120px;
-    overflow-y: auto;
+  max-height: 120px;
+  overflow-y: auto;
 }
 
 .history-item {
-    font-size: 12px;
-    padding: 5px 0;
-    border-bottom: 1px dotted #eee;
+  font-size: 12px;
+  padding: 5px 0;
+  border-bottom: 1px dotted #eee;
 }
-.history-item.active a { color: #e74c3c; font-weight: bold; }
-.history-item a { color: #555; text-decoration: none; }
+.history-item.active a {
+  color: #e74c3c;
+  font-weight: bold;
+}
+.history-item a {
+  color: #555;
+  text-decoration: none;
+}
 
-/* --- 3. TABLE CARD (Main Area) --- */
 .table-card {
-    background: #fff;
-    padding: 20px;
-    border-radius: 12px;
-    border: 1px solid #e0e6ed;
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  border: 1px solid #e0e6ed;
 }
 
 .table-header-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 
-/* Khu vực cuộn của Jspreadsheet */
 #table-content-area {
-    background: #fafafa;
-    border: 1px solid #eee;
-    width: 100%;
-    max-height: 650px;        /* giữ nguyên */
-    height: 650px;            /* ← thêm dòng này để cố định chiều cao */
-    overflow-y: auto;         /* ← quan trọng nhất */
-    overflow-x: auto;         /* cuộn ngang nếu bảng rộng */
-    box-sizing: border-box;
+  background: #fafafa;
+  border: 1px solid #eee;
+  width: 100%;
+  max-height: 650px;
+  height: 650px;
+  overflow-y: auto;
+  overflow-x: auto;
+  box-sizing: border-box;
 }
 
-/* Thanh công cụ trích xuất ngang */
 .range-bg {
-    background: #f8faff;
-    border-left: 5px solid #d1d9ff !important;
+  background: #f8faff;
+  border-left: 5px solid #d1d9ff !important;
 }
-
 .range-bg .form-control-sm {
-    font-size: 11px;
+  font-size: 11px;
 }
 
-/* --- 4. BUTTONS & UTILS --- */
 .btn-home {
-    background: #fff;
-    border: 1px solid #ccc;
-    border-radius: 6px;
-    color: #333;
-    text-decoration: none;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  color: #333;
+  text-decoration: none;
 }
 
-.btn-purple { background: #673ab7; color: white; border: none; border-radius: 4px; }
-.btn-secondary { background: #607d8b; color: white; border: none; border-radius: 4px; }
+.btn-purple {
+  background: #673ab7;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
 
-/* Các nút trích xuất nhanh */
-.btn-tool-blue { background: #3498db; color: white; border: none; padding: 5px 12px; border-radius: 4px; font-size: 12px; }
-.btn-tool-orange { background: #e67e22; color: white; border: none; padding: 5px 12px; border-radius: 4px; font-size: 12px; }
-.btn-tool-red { background: #e74c3c; color: white; border: none; padding: 5px 12px; border-radius: 4px; font-size: 12px; }
+.btn-secondary {
+  background: #607d8b;
+  color: white;
+  border: none;
+  border-radius: 4px;
+}
+
+.btn-tool-blue {
+  background: #3498db;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.btn-tool-orange {
+  background: #e67e22;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.btn-tool-red {
+  background: #e74c3c;
+  color: white;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+
+.right-tools-group .btn, .right-tools-group .btn-purple, .right-tools-group .btn-secondary {
+  white-space: nowrap;
+}
+
+.right-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.input-item {
+  padding: 0 !important;
+  margin-bottom: 0;
+}
+
+#autosave-status {
+  margin-top: 2px;
+  font-size: 0.75rem;
+}
 
 /* Responsive */
 @media (max-width: 1200px) {
-    .dashboard-wrapper { flex-wrap: wrap; }
-    .side-left, .side-right { flex: 0 0 48%; }
-    .main-workspace { flex: 0 0 100%; order: -1; } /* Đưa bảng lên đầu trên mobile */
+  .dashboard-wrapper {
+    flex-wrap: wrap;
+  }
+  .side-left, .side-right {
+    flex: 0 0 48%;
+  }
+  .main-workspace {
+    flex: 0 0 100%;
+    order: -1;
+  }
+  /* Đưa bảng lên đầu trên mobile */
 }
 
-/* Các tùy chỉnh nhỏ cho nút bên phải Header Table */
-.right-tools-group .btn, .right-tools-group .btn-purple, .right-tools-group .btn-secondary {
-    white-space: nowrap;
-}
-
-/* Group 3 nút bên phải */
-.right-tools-group {
-    display: flex;
-    align-items: center; /* Căn các nút thẳng hàng ngang */
-    gap: 5px; /* Khoảng cách giữa các nút */
-}
-
-/* Loại bỏ padding dư thừa ở các div bọc ngoài nút nếu có */
-.input-item {
-    padding: 0 !important;
-    margin-bottom: 0;
-}
-
-/* Chỉnh lại một chút cho Draft đẹp hơn */
-#autosave-status {
-    margin-top: 2px;
-    font-size: 0.75rem;
-}
+/*# sourceMappingURL=result_detail.css.map */

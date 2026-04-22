@@ -1,29 +1,27 @@
-/* Tùy chỉnh tab cho chuyên nghiệp */
 .nav-tabs .nav-link {
-    border: none;
-    color: #6c757d;
-    padding: 12px 20px;
+  border: none;
+  color: #6c757d;
+  padding: 12px 20px;
 }
 .nav-tabs .nav-link.active {
-    color: #28a745;
-    border-bottom: 3px solid #28a745;
-    background: transparent;
-    font-weight: bold;
+  color: #28a745;
+  border-bottom: 3px solid #28a745;
+  background: transparent;
+  font-weight: bold;
 }
 
-/* Hiệu ứng dòng khi hover */
 .table-hover tbody tr:hover {
-    background-color: #f8fff9;
+  background-color: #f8fff9;
 }
 
-/* Nút khôi phục hàng loạt nổi bật */
 #btn-restore-batch {
-    box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);
-    transition: all 0.3s ease;
+  box-shadow: 0 4px 6px rgba(40, 167, 69, 0.2);
+  transition: all 0.3s ease;
 }
 
-/* Thumbnail ảnh nhỏ gọn */
 .img-thumbnail {
-    object-fit: cover;
-    border-radius: 4px;
+  object-fit: cover;
+  border-radius: 4px;
 }
+
+/*# sourceMappingURL=trash_bin.css.map */

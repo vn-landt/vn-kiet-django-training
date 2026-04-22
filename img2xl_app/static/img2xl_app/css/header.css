@@ -1,85 +1,120 @@
+@charset "UTF-8";
 /* Cấu trúc Header cố định ở trên cùng */
 .main-header {
-    height: 60px;
-    z-index: 1050;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  height: 60px;
+  z-index: 1050;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .footer-brand {
-    font-size: 1.3rem;
-    letter-spacing: -0.5px;
+  font-size: 1.3rem;
+  letter-spacing: -0.5px;
 }
 
 /* Tinh chỉnh Dropdown cho hiện đại */
 .main-header .dropdown-menu {
-    margin-top: 10px;
-    border-radius: 8px;
-    min-width: 200px;
+  margin-top: 10px;
+  border-radius: 8px;
+  min-width: 200px;
 }
 
 /* Quan trọng: Đẩy nội dung trang xuống để không bị Header che mất */
 body {
-    padding-top: 75px; /* Cao hơn chiều cao header một chút */
-    margin-bottom: 0; /* Bỏ margin bottom của footer cũ nếu có */
+  padding-top: 75px; /* Cao hơn chiều cao header một chút */
+  margin-bottom: 0; /* Bỏ margin bottom của footer cũ nếu có */
 }
 
 /* Hiệu ứng hover cho link trong dropdown */
 .dropdown-item {
-    transition: all 0.2s;
+  transition: all 0.2s;
 }
+
 .dropdown-item:hover {
-    background-color: #f8f9fa;
-    padding-left: 1.5rem;
+  background-color: #f8f9fa;
+  padding-left: 1.5rem;
 }
 
 .navbar .mx-auto a:hover {
-    color: #007bff !important; /* Đổi sang màu xanh primary khi hover */
-    text-decoration: underline !important;
-    transition: 0.3s;
+  color: #007bff !important; /* Đổi sang màu xanh primary khi hover */
+  text-decoration: underline !important;
+  transition: 0.3s;
 }
 
 /* Style bổ sung cho danh sách thông báo */
-.bg-light-blue { background-color: #f0f7ff; }
-.noti-item:hover { background-color: #f8f9fa; cursor: default; }
-.noti-item .noti-actions { opacity: 0; transition: 0.2s; }
-.noti-item:hover .noti-actions { opacity: 1; }
-
-/* Tùy chỉnh thanh cuộn cho mượt */
-.notification-list::-webkit-scrollbar { width: 5px; }
-.notification-list::-webkit-scrollbar-track { background: #f1f1f1; }
-.notification-list::-webkit-scrollbar-thumb { background: #ccc; border-radius: 10px; }
-.notification-list::-webkit-scrollbar-thumb:hover { background: #aaa; }
-
-/* Trạng thái chung của item: Không có hiệu ứng khi rê chuột */
-.noti-item {
-    cursor: pointer;
-    transition: none !important;
-    border-left: 3px solid transparent;
-    background-color: #ffffff !important; /* Mặc định là trắng */
+.bg-light-blue {
+  background-color: #f0f7ff;
 }
 
 .noti-item:hover {
-    background-color: #ffffff !important; /* Ép không đổi màu khi hover */
-    text-decoration: none;
+  background-color: #f8f9fa;
+  cursor: default;
+}
+
+.noti-item .noti-actions {
+  opacity: 0;
+  transition: 0.2s;
+}
+
+.noti-item:hover .noti-actions {
+  opacity: 1;
+}
+
+/* Tùy chỉnh thanh cuộn cho mượt */
+.notification-list::-webkit-scrollbar {
+  width: 5px;
+}
+
+.notification-list::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+
+.notification-list::-webkit-scrollbar-thumb:hover {
+  background: #aaa;
+}
+
+/* Trạng thái chung của item: Không có hiệu ứng khi rê chuột */
+.noti-item {
+  cursor: pointer;
+  transition: none !important;
+  border-left: 3px solid transparent;
+  background-color: #ffffff !important; /* Mặc định là trắng */
+}
+
+.noti-item:hover {
+  background-color: #ffffff !important; /* Ép không đổi màu khi hover */
+  text-decoration: none;
 }
 
 /* THÔNG BÁO CHƯA ĐỌC: Sáng và có vạch xanh */
 .unread-style {
-    background-color: #f0f7ff !important;
-    border-left: 3px solid #007bff;
+  background-color: #f0f7ff !important;
+  border-left: 3px solid #007bff;
 }
 
 /* THÔNG BÁO ĐÃ ĐỌC: Màu tối hơn (xám nhạt) và chữ mờ đi */
-.noti-item[data-read="true"] {
-    background-color: #f8f9fa !important; /* Màu xám nhạt */
+.noti-item[data-read=true] {
+  background-color: #f8f9fa !important; /* Màu xám nhạt */
 }
 
-.noti-item[data-read="true"] h6,
-.noti-item[data-read="true"] p {
-    color: #868e96 !important; /* Chữ màu xám mờ */
-    font-weight: 400 !important;
+.noti-item[data-read=true] h6,
+.noti-item[data-read=true] p {
+  color: #868e96 !important; /* Chữ màu xám mờ */
+  font-weight: 400 !important;
 }
 
 /* Tùy chỉnh thanh cuộn cho mượt */
-.notification-list::-webkit-scrollbar { width: 4px; }
-.notification-list::-webkit-scrollbar-thumb { background: #d1d1d1; border-radius: 10px; }
+.notification-list::-webkit-scrollbar {
+  width: 4px;
+}
+
+.notification-list::-webkit-scrollbar-thumb {
+  background: #d1d1d1;
+  border-radius: 10px;
+}
+
+/*# sourceMappingURL=header.css.map */
