@@ -14,7 +14,7 @@
 {% endblock %}
 
 {% block content %}
-<body data-user-id="{{ request.user.id }}">
+<body data-user-id="{{ request.user.id }}" >
 
 <div class="container-fluid mt-4 px-4">
 	<div class="row mb-4">
@@ -91,40 +91,42 @@
 					<i class="fas fa-th-large mr-2"></i> <strong>Tất cả hình ảnh</strong>
 				</div>
 				
-				{% for res in results %}
-				<div class="list-group-item list-group-item-action spreadsheet-filter-item"
-					 data-id="{{ res.id }}"
-					 data-created="{{ res.created_at|date:'U' }}"
-					 data-updated="{{ res.updated_at|date:'U' }}">
-					<div class="d-flex justify-content-between align-items-start">
-						<div class="spreadsheet-click-area flex-grow-1">
-							<a href="{% url 'result_detail' res.id %}"
-								class="spreadsheet-title-link">
-								<i class="fas fa-file-excel text-success mr-2"></i>
-								<span class="title-text">{{ res.title }}</span>
-							</a>
-							<div class="small text-muted mt-1">
-								<div><i class="far fa-calendar-alt"></i>
-									Tạo: {{ res.created_at|date:'d/m/Y' }}
-								</div>
-								<div><i class="fas fa-history"></i>
-									Sửa: {{ res.updated_at|date:'d/m/Y' }}
+				<div class ="result-speardsheet" style="min-height: 60vh; max-height: 65vh; overflow-y: auto;">
+					{% for res in results %}
+					<div class="list-group-item list-group-item-action spreadsheet-filter-item"
+						 data-id="{{ res.id }}"
+						 data-created="{{ res.created_at|date:'U' }}"
+						 data-updated="{{ res.updated_at|date:'U' }}">
+						<div class="d-flex justify-content-between align-items-start">
+							<div class="spreadsheet-click-area flex-grow-1">
+								<a href="{% url 'result_detail' res.id %}"
+									class="spreadsheet-title-link">
+									<i class="fas fa-file-excel text-success mr-2"></i>
+									<span class="title-text">{{ res.title }}</span>
+								</a>
+								<div class="small text-muted mt-1">
+									<div><i class="far fa-calendar-alt"></i>
+										Tạo: {{ res.created_at|date:'d/m/Y' }}
+									</div>
+									<div><i class="fas fa-history"></i>
+										Sửa: {{ res.updated_at|date:'d/m/Y' }}
+									</div>
 								</div>
 							</div>
-						</div>
-						<div class="spreadsheet-actions">
-							<button class="btn btn-link btn-sm p-0 text-info btn-edit-title"
-									data-id="{{ res.id }}" data-title="{{ res.title }}">
-								<i class="fas fa-edit"></i>
-							</button>
-							<button class="btn btn-link btn-sm p-0 text-danger btn-delete-res ml-2"
-									data-id="{{ res.id }}">
-								<i class="fas fa-trash"></i>
-							</button>
+							<div class="spreadsheet-actions">
+								<button class="btn btn-link btn-sm p-0 text-info btn-edit-title"
+										data-id="{{ res.id }}" data-title="{{ res.title }}">
+									<i class="fas fa-edit"></i>
+								</button>
+								<button class="btn btn-link btn-sm p-0 text-danger btn-delete-res ml-2"
+										data-id="{{ res.id }}">
+									<i class="fas fa-trash"></i>
+								</button>
+							</div>
 						</div>
 					</div>
+					{% endfor %}
 				</div>
-				{% endfor %}
 			</div>
 		</div>
 		
@@ -146,7 +148,8 @@
 				</div>
 			</div>
 			
-			<div class="row no-gutters" id="image-gallery">
+			<div class="row no-gutters" id="image-gallery"
+				 style="min-height: 60vh; max-height: 65vh; overflow-y: auto;">
 				{% for img in all_images %}
 				<div class="col-xl-2 col-lg-3 col-md-4 col-sm-6 mb-4 px-2 gallery-card"
 					 data-timestamp="{{ img.uploaded_at|date:'U' }}"
@@ -196,7 +199,6 @@
 			</div>
 		</div>
 	</div>
-</div>
 </body>
 {% endblock %}
 
