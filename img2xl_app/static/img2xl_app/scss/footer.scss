@@ -1,0 +1,78 @@
+.site-footer {
+	border-top: 4px solid #007bff;
+	color: #ced4da;
+}
+
+.footer-links {
+	li {
+		margin-bottom: 8px;
+	}
+	
+	a {
+		color: #adb5bd;
+		text-decoration: none;
+		transition: 0.3s;
+		font-size: 0.9rem;
+		
+		&:hover {
+			color: #007bff;
+			padding-left: 5px;
+		}
+	}
+}
+
+.social-icons {
+	margin-top: 15px;
+	
+	a {
+		display: inline-flex;
+		align-items: center;
+		justify-content: center;
+		width: 38px;
+		height: 38px;
+		border-radius: 50%;
+		background: #343a40;
+		color: #fff;
+		margin-left: 10px;
+		transition: all 0.3s ease;
+		text-decoration: none;
+		margin-left: 0;
+		margin-right: 15px;
+		
+		&:hover {
+			transform: translateY(-5px);
+			color: white;
+		}
+		
+		&.fb-icon {
+			&:hover {
+				background-color: #3b5998;
+			}
+		}
+		
+		&.ins-icon {
+			&:hover {
+				background-color: #e4405f;
+			}
+		}
+		
+		&.git-icon {
+			&:hover {
+				background-color: #333;
+			}
+		}
+	}
+}
+
+@media (max-width: 768px) {
+	.text-md-right, .text-md-center {
+		text-align: left !important;
+	}
+	.social-icons {
+		margin-top: 15px;
+	}
+	.social-icons a {
+		margin-left: 0;
+		margin-right: 15px;
+	}
+}
