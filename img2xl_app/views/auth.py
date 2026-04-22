@@ -42,7 +42,7 @@ def send_otp(request):
             if otp_count >= 3:
                 return JsonResponse({
                     'success': False,
-                    'message': u'Bạn đã hết lượt gửi mã (tối đa 3 lần).'
+                    'message': u'Bạn đã hết lượt gửi mã (tối đa 5 lần/1 ngày).'
                 }, status=400)
 
             # Tạo mã 4 số ngẫu nhiên

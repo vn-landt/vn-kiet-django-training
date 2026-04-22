@@ -8,33 +8,35 @@ document.addEventListener('DOMContentLoaded', function () {
 	const submitBtn = document.getElementById('submitBtn');
 	const newPass = document.getElementById('new_password');
 	const confirmPass = document.getElementById('confirm_new_password');
+
 	
 	// --- 1. Sự kiện kiểm tra Email ---
 	emailInput.addEventListener('blur', function () {
-		const email = this.value.trim();
-		if (!email || states.otpVerified) return;
-		
-		apiCheckEmailExists(email).then(data => {
-			const emailError = document.getElementById('email-error');
-			const otpSection = document.getElementById('otp-section');
-			const reqEmail = document.getElementById('req-email');
-			
-			if (data.is_taken) {
-				states.emailExists = true;
-				emailError.style.display = "none";
-				emailInput.classList.add('is-valid');
-				otpSection.style.display = "block";
-				updateTooltipItem(reqEmail, true);
-			} else {
-				states.emailExists = false;
-				emailError.innerText = "Email này chưa được đăng ký!";
-				emailError.style.display = "block";
-				emailInput.classList.add('is-invalid');
-				otpSection.style.display = "none";
-				updateTooltipItem(reqEmail, false);
-			}
-			validateFinal();
-		});
+		setTimeout(() => {
+			const email = this.value.trim();
+			if (!email || states.otpVerified) return;
+			apiCheckEmailExists(email).then(data => {
+				const emailError = document.getElementById('email-error');
+				const otpSection = document.getElementById('otp-section');
+				const reqEmail = document.getElementById('req-email');
+				
+				if (data.is_taken) {
+					states.emailExists = true;
+					emailError.style.display = "none";
+					emailInput.classList.add('is-valid');
+					otpSection.style.display = "block";
+					updateTooltipItem(reqEmail, true);
+				} else {
+					states.emailExists = false;
+					emailError.innerText = "Email này chưa được đăng ký!";
+					emailError.style.display = "block";
+					emailInput.classList.add('is-invalid');
+					otpSection.style.display = "none";
+					updateTooltipItem(reqEmail, false);
+				}
+				validateFinal();
+			});
+		}, 500);
 	});
 	
 	// --- 2. Sự kiện mã OTP ---
