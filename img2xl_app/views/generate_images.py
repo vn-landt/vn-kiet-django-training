@@ -16,7 +16,6 @@ def generate_ai_images(request):
 	is_create_new = request.POST.get('save_db') == 'true'
 	current_result_id = request.POST.get('result_id')
 	languages = request.POST.get('languages', 'all')
-	file_name = request.POST.get('original_filename')
 	
 	# Xử lý files
 	files = request.FILES.getlist('files')
