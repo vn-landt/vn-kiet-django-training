@@ -70,24 +70,28 @@ def send_otp(request):
 
 
 def verify_otp_ajax(request):
-    """Bước 5: Xác nhận mã OTP người dùng nhập (AJAX)"""
     if request.method == "POST":
         try:
-            data = json.loads(request.body)
-            user_otp = data.get('otp')
+            # 1. Thử đọc JSON
+            if request.body:
+                data = json.loads(request.body)
+                user_otp = data.get('otp')
+            else:
+                # 2. Dự phòng nếu gửi kiểu Form truyền thống
+                user_otp = request.POST.get('otp')
+            
             saved_otp = request.session.get('otp_code')
             target_email = request.session.get('otp_target_email')
-
-            if saved_otp and user_otp == saved_otp:
-                # Đánh dấu session đã xác thực thành công cho email cụ thể này
+            
+            if saved_otp and str(user_otp) == str(saved_otp):
                 request.session['is_otp_verified'] = True
                 request.session['verified_email'] = target_email
                 return JsonResponse({'success': True})
-            else:
-                return JsonResponse({'success': False, 'message': u'Mã xác nhận không đúng.'}, status=400)
-        except:
-            return JsonResponse({'success': False}, status=400)
-
+            
+            # Trả về lỗi 400 nhưng có message rõ ràng (18 bytes là quá ngắn)
+            return JsonResponse({'success': False, 'message': u'Mã không đúng.'}, status=400)
+        except Exception as e:
+            return JsonResponse({'success': False, 'message': u'Lỗi hệ thống.'}, status=400)
     return JsonResponse({'success': False}, status=405)
 
 

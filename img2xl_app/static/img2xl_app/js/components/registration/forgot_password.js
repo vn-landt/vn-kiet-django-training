@@ -10,6 +10,25 @@ document.addEventListener('DOMContentLoaded', function () {
 	const confirmPass = document.getElementById('confirm_new_password');
 
 	
+	const pwFields = [document.getElementById('new_password'), document.getElementById('confirm_new_password')];
+	pwFields.forEach(field => {
+		if (field) {
+			// Tạo icon con mắt
+			const eye = document.createElement('i');
+			eye.className = 'fa fa-eye toggle-password';
+			eye.style = "position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999;";
+			
+			// Chèn vào sau input
+			field.parentElement.appendChild(eye);
+	
+			eye.addEventListener('click', function() {
+				const isPass = field.type === 'password';
+				field.type = isPass ? 'text' : 'password';
+				this.classList.toggle('fa-eye');
+				this.classList.toggle('fa-eye-slash');
+			});
+		}
+	});
 	// --- 1. Sự kiện kiểm tra Email ---
 	emailInput.addEventListener('blur', function () {
 		setTimeout(() => {
