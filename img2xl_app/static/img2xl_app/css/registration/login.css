@@ -1,3 +1,4 @@
+@charset "UTF-8";
 body {
   font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -102,6 +103,32 @@ button:hover {
   100% {
     transform: rotate(360deg);
   }
+}
+/* Container bao bọc ô mật khẩu */
+.password-field-container {
+  position: relative;
+  display: block; /* Đảm bảo nó chiếm hết chiều ngang */
+}
+
+/* Style cho icon con mắt */
+.toggle-password {
+  position: absolute;
+  right: 15px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  z-index: 10;
+  color: #666;
+  transition: color 0.3s;
+}
+
+.toggle-password:hover {
+  color: #333;
+}
+
+/* Đảm bảo ô input có đủ khoảng trống ở bên phải cho icon */
+#id_password {
+  padding-right: 40px !important;
 }
 
 /*# sourceMappingURL=login.css.map */
