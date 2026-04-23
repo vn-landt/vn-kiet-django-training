@@ -59,7 +59,7 @@ def export(request, result_id):
 
 def _export_excel(result, table_data, start_coords=None, end_coords=None):
     # 1. Xử lý tên file: bienlai1.png -> bienlai1
-    original_name = result.uploaded_file.filename
+    original_name = result.title
     base_name = os.path.splitext(original_name)[0].replace(' ', '_')
     
     # Dùng lại logic CSV của bạn nhưng với tên file đã sạch
