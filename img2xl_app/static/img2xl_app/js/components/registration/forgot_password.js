@@ -10,27 +10,71 @@ document.addEventListener('DOMContentLoaded', function () {
 	const confirmPass = document.getElementById('confirm_new_password');
 
 	
+	const pwFields = [document.getElementById('new_password'), document.getElementById('confirm_new_password')];
+	pwFields.forEach(field => {
+		if (field) {
+			// Tạo icon con mắt
+			const eye = document.createElement('i');
+			eye.className = 'fa fa-eye toggle-password';
+			eye.style = "position: absolute; right: 10px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #999;";
+			
+			// Chèn vào sau input
+			field.parentElement.appendChild(eye);
+	
+			eye.addEventListener('click', function() {
+				const isPass = field.type === 'password';
+				field.type = isPass ? 'text' : 'password';
+				this.classList.toggle('fa-eye');
+				this.classList.toggle('fa-eye-slash');
+			});
+		}
+	});
 	// --- 1. Sự kiện kiểm tra Email ---
 	emailInput.addEventListener('blur', function () {
 		setTimeout(() => {
 			const email = this.value.trim();
+			const emailError = document.getElementById('email-error');
+			const otpSection = document.getElementById('otp-section');
+			const reqEmail = document.getElementById('req-email');
+	
+			// 1. Nếu trống hoặc đã xác thực OTP xong thì không làm gì
 			if (!email || states.otpVerified) return;
-			apiCheckEmailExists(email).then(data => {
-				const emailError = document.getElementById('email-error');
-				const otpSection = document.getElementById('otp-section');
-				const reqEmail = document.getElementById('req-email');
+	
+			// 2. Kiểm tra định dạng Email bằng Regex
+			const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+			if (!emailRegex.test(email)) {
+				states.emailExists = false; // Hoặc một biến trạng thái định dạng riêng nếu bạn có
+				emailError.innerText = "Định dạng email không hợp lệ!";
+				emailError.style.display = "block";
 				
+				emailInput.classList.remove('is-valid');
+				emailInput.classList.add('is-invalid');
+				
+				otpSection.style.display = "none";
+				updateTooltipItem(reqEmail, false);
+				validateFinal();
+				return; // DỪNG LẠI, không gọi API nữa
+			}
+	
+			// 3. Nếu định dạng đúng, tiến hành gọi API kiểm tra tồn tại
+			apiCheckEmailExists(email).then(data => {
 				if (data.is_taken) {
 					states.emailExists = true;
 					emailError.style.display = "none";
+					
+					emailInput.classList.remove('is-invalid');
 					emailInput.classList.add('is-valid');
+					
 					otpSection.style.display = "block";
 					updateTooltipItem(reqEmail, true);
 				} else {
 					states.emailExists = false;
 					emailError.innerText = "Email này chưa được đăng ký!";
 					emailError.style.display = "block";
+					
+					emailInput.classList.remove('is-valid');
 					emailInput.classList.add('is-invalid');
+					
 					otpSection.style.display = "none";
 					updateTooltipItem(reqEmail, false);
 				}
@@ -38,7 +82,6 @@ document.addEventListener('DOMContentLoaded', function () {
 			});
 		}, 500);
 	});
-	
 	// --- 2. Sự kiện mã OTP ---
 	actionOtpBtn.addEventListener('click', function () {
 		if (!states.codeSent) {

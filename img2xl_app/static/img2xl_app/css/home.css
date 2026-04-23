@@ -1,3 +1,4 @@
+@charset "UTF-8";
 body {
   background-color: #f0f2f5;
   color: #1c1e21;
@@ -282,6 +283,23 @@ body {
   font-size: 12px;
   font-weight: bold;
   text-align: center;
+}
+
+/* Badge "Đã cắt" đè lên ảnh */
+.batch-item-wrapper .badge-cropped {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 5;
+  padding: 5px 10px;
+  font-size: 0.75rem;
+  box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+  pointer-events: none; /* Không cản trở việc click vào ảnh */
+}
+
+/* Ảnh đã cắt có thể cho mờ đi một chút để dễ nhận diện */
+.img-is-cropped {
+  opacity: 0.85;
 }
 
 /*# sourceMappingURL=home.css.map */

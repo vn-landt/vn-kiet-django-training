@@ -55,3 +55,10 @@ function setupCSRF() {
 		}
 	});
 }
+
+/* Lấy danh sách thông báo mới nhất */
+window.triggerHeaderUpdate = function() {
+    if (typeof window.refreshNotifications === 'function') {
+        window.refreshNotifications();
+    }
+};

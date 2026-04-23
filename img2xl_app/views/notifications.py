@@ -1,7 +1,28 @@
 # -*- coding: utf-8 -*-
+from django.contrib.auth.decorators import login_required
 from django.http import JsonResponse
+from django.shortcuts import render
 
 from img2xl_app.models import Notification
+
+
+# Lấy danh sách thông báo mới nah61t
+@login_required
+def api_get_latest_notifications(request):
+    try:
+        # Lấy dữ liệu
+        notifications = Notification.objects.filter(user=request.user)[:15]
+        
+        # Render ra file html nhỏ
+        return render(request, 'img2xl_app/includes/noti_list_items.html', {
+            'notifications': notifications
+        })
+    except Exception as e:
+        # Nếu lỗi, nó sẽ in ra màn hình terminal của bạn
+        print("Lỗi View: ", str(e))
+        from django.http import HttpResponse
+        return HttpResponse(str(e), status=500)
+
 
 # 1. Đánh dấu một thông báo là đã đọc
 def mark_as_read(request, noti_id):

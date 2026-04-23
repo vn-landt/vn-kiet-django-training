@@ -237,14 +237,27 @@ $(document).ready(function () {
 		const card = $(this).closest('.gallery-card');
 		const imgId = card.data('img-id');
 		
-		Swal.fire({title: 'Xóa ảnh này?', icon: 'warning', showCancelButton: true}).then((result) => {
+		Swal.fire({
+			title: 'Xóa ảnh này?',
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonText: 'Xóa'
+		}).then((result) => {
 			if (result.isConfirmed) {
 				apiDeleteImage(imgId).done(() => {
-					card.fadeOut(300, function () {
-						$(this).remove();
+					// Hiển thị thông báo thành công trước
+					Swal.fire({
+						title: 'Đã xóa!',
+						text: 'Dữ liệu đang được cập nhật...',
+						icon: 'success',
+						timer: 1500, // Tự đóng sau 1.5s
+						showConfirmButton: true,
+						confirmButtonText: 'OK',
+						allowOutsideClick: true // Click ra ngoài cũng tính là xong
+					}).then(() => {
+						// Chỉ reload SAU KHI thông báo đã đóng (ấn OK hoặc click ra ngoài hoặc hết timer)
+						location.reload();
 					});
-					selectedImageIds.delete(imgId);
-					updateImageBulkBar();
 				});
 			}
 		});
@@ -255,7 +268,22 @@ $(document).ready(function () {
 		const idsArray = Array.from(selectedImageIds);
 		Swal.fire({title: `Xóa ${idsArray.length} ảnh?`, icon: 'error', showCancelButton: true}).then((result) => {
 			if (result.isConfirmed) {
-				apiBulkDeleteImages(idsArray).done(() => location.reload());
+				apiBulkDeleteImages(idsArray).done(() => {
+					Swal.fire({
+						title: 'Đã xóa!',
+						icon: 'success',
+						showConfirmButton: true, // Hiện nút OK
+						allowOutsideClick: true,  // Cho phép click ra ngoài để đóng
+						confirmButtonText: 'Đóng'
+					}).then((result) => {
+						/* Đoạn code này sẽ chạy SAU KHI thông báo đóng lại
+						(do ấn OK hoặc click ra ngoài)
+						*/
+						setTimeout(() => {
+							location.reload();
+						}, 500); // Đợi 500ms rồi mới reload
+					});
+				});
 			}
 		});
 	});
@@ -280,7 +308,7 @@ $(document).ready(function () {
 		}).then((result) => {
 			if (result.isConfirmed) {
 				apiBulkUpdateTime(idsArray, result.value).done(() => {
-					Swal.fire('Thành công!', '', 'success').then(() => location.reload());
+					location.reload();
 				});
 			}
 		});
@@ -297,7 +325,20 @@ $(document).ready(function () {
 				$.post(`/documents/delete-result/${id}/`, function () {
 					$(`.spreadsheet-filter-item[data-id="${id}"]`).remove();
 					$(`.gallery-card[data-spreadsheet-id="${id}"]`).remove();
-					Swal.fire('Đã xóa!', '', 'success');
+					Swal.fire({
+						title: 'Đã xóa!',
+						icon: 'success',
+						showConfirmButton: true, // Hiện nút OK
+						allowOutsideClick: true,  // Cho phép click ra ngoài để đóng
+						confirmButtonText: 'Đóng'
+					}).then((result) => {
+						/* Đoạn code này sẽ chạy SAU KHI thông báo đóng lại
+						(do ấn OK hoặc click ra ngoài)
+						*/
+						setTimeout(() => {
+							location.reload();
+						}, 500); // Đợi 500ms rồi mới reload
+					});
 				});
 			}
 		});
