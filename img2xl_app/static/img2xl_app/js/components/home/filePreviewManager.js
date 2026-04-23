@@ -48,33 +48,42 @@ window.toggleMode = function () {
  * Hiển thị danh sách ảnh Batch
  */
 window.renderBatchList = function () {
-	const container = document.getElementById('batchList');
-	const countDisplay = document.getElementById('fileCount');
-	if (!container) return;
-	
-	container.innerHTML = '';
-	countDisplay.innerText = window.batchFiles.length;
-	
-	const rowHtml = document.createElement('div');
-	rowHtml.className = 'row p-2';
-	container.appendChild(rowHtml);
-	
-	window.batchFiles.forEach((item, index) => {
-		const imageUrl = URL.createObjectURL(item.file);
-		const html = `
+    const container = document.getElementById('batchList');
+    const countDisplay = document.getElementById('fileCount');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    countDisplay.innerText = window.batchFiles.length;
+    
+    const rowHtml = document.createElement('div');
+    rowHtml.className = 'row p-2';
+    container.appendChild(rowHtml);
+    
+    window.batchFiles.forEach((item, index) => {
+       // Tạo URL xem trước
+       const imageUrl = URL.createObjectURL(item.file);
+       
+       const html = `
             <div class="col-6 col-md-4 mb-3">
                 <div class="batch-item-wrapper">
-                    <img src="${imageUrl}" class="batch-img-large">
+                    <img src="${imageUrl}" class="batch-img-large ${item.isCropped ? 'img-is-cropped' : ''}">
+                    
                     <div class="batch-actions-overlay">
                         <button onclick="cropBatchItem(${index})" class="btn btn-primary btn-sm rounded-circle"><i class="fas fa-crop"></i></button>
                         <button onclick="deleteBatchItem(${index})" class="btn btn-danger btn-sm rounded-circle"><i class="fas fa-times"></i></button>
                     </div>
-                    ${item.isCropped ? '<span class="badge badge-success">Đã cắt</span>' : ''}
-                    <div class="batch-file-name text-truncate">${item.originalName}</div>
+
+                    ${item.isCropped ? '<span class="badge badge-success badge-cropped">Đã cắt</span>' : ''}
+                    
+                    <div class="batch-file-name text-truncate" title="${item.originalName}">${item.originalName}</div>
                 </div>
             </div>`;
-		rowHtml.insertAdjacentHTML('beforeend', html);
-	});
+       rowHtml.insertAdjacentHTML('beforeend', html);
+
+       // Giải phóng bộ nhớ sau khi ảnh đã load để tránh bị lag browser
+       const currentImg = rowHtml.lastElementChild.querySelector('img');
+       currentImg.onload = () => URL.revokeObjectURL(imageUrl);
+    });
 };
 
 window.deleteBatchItem = function (index) {

@@ -127,10 +127,9 @@ function processAndExtract() {
 		
 		if (window.extractMode === 'batch' && window.currentBatchCropIndex !== -1) {
 			if (window.batchFiles && window.batchFiles[window.currentBatchCropIndex]) {
-				window.batchFiles[window.currentBatchCropIndex].file = blob;
-				// Lưu luôn tên file vào object để tránh dùng biến toàn cục sai lệch
-				window.batchFiles[window.currentBatchCropIndex].fileName = fileName;
-				window.batchFiles[window.currentBatchCropIndex].isCropped = true;
+			   // Cập nhật File bằng Blob mới (ảnh đã cắt)
+			   window.batchFiles[window.currentBatchCropIndex].file = blob;
+			   window.batchFiles[window.currentBatchCropIndex].isCropped = true;
 			}
 			window.currentBatchCropIndex = -1;
 			if (typeof renderBatchList === 'function') renderBatchList();
