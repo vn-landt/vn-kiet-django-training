@@ -29,3 +29,13 @@ function apiDeleteAll() {
 		headers: {'X-CSRFToken': getCSRFToken()}
 	}).then(res => res.json());
 }
+
+// Service lấy nội dung HTML của danh sách thông báo
+function apiGetNotificationsHtml() {
+	return fetch('/api/get-latest-html/', { // Thay URL đúng của bạn
+		headers: {'X-CSRFToken': getCSRFToken()}
+	}).then(res => {
+		if (!res.ok) throw new Error("Network response was not ok");
+		return res.text(); // Trả về dạng chuỗi HTML
+	});
+}

@@ -1,0 +1,31 @@
+{% if notifications %}
+    {% for noti in notifications %}
+    <div id="noti-{{ noti.id }}"
+         class="noti-item p-3 border-bottom {% if not noti.is_read %}unread-style{% endif %}"
+         data-read="{{ noti.is_read|yesno:'true,false' }}"
+         onclick="handleNotiToggle(event, '{{ noti.id }}')"
+         style="cursor: pointer; position: relative;">
+        
+        <div class="d-flex justify-content-between align-items-start">
+            <h6 class="mb-1 text-primary" style="font-size: 0.9rem; padding-right: 25px;">
+                {{ noti.title }}
+            </h6>
+            <div class="noti-actions">
+                <button class="btn btn-sm text-danger p-0" onclick="deleteNoti(event, '{{ noti.id }}')">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+        </div>
+        
+        <p class="mb-1 text-muted small">{{ noti.message }}</p>
+        <small class="text-secondary" style="font-size: 0.75rem;">
+            {{ noti.created_at|timesince }} trước
+        </small>
+    </div>
+    {% endfor %}
+{% else %}
+    <div class="p-4 text-center text-muted">
+        <i class="fas fa-bell-slash d-block mb-2 fa-2x"></i>
+        Chưa có thông báo nào.
+    </div>
+{% endif %}
