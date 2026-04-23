@@ -26,14 +26,23 @@ function apiSendOtp(email) {
  * Xác nhận mã OTP người dùng nhập
  */
 function apiVerifyOtp(code) {
-	return fetch('/verify-otp-ajax/', {
-		method: 'POST',
-		headers: {
-			'X-CSRFToken': getCookie('csrftoken'),
-			'Content-Type': 'application/json'
-		},
-		body: JSON.stringify({otp: code})
-	}).then(res => res.json());
+    // Chuyển sang dùng URLSearchParams để Django nhận được request.POST
+    const params = new URLSearchParams();
+    params.append('otp', code);
+
+    return fetch('/verify-otp-ajax/', {
+       method: 'POST',
+       headers: {
+          'X-CSRFToken': getCookie('csrftoken'),
+          'Content-Type': 'application/x-www-form-urlencoded'
+       },
+       body: params
+    }).then(res => {
+        if (!res.ok) {
+            console.error("Lỗi Server:", res.status);
+        }
+        return res.json();
+    });
 }
 
 /**
